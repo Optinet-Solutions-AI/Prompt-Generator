@@ -61,6 +61,7 @@ export function ReferencePromptDataDisplay({ data, isLoading, disabled, brand, o
         body: JSON.stringify({
           field,
           brand,
+          category,
           temperature,
           instruction:     fieldInstructions[field] || '',
           format_layout:   data.format_layout,
@@ -78,6 +79,40 @@ export function ReferencePromptDataDisplay({ data, isLoading, disabled, brand, o
       const result = await response.json();
       if (result.value) {
         onChange(field, result.value);
+
+        // After updating a description field, auto-regenerate positive_prompt
+        // so it stays in sync without the user needing to click it manually.
+        if (field !== 'positive_prompt') {
+          // Build updated field values — use the new value for the field just changed,
+          // keep everything else as-is from current data.
+          const updatedFields = {
+            subject:         field === 'subject'    ? result.value : data.subject,
+            lighting:        field === 'lighting'   ? result.value : data.lighting,
+            mood:            field === 'mood'        ? result.value : data.mood,
+            background:      field === 'background' ? result.value : data.background,
+          };
+
+          const ppResponse = await fetch('/api/regenerate-reference', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              field: 'positive_prompt',
+              brand,
+              category,
+              temperature,
+              instruction: '',
+              format_layout:   data.format_layout,
+              primary_object:  data.primary_object,
+              ...updatedFields,
+              positive_prompt: data.positive_prompt,
+            }),
+          });
+
+          if (ppResponse.ok) {
+            const ppResult = await ppResponse.json();
+            if (ppResult.value) onChange('positive_prompt', ppResult.value);
+          }
+        }
       }
     } catch (error) {
       console.error('Error regenerating field:', error);
@@ -101,7 +136,9 @@ export function ReferencePromptDataDisplay({ data, isLoading, disabled, brand, o
           body: JSON.stringify({
             field,
             brand,
+            category,
             temperature,
+            instruction: '',
             format_layout:   data.format_layout,
             primary_object:  data.primary_object,
             subject:         data.subject,
@@ -134,7 +171,9 @@ export function ReferencePromptDataDisplay({ data, isLoading, disabled, brand, o
         body: JSON.stringify({
           field: 'positive_prompt',
           brand,
+          category,
           temperature,
+          instruction: '',
           format_layout:   data.format_layout,
           primary_object:  data.primary_object,
           subject:         subjectResult?.value    ?? data.subject,

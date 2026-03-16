@@ -6,7 +6,7 @@ import { FavoriteHeart } from "./FavoriteHeart";
 import type { AppState, PromptMetadata, ReferencePromptData } from "@/types/prompt";
 import { BRANDS } from "@/types/prompt";
 import { usePromptList } from "@/hooks/usePromptList";
-import { ImageModal } from "./ImageModal";
+import { ImageModal, type GalleryImage } from "./ImageModal";
 import { SavePromptModal } from "./SavePromptModal";
 import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";
@@ -159,10 +159,7 @@ export function ResultDisplay({
   });
   const [imageError, setImageError] = useState<string | null>(null);
   const [modalImage, setModalImage] = useState<{
-    displayUrl: string;
-    editUrl: string;
-    provider: "chatgpt" | "gemini";
-    imageId: string;
+    initialIndex: number;
   } | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState(prompt);
@@ -873,6 +870,12 @@ export function ResultDisplay({
               const chatgptWithIndex = generatedImages.chatgpt.map((img, idx) => ({ ...img, originalIndex: idx }));
               const geminiWithIndex = generatedImages.gemini.map((img, idx) => ({ ...img, originalIndex: idx }));
               const allImages = [...chatgptWithIndex, ...geminiWithIndex];
+              const flatGallery: GalleryImage[] = allImages.map(img => ({
+                displayUrl: img.displayUrl,
+                editUrl: img.editUrl,
+                provider: img.provider,
+                imageId: `${img.provider}-${img.originalIndex}-${img.displayUrl}`,
+              }));
               const groupedByRef = allImages.reduce(
                 (acc, img) => {
                   const label = img.referenceLabel || "Unknown";
@@ -902,14 +905,10 @@ export function ResultDisplay({
                         <div
                           key={`${label}-${img.provider}-${index}`}
                           className="relative group cursor-pointer aspect-square"
-                          onClick={() =>
-                            setModalImage({
-                              displayUrl: img.displayUrl,
-                              editUrl: img.editUrl,
-                              provider: img.provider,
-                              imageId,
-                            })
-                          }
+                          onClick={() => {
+                            const flatIdx = flatGallery.findIndex(g => g.imageId === imageId);
+                            setModalImage({ initialIndex: flatIdx >= 0 ? flatIdx : 0 });
+                          }}
                         >
                           <div className="absolute inset-0 bg-primary/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
                             <span className="text-primary-foreground bg-primary/80 px-2 py-1 rounded text-xs font-medium">
@@ -977,22 +976,30 @@ export function ResultDisplay({
         )}
       </div>
 
-      {/* Image Modal */}
-      {modalImage && (
-        <ImageModal
-          isOpen={!!modalImage}
-          onClose={() => setModalImage(null)}
-          displayUrl={modalImage.displayUrl}
-          editUrl={modalImage.editUrl}
-          provider={modalImage.provider}
-          imageId={modalImage.imageId}
-          liked={favorites.has(modalImage.imageId)}
-          onToggleFavorite={handleToggleFavorite}
-          onImageUpdated={(newDisplayUrl, newEditUrl) => {
-            setModalImage((prev) => (prev ? { ...prev, displayUrl: newDisplayUrl, editUrl: newEditUrl } : null));
-          }}
-        />
-      )}
+      {/* Image Gallery Modal */}
+      {modalImage && (() => {
+        const chatgptImgs = generatedImages.chatgpt.map((img, idx) => ({
+          displayUrl: img.displayUrl, editUrl: img.editUrl,
+          provider: 'chatgpt' as const,
+          imageId: `chatgpt-${idx}-${img.displayUrl}`,
+        }));
+        const geminiImgs = generatedImages.gemini.map((img, idx) => ({
+          displayUrl: img.displayUrl, editUrl: img.editUrl,
+          provider: 'gemini' as const,
+          imageId: `gemini-${idx}-${img.displayUrl}`,
+        }));
+        const galleryImages: GalleryImage[] = [...chatgptImgs, ...geminiImgs];
+        return (
+          <ImageModal
+            isOpen={true}
+            onClose={() => setModalImage(null)}
+            allImages={galleryImages}
+            initialIndex={modalImage.initialIndex}
+            likedImages={favorites}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        );
+      })()}
     </div>
   );
 }

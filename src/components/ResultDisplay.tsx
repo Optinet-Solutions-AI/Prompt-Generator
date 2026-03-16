@@ -16,7 +16,6 @@ import { CreateBlendedPromptDialog } from "./CreateBlendedPromptDialog";
 import type { GeneratedImages } from "@/hooks/usePromptGenerator";
 import { useElapsedTime } from "@/hooks/useElapsedTime";
 import { normalizeN8nImageResponse } from "@/lib/n8nImage";
-import { ImageSizeSelect } from "./ImageSizeSelect";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -80,8 +79,11 @@ export function ResultDisplay({
   // Airtable record ID for the currently selected reference (needed for archive)
   const selectedRecordId = metadata?.reference ? getRecordId(metadata.reference, metadata?.brand || '') : '';
 
-  // Image size selection for generation
-  const [imageSize, setImageSize] = useState<string>("default");
+  // Resolution and backend selection for image generation
+  type Resolution = "1K" | "2K" | "4K";
+  type BackendSource = "n8n" | "cloud-run";
+  const [resolution, setResolution] = useState<Resolution>("1K");
+  const [backendSource, setBackendSource] = useState<BackendSource>("n8n");
 
   // Create blended prompt dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -331,7 +333,10 @@ export function ResultDisplay({
           prompt: editablePrompt,
           provider,
           aspectRatio: metadata?.aspectRatio || "1:1",
-          imageSize,
+          backend: backendSource,
+          resolution,
+          // also send imageSize for n8n backward compat
+          imageSize: backendSource === "n8n" ? "default" : resolution,
         }),
       });
 
@@ -749,14 +754,56 @@ export function ResultDisplay({
       {/* Image Generation Section */}
       <div className="bg-card rounded-xl border border-border p-4 sm:p-6 shadow-md">
         <p className="text-center text-muted-foreground text-xs sm:text-sm mb-4">Generate images using this prompt</p>
-        <div className="mb-4">
-          <ImageSizeSelect
-            label="Image Size"
-            value={imageSize}
-            onChange={setImageSize}
-            placeholder="Default (provider decides)"
-          />
+
+        {/* Resolution toggle */}
+        <div className="mb-3">
+          <p className="text-center text-xs text-muted-foreground mb-2">Resolution</p>
+          <div className="flex justify-center gap-2">
+            {(["1K", "2K", "4K"] as const).map((r) => (
+              <Button
+                key={r}
+                type="button"
+                variant={resolution === r ? "default" : "outline"}
+                size="sm"
+                onClick={() => setResolution(r)}
+                className={`min-w-[52px] ${resolution === r ? "gradient-primary" : ""}`}
+              >
+                {r}
+              </Button>
+            ))}
+          </div>
         </div>
+
+        {/* Backend selector */}
+        <div className="mb-4">
+          <p className="text-center text-xs text-muted-foreground mb-2">Image Generator</p>
+          <div className="flex justify-center gap-2">
+            <Button
+              type="button"
+              variant={backendSource === "n8n" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setBackendSource("n8n")}
+              className={`min-w-[80px] ${backendSource === "n8n" ? "gradient-primary" : ""}`}
+            >
+              n8n
+            </Button>
+            <Button
+              type="button"
+              variant={backendSource === "cloud-run" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setBackendSource("cloud-run")}
+              className={`min-w-[100px] ${backendSource === "cloud-run" ? "gradient-primary" : ""}`}
+            >
+              Cloud Run
+            </Button>
+          </div>
+          {backendSource === "cloud-run" && (
+            <p className="text-center text-[11px] text-muted-foreground/60 mt-1.5">
+              High-res via Cloud Run · {resolution} output
+            </p>
+          )}
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
           <Button
             onClick={() => handleGenerateImage("chatgpt")}

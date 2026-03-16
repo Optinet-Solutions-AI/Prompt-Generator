@@ -57,14 +57,12 @@ export function ImageModal({
 
   useEffect(() => { if (isOpen) setActiveIdx(initialIndex); }, [isOpen, initialIndex]);
 
-  // Resolve active image
   const current: GalleryImage = isGallery
     ? { ...allImages[activeIdx], ...(updatedUrlsRef.current.get(allImages[activeIdx].imageId) ?? {}) }
     : { displayUrl: displayUrl || '', editUrl: editUrl || '', provider: provider || 'gemini', imageId: imageId || '' };
 
   const currentLiked = isGallery ? (likedImages?.has(current.imageId) ?? false) : (liked ?? false);
 
-  // Elapsed time
   useEffect(() => {
     if (isEditing) {
       setElapsedTime(0);
@@ -75,7 +73,6 @@ export function ImageModal({
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isEditing]);
 
-  // Keyboard nav
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') { onClose(); return; }
     if (!showStrip) return;
@@ -116,7 +113,7 @@ export function ImageModal({
         if (isGallery) updatedUrlsRef.current.set(current.imageId, { displayUrl: newDisplay, editUrl: newEdit });
         setEditInstructions('');
         onImageUpdated?.(newDisplay, newEdit);
-        setActiveIdx(i => i); // trigger re-render
+        setActiveIdx(i => i);
       } else throw new Error('No image URL returned');
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Failed to edit image');
@@ -135,15 +132,15 @@ export function ImageModal({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" style={{ zIndex: 1000 }} onClick={handleClose} />
 
-      {/* Vertical stack: modal on top, filmstrip below */}
+      {/* Row: modal + right-side thumbnail strip */}
       <div
-        className="fixed inset-0 flex flex-col items-center justify-center gap-3 p-4 pointer-events-none"
+        className="fixed inset-0 flex items-center justify-center gap-4 p-4 pointer-events-none"
         style={{ zIndex: 1001 }}
       >
         {/* ── Main modal ── */}
         <div
           className="pointer-events-auto bg-card rounded-2xl border border-border/60 shadow-2xl flex flex-col overflow-hidden"
-          style={{ width: 'min(88vw, 780px)', maxHeight: showStrip ? '76vh' : '88vh' }}
+          style={{ width: 'min(88vw, 760px)', maxHeight: '88vh' }}
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
@@ -183,7 +180,7 @@ export function ImageModal({
               src={current.displayUrl}
               alt="Generated image"
               className="max-w-full max-h-full object-contain rounded-lg"
-              style={{ maxHeight: 'min(46vh, 420px)' }}
+              style={{ maxHeight: 'min(50vh, 480px)' }}
             />
           </div>
 
@@ -193,7 +190,7 @@ export function ImageModal({
               placeholder="Enter editing instructions (e.g., 'Make the character face forward', 'Zoom in on the subject')"
               value={editInstructions}
               onChange={e => setEditInstructions(e.target.value)}
-              className="min-h-[72px] resize-none"
+              className="min-h-[80px] resize-none"
               disabled={isEditing}
             />
             {editError && <p className="text-destructive text-sm">{editError}</p>}
@@ -220,34 +217,44 @@ export function ImageModal({
           </div>
         </div>
 
-        {/* ── Horizontal filmstrip (below the modal) ── */}
+        {/* ── Right-side thumbnail strip (vertical, 3 visible, scrollable) ── */}
         {showStrip && (
           <div
-            className="pointer-events-auto bg-card/95 backdrop-blur rounded-2xl border border-border/60 shadow-2xl shrink-0 overflow-x-auto"
-            style={{ width: 'min(88vw, 780px)' }}
+            className="pointer-events-auto flex flex-col bg-card/95 backdrop-blur rounded-2xl border border-border/60 shadow-2xl overflow-hidden shrink-0"
+            style={{ width: 152, height: 'min(88vh, 500px)' }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2.5 px-3 py-3">
+            {/* Header */}
+            <div className="px-3 py-2.5 border-b border-border/40 text-center shrink-0">
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                {activeIdx + 1} / {allImages.length}
+              </span>
+            </div>
+            {/* Scrollable list of thumbnails */}
+            <div className="overflow-y-auto flex-1 p-2 space-y-2">
               {allImages.map((img, i) => {
                 const display = { ...img, ...(updatedUrlsRef.current.get(img.imageId) ?? {}) };
                 const isActive = activeIdx === i;
-                const providerIcon = img.provider === 'chatgpt' ? '🤖' : '💎';
                 return (
                   <button
                     key={img.imageId}
                     onClick={() => { setActiveIdx(i); setEditInstructions(''); setEditError(null); }}
-                    className={`relative shrink-0 rounded-xl overflow-hidden border-2 transition-all duration-150 ${
+                    title={img.provider === 'chatgpt' ? 'ChatGPT' : 'Gemini'}
+                    className={`relative w-full rounded-xl overflow-hidden border-2 block transition-all duration-150 ${
                       isActive
                         ? 'border-primary shadow-lg shadow-primary/40 scale-95'
                         : 'border-transparent hover:border-border/60 hover:scale-[0.97]'
                     }`}
-                    style={{ width: 96, height: 96 }}
+                    style={{ aspectRatio: '1' }}
                   >
                     <img src={display.displayUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
                     {/* Provider badge */}
-                    <span className="absolute bottom-1 right-1 text-[10px] leading-none bg-black/60 rounded px-1 py-0.5">
-                      {providerIcon}
+                    <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white rounded px-1 py-0.5 leading-none">
+                      {img.provider === 'chatgpt' ? 'GPT' : 'GEM'}
                     </span>
+                    {isActive && (
+                      <span className="absolute inset-0 ring-2 ring-primary ring-inset rounded-xl pointer-events-none" />
+                    )}
                   </button>
                 );
               })}

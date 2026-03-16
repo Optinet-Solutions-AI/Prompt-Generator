@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Heart, Loader2, AlertTriangle, Download, FileCode, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { X, Heart, Loader2, AlertTriangle, Download, FileCode, ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LikedImageCard } from './LikedImageCard';
 import { HtmlConversionModal } from './HtmlConversionModal';
 
 const airtableConfig = {
@@ -83,20 +82,16 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (activeIdx === null) {
-      if (e.key === 'Escape') onClose();
-      return;
-    }
-    if (e.key === 'Escape') { setActiveIdx(null); return; }
+    if (e.key === 'Escape') { onClose(); return; }
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIdx(i => (i !== null && i < validRecords.length - 1 ? i + 1 : i));
+      setActiveIdx(i => (i !== null && i < validRecords.length - 1 ? i + 1 : i !== null ? i : 0));
     }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIdx(i => (i !== null && i > 0 ? i - 1 : i));
     }
-  }, [activeIdx, validRecords.length, onClose]);
+  }, [validRecords.length, onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -122,10 +117,8 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
 
   const handleUnlike = async (recordId: string, imgUrl: string) => {
     setRecords(prev => prev.filter(r => getRecordId(r) !== recordId));
-    if (activeIdx !== null) {
-      const newLen = validRecords.length - 1;
-      setActiveIdx(newLen === 0 ? null : Math.min(activeIdx, newLen - 1));
-    }
+    const newLen = validRecords.length - 1;
+    setActiveIdx(newLen === 0 ? null : activeIdx !== null ? Math.min(activeIdx, newLen - 1) : null);
     try {
       await fetch('https://automateoptinet.app.n8n.cloud/webhook/unlike-img', {
         method: 'POST',
@@ -147,11 +140,9 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
 
   if (!isOpen) return null;
 
-  const inSplitView = activeIdx !== null && validRecords.length > 0;
-
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — always closes the panel */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
         style={{ zIndex: 998 }}
@@ -159,7 +150,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
         aria-hidden="true"
       />
 
-      {/* Panel */}
+      {/* Panel — always split layout */}
       <div
         role="dialog"
         aria-modal="true"
@@ -171,47 +162,75 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
           zIndex: 999,
           top: 'max(4vh, 16px)',
           height: 'min(92vh, calc(100vh - 32px))',
-          width: inSplitView ? 'min(92vw, 1000px)' : 'min(88vw, 680px)',
+          width: 'min(92vw, 1040px)',
           boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
-          transition: 'width 0.25s ease',
         }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/60 bg-card/95 backdrop-blur shrink-0">
           <div className="flex items-center gap-3">
-            {inSplitView && (
-              <button
-                onClick={() => setActiveIdx(null)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Grid
-              </button>
-            )}
             <Heart className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-bold uppercase tracking-widest text-foreground">{headerLabel}</h2>
-            {inSplitView && (
+            {validRecords.length > 0 && activeIdx !== null && (
               <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                {activeIdx! + 1} / {validRecords.length}
+                {activeIdx + 1} / {validRecords.length}
+              </span>
+            )}
+            {validRecords.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {validRecords.length} image{validRecords.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-            aria-label="Close panel"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
+          <div className="flex items-center gap-2">
+            {validRecords.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleDownloadAll} className="gap-1.5 h-7 text-xs">
+                <Download className="w-3 h-3" />
+                Download All
+              </Button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Close panel"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
 
-        {/* Body */}
+        {/* Body — always split: thumbnail strip left + preview right */}
         <div className="flex-1 overflow-hidden flex min-h-0">
-          {inSplitView ? (
-            /* ── SPLIT VIEW ── */
-            <>
-              {/* Thumbnail strip */}
-              <div className="w-[120px] shrink-0 overflow-y-auto border-r border-border/40 bg-muted/10 p-2 space-y-2">
+
+          {/* ── Left: scrollable thumbnail grid ── */}
+          <div className="w-[200px] shrink-0 overflow-y-auto border-r border-border/40 bg-muted/10">
+            {!hasBrand && (
+              <div className="flex flex-col items-center justify-center h-full gap-3 px-4 py-8 text-center">
+                <Heart className="w-12 h-12 text-muted-foreground/15 stroke-1" />
+                <p className="text-xs text-muted-foreground">Select a brand to view favorites</p>
+              </div>
+            )}
+            {hasBrand && loading && (
+              <div className="flex flex-col items-center justify-center h-full gap-3 py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground">Loading...</p>
+              </div>
+            )}
+            {hasBrand && error && !loading && (
+              <div className="flex flex-col items-center justify-center h-full gap-3 px-3 py-8 text-center">
+                <AlertTriangle className="w-8 h-8 text-destructive/50" />
+                <p className="text-xs text-muted-foreground">{error}</p>
+                <Button variant="outline" size="sm" onClick={fetchLikedImages} className="text-xs h-7">Retry</Button>
+              </div>
+            )}
+            {hasBrand && !loading && !error && validRecords.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full gap-3 px-4 py-8 text-center">
+                <Heart className="w-12 h-12 text-muted-foreground/15 stroke-1" />
+                <p className="text-xs text-muted-foreground">No {brand} favorites yet</p>
+              </div>
+            )}
+            {hasBrand && !loading && !error && validRecords.length > 0 && (
+              <div className="p-2 grid grid-cols-2 gap-2">
                 {validRecords.map((record, i) => {
                   const imgUrl = getImgUrl(record)!;
                   const isActive = activeIdx === i;
@@ -221,8 +240,8 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
                       onClick={() => setActiveIdx(i)}
                       className={`w-full aspect-square rounded-xl overflow-hidden border-2 transition-all duration-150 block ${
                         isActive
-                          ? 'border-primary shadow-lg shadow-primary/25 scale-[0.97]'
-                          : 'border-transparent hover:border-border/60 hover:scale-[0.98]'
+                          ? 'border-primary shadow-lg shadow-primary/25 scale-[0.95]'
+                          : 'border-transparent hover:border-border/60 hover:scale-[0.97]'
                       }`}
                     >
                       <img src={imgUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -230,10 +249,21 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
                   );
                 })}
               </div>
+            )}
+          </div>
 
-              {/* Main preview */}
-              <div className="flex-1 flex flex-col min-w-0 bg-background/30">
-                {/* Image area */}
+          {/* ── Right: large preview ── */}
+          <div className="flex-1 flex flex-col min-w-0 bg-background/30">
+            {activeIdx === null ? (
+              /* No image selected yet */
+              <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-8">
+                <ImageIcon className="w-20 h-20 text-muted-foreground/15 stroke-1" />
+                <p className="text-base font-semibold text-muted-foreground">Select an image to preview</p>
+                <p className="text-sm text-muted-foreground/60">Click any thumbnail on the left</p>
+              </div>
+            ) : (
+              <>
+                {/* Image */}
                 <div className="flex-1 overflow-auto flex items-center justify-center p-6 min-h-0">
                   {activeImgUrl && (
                     <img
@@ -300,71 +330,10 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
                     </Button>
                   </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            /* ── GRID VIEW ── */
-            <div className="flex-1 overflow-y-auto p-5">
-              {!hasBrand && (
-                <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
-                  <Heart className="w-20 h-20 text-muted-foreground/15 stroke-1" />
-                  <p className="text-lg font-semibold text-foreground">Select a brand to view favorites</p>
-                  <p className="text-sm text-muted-foreground max-w-xs">Choose a brand from the dropdown above</p>
-                </div>
-              )}
-              {hasBrand && loading && (
-                <div className="flex flex-col items-center justify-center h-full gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Loading favorites...</p>
-                </div>
-              )}
-              {hasBrand && error && !loading && (
-                <div className="flex flex-col items-center justify-center h-full gap-3">
-                  <AlertTriangle className="w-14 h-14 text-destructive/50" />
-                  <p className="text-sm font-medium">Failed to load favorites</p>
-                  <p className="text-xs text-muted-foreground">{error}</p>
-                  <Button variant="outline" size="sm" onClick={fetchLikedImages}>Retry</Button>
-                </div>
-              )}
-              {hasBrand && !loading && !error && validRecords.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
-                  <Heart className="w-20 h-20 text-muted-foreground/15 stroke-1" />
-                  <p className="text-lg font-semibold">No {brand} favorites yet</p>
-                  <p className="text-sm text-muted-foreground max-w-xs">Generate images and like your favorites!</p>
-                </div>
-              )}
-              {hasBrand && !loading && !error && validRecords.length > 0 && (
-                <div className="grid grid-cols-3 gap-4 max-sm:grid-cols-2 justify-items-center">
-                  {validRecords.map((record, i) => {
-                    const imgUrl = getImgUrl(record)!;
-                    const recordId = getRecordId(record);
-                    return (
-                      <LikedImageCard
-                        key={record.id}
-                        imgUrl={imgUrl}
-                        recordId={recordId}
-                        onView={() => setActiveIdx(i)}
-                        onDownload={() => handleDownload(imgUrl, recordId)}
-                        onUnlike={() => handleUnlike(recordId, imgUrl)}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer — grid view only */}
-        {!inSplitView && hasBrand && !loading && !error && validRecords.length > 0 && (
-          <div className="px-5 py-3 border-t border-border/40 bg-card flex justify-between items-center shrink-0">
-            <span className="text-xs text-muted-foreground">{validRecords.length} image{validRecords.length !== 1 ? 's' : ''}</span>
-            <Button variant="outline" size="sm" onClick={handleDownloadAll} className="gap-2 h-8 text-xs">
-              <Download className="w-3.5 h-3.5" />
-              Download All
-            </Button>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* HTML Conversion Modal */}

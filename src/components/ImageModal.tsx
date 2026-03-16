@@ -130,7 +130,7 @@ export function ImageModal({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/75 backdrop-blur-sm" style={{ zIndex: 1000 }} onClick={handleClose} />
+      <div className="fixed inset-0 bg-black/80" style={{ zIndex: 1000 }} onClick={handleClose} />
 
       {/* Row: modal + right-side thumbnail strip */}
       <div
@@ -221,7 +221,7 @@ export function ImageModal({
         {showStrip && (
           <div
             className="pointer-events-auto flex flex-col bg-card/95 backdrop-blur rounded-2xl border border-border/60 shadow-2xl overflow-hidden shrink-0"
-            style={{ width: 152, height: 'min(88vh, 500px)' }}
+            style={{ width: 152, maxHeight: '88vh' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}

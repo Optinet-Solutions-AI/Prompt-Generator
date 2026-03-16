@@ -159,7 +159,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
 
       {/* Dim backdrop — visual only, does NOT block clicks */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/70 animate-fade-in"
         style={{ zIndex: 998, pointerEvents: 'none' }}
         aria-hidden="true"
       />

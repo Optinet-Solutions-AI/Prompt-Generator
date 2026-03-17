@@ -963,6 +963,7 @@ export function ResultDisplay({
             initialIndex={modalImage.initialIndex}
             likedImages={favorites}
             onToggleFavorite={handleToggleFavorite}
+            resolution={resolution}
           />
         );
       })()}

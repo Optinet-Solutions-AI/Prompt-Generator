@@ -14,23 +14,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const webhookUrl = process.env.N8N_WEBHOOK_EDIT_IMAGE;
-
-  if (!webhookUrl) {
-    console.error('N8N_WEBHOOK_EDIT_IMAGE is not configured');
-    return res.status(500).json({ error: 'Image edit webhook URL is not configured' });
-  }
+  const cloudRunUrl = 'https://image-generator-933050179388.us-central1.run.app/edit-image';
 
   try {
-    const { imageUrl, editInstructions, provider } = req.body;
+    const { imageUrl, editInstructions, resolution = '1K' } = req.body;
 
     if (!imageUrl || !editInstructions) {
       return res.status(400).json({ error: 'Image URL and edit instructions are required' });
     }
 
-    console.log('Sending image edit request to n8n:', { imageUrl, editInstructions, provider });
+    console.log('Sending image edit request to Cloud Run:', { imageUrl, editInstructions, resolution });
 
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(cloudRunUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -38,13 +33,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         imageUrl,
         editInstructions,
-        provider,
+        resolution,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('n8n webhook error:', response.status, errorText);
+      console.error('Cloud Run edit error:', response.status, errorText);
       return res.status(response.status).json({
         error: 'Failed to edit image',
         details: errorText,
@@ -52,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await response.json();
-    console.log('n8n image edit response:', data);
+    console.log('Cloud Run image edit response:', data);
 
     // 🔹 Normalize webViewLink
     const webViewLink =

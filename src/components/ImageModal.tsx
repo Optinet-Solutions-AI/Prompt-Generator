@@ -27,6 +27,7 @@ interface ImageModalProps {
   allImages?: GalleryImage[];
   initialIndex?: number;
   likedImages?: Set<string>;
+  resolution?: string;
 }
 
 export function ImageModal({
@@ -42,6 +43,7 @@ export function ImageModal({
   allImages,
   initialIndex = 0,
   likedImages,
+  resolution = '1K',
 }: ImageModalProps) {
   const isGallery = allImages && allImages.length > 0;
   const showStrip = isGallery && allImages.length > 1;
@@ -102,7 +104,7 @@ export function ImageModal({
     try {
       const res = await fetch('/api/edit-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: current.editUrl, editInstructions: editInstructions.trim(), provider: current.provider }),
+        body: JSON.stringify({ imageUrl: current.editUrl, editInstructions: editInstructions.trim(), resolution }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed'); }
       const data = await res.json();

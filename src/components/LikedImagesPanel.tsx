@@ -243,7 +243,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
               </div>
             )}
             {hasBrand && !loading && !error && validRecords.length > 0 && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 {validRecords.map((record, i) => {
                   const imgUrl = getImgUrl(record)!;
                   const recordId = getRecordId(record);

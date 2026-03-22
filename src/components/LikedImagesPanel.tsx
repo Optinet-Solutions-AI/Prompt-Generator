@@ -214,7 +214,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
           </div>
 
           {/* Grid body */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-5">
             {!hasBrand && (
               <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">
                 <Heart className="w-16 h-16 text-muted-foreground/15 stroke-1" />
@@ -243,7 +243,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
               </div>
             )}
             {hasBrand && !loading && !error && validRecords.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 {validRecords.map((record, i) => {
                   const imgUrl = getImgUrl(record)!;
                   const recordId = getRecordId(record);

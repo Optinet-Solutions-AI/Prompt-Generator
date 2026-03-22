@@ -11,7 +11,7 @@ interface LikedImageCardProps {
 
 export function LikedImageCard({ imgUrl, recordId, onView, onDownload, onUnlike }: LikedImageCardProps) {
   return (
-    <div className="relative group w-[180px] h-[180px] max-sm:w-[120px] max-sm:h-[120px] rounded-xl overflow-hidden border border-border shadow-sm">
+    <div className="relative group w-full aspect-square rounded-xl overflow-hidden border border-border/60 shadow-sm">
       <img
         src={imgUrl}
         alt={recordId}

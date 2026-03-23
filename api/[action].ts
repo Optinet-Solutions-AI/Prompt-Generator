@@ -86,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // LIST PROMPTS — used by the reference dropdown
     if (action === 'list-prompts') {
       const data = await sbGet(
-        'web_image_analysis?select=id,prompt_name,brand_name&order=prompt_name.asc'
+        'web_image_analysis?select=id,prompt_name,brand_name,prompt_category&order=prompt_name.asc'
       );
       return res.status(200).json(Array.isArray(data) ? data : []);
     }

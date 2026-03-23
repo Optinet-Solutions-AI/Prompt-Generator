@@ -166,7 +166,9 @@ export function CreateBlendedPromptDialog({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title:          promptName.trim(),
+          title:          generatedData.positive_prompt
+                            ? `${promptName.trim()} — ${generatedData.positive_prompt.slice(0, 100).trim()}`
+                            : promptName.trim(),
           brand_name:     brand,
           prompt_category: promptCategory,
           ...generatedData,

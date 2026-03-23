@@ -255,8 +255,8 @@ export function ResultDisplay({
       const brandName = storedBrand || metadata?.brand || "No Brand";
 
       const endpoint = liked
-        ? "https://automateoptinet.app.n8n.cloud/webhook/like-img"
-        : "https://automateoptinet.app.n8n.cloud/webhook/unlike-img";
+        ? "/api/like-img"
+        : "/api/unlike-img";
 
       const payload = liked
         ? { record_id: recordId, img_url: imgUrl, brand_name: brandName }

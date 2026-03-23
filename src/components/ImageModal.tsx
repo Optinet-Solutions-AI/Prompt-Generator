@@ -233,7 +233,7 @@ export function ImageModal({
                   disabled={isEditing}
                   onClick={async () => {
                     try {
-                      await fetch('https://automateoptinet.app.n8n.cloud/webhook/like-img', {
+                      await fetch('/api/like-img', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

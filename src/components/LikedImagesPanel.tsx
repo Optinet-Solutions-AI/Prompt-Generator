@@ -144,7 +144,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
       setActiveIdx(newLen === 0 ? null : Math.min(activeIdx, newLen - 1));
     }
     try {
-      await fetch('https://automateoptinet.app.n8n.cloud/webhook/unlike-img', {
+      await fetch('/api/unlike-img', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ record_id: recordId, img_url: imgUrl }),
@@ -185,7 +185,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
   const handleSaveEditedToFavorites = async () => {
     if (!editedImgUrl || !brand) return;
     try {
-      await fetch('https://automateoptinet.app.n8n.cloud/webhook/like-img', {
+      await fetch('/api/like-img', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

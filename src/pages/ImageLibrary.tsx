@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Download, FileCode, Images, RefreshCw, Trash2, X,
-  ChevronLeft, ChevronRight, Sparkles, Wand2, Bot, Cpu,
+  ChevronLeft, ChevronRight, Sparkles, Wand2, Bot, Cpu, Loader2, Plus, Save,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { HtmlConversionModal } from '@/components/HtmlConversionModal';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -20,19 +21,23 @@ interface GeneratedImage {
   public_url: string;
 }
 
-// ── Supabase fetch ─────────────────────────────────────────────────────────────
+// ── Supabase helpers ────────────────────────────────────────────────────────────
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL      || '';
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+const SB_HEADERS = {
+  apikey: SUPABASE_ANON,
+  Authorization: `Bearer ${SUPABASE_ANON}`,
+  'Content-Type': 'application/json',
+};
 
 async function fetchImages(page: number, filter: string): Promise<{ data: GeneratedImage[]; hasMore: boolean }> {
   const PAGE_SIZE = 40;
   const offset    = page * PAGE_SIZE;
   let query = `generated_images?select=*&order=created_at.desc&limit=${PAGE_SIZE}&offset=${offset}`;
   if (filter !== 'all') query += `&provider=eq.${encodeURIComponent(filter)}`;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
-    headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
-  });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, { headers: SB_HEADERS });
   if (!res.ok) throw new Error(`Failed to load images (${res.status})`);
   const data: GeneratedImage[] = await res.json();
   return { data, hasMore: data.length === PAGE_SIZE };
@@ -45,6 +50,54 @@ async function deleteImage(id: string): Promise<void> {
     body: JSON.stringify({ id }),
   });
   if (!res.ok) throw new Error('Failed to delete image');
+}
+
+async function replaceImage(id: string, editedUrl: string, original: GeneratedImage): Promise<GeneratedImage> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/generated_images?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { ...SB_HEADERS, Prefer: 'return=representation' },
+    body: JSON.stringify({
+      public_url: editedUrl,
+      provider: 'edit',
+      filename: `edited-${Date.now()}.png`,
+    }),
+  });
+  if (!res.ok) throw new Error(`Replace failed (${res.status})`);
+  const data = await res.json();
+  const row = Array.isArray(data) ? data[0] : data;
+  return { ...original, ...row };
+}
+
+async function insertNewImage(editedUrl: string, original: GeneratedImage): Promise<GeneratedImage> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/generated_images`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, Prefer: 'return=representation' },
+    body: JSON.stringify({
+      public_url:   editedUrl,
+      provider:     'edit',
+      aspect_ratio: original.aspect_ratio || 'edited',
+      resolution:   original.resolution   || '',
+      filename:     `edited-${Date.now()}.png`,
+      storage_path: '',
+    }),
+  });
+  if (!res.ok) throw new Error(`Save failed (${res.status})`);
+  const data = await res.json();
+  return Array.isArray(data) ? data[0] : data;
+}
+
+// Blob download — works for cross-origin Supabase URLs
+async function downloadImage(url: string, filename: string) {
+  const res     = await fetch(url);
+  const blob    = await res.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const a       = document.createElement('a');
+  a.href        = blobUrl;
+  a.download    = filename || `image-${Date.now()}.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(blobUrl);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -74,21 +127,7 @@ function formatDate(iso: string) {
   });
 }
 
-// Blob download — works for cross-origin Supabase URLs
-async function downloadImage(url: string, filename: string) {
-  const res  = await fetch(url);
-  const blob = await res.blob();
-  const blobUrl = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = blobUrl;
-  a.download = filename || `image-${Date.now()}.png`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(blobUrl);
-}
-
-// ── Delete confirm dialog ──────────────────────────────────────────────────────
+// ── Delete confirm ─────────────────────────────────────────────────────────────
 
 function DeleteConfirm({ onConfirm, onCancel, isDeleting }: {
   onConfirm: () => void;
@@ -102,18 +141,12 @@ function DeleteConfirm({ onConfirm, onCancel, isDeleting }: {
         <p className="text-white font-medium mb-1 text-sm">Remove image?</p>
         <p className="text-white/50 text-xs mb-4">This cannot be undone.</p>
         <div className="flex gap-2">
-          <button
-            onClick={onCancel}
-            disabled={isDeleting}
-            className="flex-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
-          >
+          <button onClick={onCancel} disabled={isDeleting}
+            className="flex-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors">
             Cancel
           </button>
-          <button
-            onClick={onConfirm}
-            disabled={isDeleting}
-            className="flex-1 px-3 py-1.5 rounded-lg bg-destructive hover:bg-destructive/90 text-white text-xs font-medium transition-colors"
-          >
+          <button onClick={onConfirm} disabled={isDeleting}
+            className="flex-1 px-3 py-1.5 rounded-lg bg-destructive hover:bg-destructive/90 text-white text-xs font-medium transition-colors">
             {isDeleting ? 'Removing…' : 'Remove'}
           </button>
         </div>
@@ -122,10 +155,151 @@ function DeleteConfirm({ onConfirm, onCancel, isDeleting }: {
   );
 }
 
+// ── Save Edited Modal ──────────────────────────────────────────────────────────
+
+function SaveEditedModal({
+  editedUrl,
+  original,
+  onReplaced,
+  onSavedNew,
+  onClose,
+}: {
+  editedUrl: string;
+  original: GeneratedImage;
+  onReplaced: (updated: GeneratedImage) => void;
+  onSavedNew: (newImg: GeneratedImage) => void;
+  onClose: () => void;
+}) {
+  const [isSaving,   setIsSaving]   = useState(false);
+  const [saveError,  setSaveError]  = useState<string | null>(null);
+
+  const handleReplace = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await replaceImage(original.id, editedUrl, original);
+      onReplaced(updated);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Failed to save');
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveNew = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const newImg = await insertNewImage(editedUrl, original);
+      onSavedNew(newImg);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Failed to save');
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={!isSaving ? onClose : undefined}
+      />
+
+      {/* Card */}
+      <div className="relative z-10 w-full max-w-sm bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-4">
+          <div>
+            <h2 className="text-white font-semibold text-base">Save Edited Image</h2>
+            <p className="text-white/40 text-sm mt-0.5">Choose how to save your edit</p>
+          </div>
+          <button onClick={onClose} disabled={isSaving}
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/50 transition-colors ml-3 mt-0.5">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Edited preview strip */}
+        <div className="px-6 pb-5">
+          <div className="relative rounded-xl overflow-hidden aspect-video bg-zinc-800 shadow-md">
+            <img src={editedUrl} alt="Edited preview" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500 text-white shadow">
+              <Wand2 className="w-2.5 h-2.5" />Edited
+            </span>
+          </div>
+        </div>
+
+        {/* Option buttons */}
+        <div className="px-6 pb-4 grid grid-cols-2 gap-3">
+          {/* Replace original */}
+          <button
+            onClick={handleReplace}
+            disabled={isSaving}
+            className="flex flex-col items-center gap-3 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-amber-500/10 hover:border-amber-500/35 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center group-hover:bg-amber-500/25 transition-colors self-start">
+              <RefreshCw className="w-4.5 h-4.5 text-amber-400" style={{ width: 18, height: 18 }} />
+            </div>
+            <div>
+              <p className="text-white font-semibold text-xs leading-tight">Replace Original</p>
+              <p className="text-white/40 text-[10px] mt-1 leading-relaxed">Overwrites the current image in the library</p>
+            </div>
+          </button>
+
+          {/* Save as new */}
+          <button
+            onClick={handleSaveNew}
+            disabled={isSaving}
+            className="flex flex-col items-center gap-3 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-primary/10 hover:border-primary/35 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors self-start">
+              <Plus className="w-4.5 h-4.5 text-primary" style={{ width: 18, height: 18 }} />
+            </div>
+            <div>
+              <p className="text-white font-semibold text-xs leading-tight">Save as New</p>
+              <p className="text-white/40 text-[10px] mt-1 leading-relaxed">Keeps the original and adds a new entry</p>
+            </div>
+          </button>
+        </div>
+
+        {/* Error */}
+        {saveError && (
+          <div className="px-6 pb-3">
+            <p className="text-destructive text-xs text-center bg-destructive/10 rounded-lg px-3 py-2">{saveError}</p>
+          </div>
+        )}
+
+        {/* Cancel */}
+        <div className="px-6 pb-6">
+          <button
+            onClick={onClose}
+            disabled={isSaving}
+            className="w-full py-2.5 rounded-xl text-white/40 hover:text-white/60 text-sm transition-colors hover:bg-white/5 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+        </div>
+
+        {/* Saving overlay */}
+        {isSaving && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/85 backdrop-blur-sm rounded-2xl">
+            <div className="flex flex-col items-center gap-3 text-white">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm font-medium">Saving your edit…</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Lightbox ───────────────────────────────────────────────────────────────────
 
 function Lightbox({
-  image, all, onClose, onPrev, onNext, onDeleted,
+  image, all, onClose, onPrev, onNext, onDeleted, onImageUpdated, onNewImageAdded,
 }: {
   image: GeneratedImage;
   all: GeneratedImage[];
@@ -133,32 +307,68 @@ function Lightbox({
   onPrev: () => void;
   onNext: () => void;
   onDeleted: (id: string) => void;
+  onImageUpdated: (id: string, updated: GeneratedImage) => void;
+  onNewImageAdded: (img: GeneratedImage) => void;
 }) {
-  const idx       = all.findIndex(i => i.id === image.id);
-  const hasPrev   = idx > 0;
-  const hasNext   = idx < all.length - 1;
+  const idx     = all.findIndex(i => i.id === image.id);
+  const hasPrev = idx > 0;
+  const hasNext = idx < all.length - 1;
+
   const isEdited  = image.provider === 'edit';
   const showBadge = isSupabaseImage(image.public_url);
 
+  // Standard lightbox state
   const [isDownloading, setIsDownloading] = useState(false);
   const [showHtmlModal,  setShowHtmlModal] = useState(false);
   const [confirmDelete,  setConfirmDelete] = useState(false);
   const [isDeleting,     setIsDeleting]    = useState(false);
 
+  // Edit state
+  const [editInstructions, setEditInstructions] = useState('');
+  const [isEditing,        setIsEditing]        = useState(false);
+  const [editError,        setEditError]        = useState<string | null>(null);
+  const [editedImgUrl,     setEditedImgUrl]     = useState<string | null>(null);
+  const [elapsedTime,      setElapsedTime]      = useState(0);
+  const [showSaveModal,    setShowSaveModal]    = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Reset edit state on image change
+  useEffect(() => {
+    setEditInstructions('');
+    setEditError(null);
+    setEditedImgUrl(null);
+    setElapsedTime(0);
+    setShowSaveModal(false);
+  }, [image.id]);
+
+  // Timer while editing
+  useEffect(() => {
+    if (isEditing) {
+      setElapsedTime(0);
+      intervalRef.current = setInterval(() => setElapsedTime(p => p + 1), 1000);
+    } else {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isEditing]);
+
+  // Keyboard nav
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showHtmlModal || confirmDelete) return;
+      if (showHtmlModal || confirmDelete || showSaveModal) return;
       if (e.key === 'Escape')                onClose();
       if (e.key === 'ArrowLeft'  && hasPrev) onPrev();
       if (e.key === 'ArrowRight' && hasNext) onNext();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, confirmDelete]);
+  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, confirmDelete, showSaveModal]);
+
+  const displayUrl = editedImgUrl || image.public_url;
 
   const handleDownload = async () => {
     setIsDownloading(true);
-    try { await downloadImage(image.public_url, image.filename); }
+    try { await downloadImage(displayUrl, image.filename); }
     finally { setIsDownloading(false); }
   };
 
@@ -174,12 +384,51 @@ function Lightbox({
     }
   };
 
+  const handleEditImage = async () => {
+    const srcUrl = editedImgUrl || image.public_url;
+    if (!editInstructions.trim() || !srcUrl) return;
+    setIsEditing(true);
+    setEditError(null);
+    try {
+      const res = await fetch('/api/edit-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: srcUrl, editInstructions: editInstructions.trim(), resolution: '1K' }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || e.message || 'Edit failed'); }
+      const data = await res.json();
+      const rd   = Array.isArray(data) ? data[0] : data;
+      const url  = rd.public_url || rd.thumbnailUrl || rd.imageUrl || rd.thumbnailLink || rd.webContentLink;
+      if (!url) throw new Error('No image URL returned');
+      setEditedImgUrl(url);
+      setEditInstructions('');
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Failed to edit image');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleReplaced = (updated: GeneratedImage) => {
+    setShowSaveModal(false);
+    setEditedImgUrl(null);
+    setEditInstructions('');
+    onImageUpdated(image.id, updated);
+  };
+
+  const handleSavedNew = (newImg: GeneratedImage) => {
+    setShowSaveModal(false);
+    setEditedImgUrl(null);
+    setEditInstructions('');
+    onNewImageAdded(newImg);
+  };
+
   return (
     <>
-      {/* Lightbox — flex-col on small screens, flex-row on lg+ */}
-      <div className="fixed inset-0 z-50 flex flex-col lg:flex-row bg-black/90 backdrop-blur-md">
+      {/* Lightbox — flex-col on small, flex-row on lg+ */}
+      <div className="fixed inset-0 z-50 flex flex-col lg:flex-row bg-black/92 backdrop-blur-md">
 
-        {/* Close — always top-right corner */}
+        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -187,11 +436,15 @@ function Lightbox({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Image area — fills available space, arrows inside so they never overlap the panel */}
-        <div className="relative flex-1 flex items-center justify-center p-8 lg:p-10 min-h-0 cursor-pointer" onClick={onClose}>
-
+        {/* Image area */}
+        <div
+          className="relative flex-1 flex items-center justify-center p-6 lg:p-10 min-h-0 cursor-pointer"
+          onClick={onClose}
+        >
           {/* Prev arrow */}
-          <button onClick={e => { e.stopPropagation(); onPrev(); }} disabled={!hasPrev}
+          <button
+            onClick={e => { e.stopPropagation(); onPrev(); }}
+            disabled={!hasPrev}
             className={`absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
               hasPrev ? 'bg-white/10 hover:bg-white/20 text-white' : 'opacity-0 pointer-events-none'
             }`}
@@ -199,16 +452,29 @@ function Lightbox({
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          {/* Image — always full original resolution */}
-          <img
-            src={image.public_url}
-            alt={image.filename}
-            className="max-h-full max-w-full object-contain rounded-xl lg:rounded-2xl shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          />
+          {/* Main image — switches between edited and original */}
+          <div className="relative max-h-full max-w-full" onClick={e => e.stopPropagation()}>
+            <img
+              key={displayUrl}
+              src={displayUrl}
+              alt={image.filename}
+              className="max-h-full max-w-full object-contain rounded-xl lg:rounded-2xl shadow-2xl"
+              style={{ maxHeight: 'calc(100vh - 2.5rem)', maxWidth: '100%' }}
+            />
+            {/* Edited badge on image */}
+            {editedImgUrl && (
+              <div className="absolute top-3 left-3">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500 text-white shadow-lg">
+                  <Wand2 className="w-3 h-3" />Edited Preview
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Next arrow */}
-          <button onClick={e => { e.stopPropagation(); onNext(); }} disabled={!hasNext}
+          <button
+            onClick={e => { e.stopPropagation(); onNext(); }}
+            disabled={!hasNext}
             className={`absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
               hasNext ? 'bg-white/10 hover:bg-white/20 text-white' : 'opacity-0 pointer-events-none'
             }`}
@@ -217,12 +483,12 @@ function Lightbox({
           </button>
         </div>
 
-        {/* Right panel — bottom sheet on mobile, sidebar on lg+ */}
-        <div className="w-full lg:w-64 xl:w-72 flex-shrink-0 bg-zinc-900 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col overflow-y-auto max-h-[45vh] lg:max-h-none">
+        {/* Right panel */}
+        <div className="w-full lg:w-72 xl:w-80 flex-shrink-0 bg-zinc-900 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col max-h-[50vh] lg:max-h-none">
 
           {/* Provider badge */}
           {showBadge && (
-            <div className="px-5 pt-5 pb-4 border-b border-white/10">
+            <div className="px-5 pt-5 pb-4 border-b border-white/10 flex-shrink-0">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${
                 isEdited
                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
@@ -238,30 +504,103 @@ function Lightbox({
             </div>
           )}
 
-          {/* Metadata — horizontal on mobile, vertical on lg */}
-          <div className="p-5 flex lg:flex-col gap-4 lg:gap-5 flex-wrap flex-1">
-            {image.aspect_ratio && image.aspect_ratio !== 'edited' && (
+          {/* Scrollable content: metadata + edit section */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+
+            {/* Metadata */}
+            <div className="p-5 flex lg:flex-col gap-4 lg:gap-4 flex-wrap border-b border-white/10">
+              {image.aspect_ratio && image.aspect_ratio !== 'edited' && (
+                <div className="min-w-[80px]">
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Aspect Ratio</p>
+                  <p className="text-white font-medium text-sm">{image.aspect_ratio}</p>
+                </div>
+              )}
               <div className="min-w-[80px]">
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Aspect Ratio</p>
-                <p className="text-white font-medium text-sm">{image.aspect_ratio}</p>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Resolution</p>
+                <p className="text-white font-medium text-sm">{image.resolution}</p>
               </div>
-            )}
-            <div className="min-w-[80px]">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Resolution</p>
-              <p className="text-white font-medium text-sm">{image.resolution}</p>
+              <div className="min-w-[120px]">
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Created</p>
+                <p className="text-white/80 text-xs">{formatDate(image.created_at)}</p>
+              </div>
+              <div className="hidden lg:block">
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Filename</p>
+                <p className="text-white/60 text-xs break-all font-mono">{image.filename}</p>
+              </div>
             </div>
-            <div className="min-w-[120px]">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Created</p>
-              <p className="text-white/80 text-xs">{formatDate(image.created_at)}</p>
-            </div>
-            <div className="hidden lg:block">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Filename</p>
-              <p className="text-white/60 text-xs break-all font-mono">{image.filename}</p>
+
+            {/* ── Edit Image section ── */}
+            <div className="px-5 py-5 space-y-3">
+              {/* Section header */}
+              <div className="flex items-center gap-2">
+                <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                <p className="text-[11px] font-semibold text-white/60 uppercase tracking-wider">Edit Image</p>
+              </div>
+
+              {/* Status when edit applied */}
+              {editedImgUrl && (
+                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                  <p className="text-emerald-400 text-xs leading-tight">Edit applied — keep editing or save</p>
+                </div>
+              )}
+
+              {/* Instructions textarea */}
+              <Textarea
+                placeholder="Describe your edit… e.g. 'Change background to sunset', 'Make it more vibrant'"
+                value={editInstructions}
+                onChange={e => setEditInstructions(e.target.value)}
+                className="min-h-[88px] resize-none text-xs bg-white/5 border-white/10 text-white placeholder:text-white/25 focus:border-white/20 focus-visible:ring-0 focus-visible:ring-offset-0"
+                disabled={isEditing}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleEditImage();
+                  e.stopPropagation(); // prevent lightbox arrow nav while typing
+                }}
+              />
+
+              {/* Error */}
+              {editError && (
+                <p className="text-destructive text-xs bg-destructive/10 rounded-lg px-3 py-2">{editError}</p>
+              )}
+
+              {/* Apply Edit button */}
+              <button
+                onClick={handleEditImage}
+                disabled={isEditing || !editInstructions.trim()}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-amber-500/12 hover:bg-amber-500/20 border border-amber-500/20 hover:border-amber-500/40 text-amber-400 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isEditing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Applying edit…</span>
+                    <span className="tabular-nums text-amber-400/60 ml-1">({elapsedTime}s)</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-3.5 h-3.5" />
+                    {editedImgUrl ? 'Apply Another Edit' : 'Apply Edit'}
+                  </>
+                )}
+              </button>
+
+              {/* Save edited image button — only when edit exists */}
+              {editedImgUrl && (
+                <button
+                  onClick={() => setShowSaveModal(true)}
+                  disabled={isEditing}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold transition-colors disabled:opacity-50 shadow-md shadow-primary/20"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save Edited Image
+                </button>
+              )}
+
+              <p className="text-white/25 text-[10px] text-center">Ctrl+Enter to apply</p>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="p-5 border-t border-white/10 space-y-2">
+          {/* Fixed bottom actions */}
+          <div className="flex-shrink-0 p-5 border-t border-white/10 space-y-2">
             <button
               onClick={() => setShowHtmlModal(true)}
               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
@@ -276,7 +615,7 @@ function Lightbox({
               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors disabled:opacity-60"
             >
               <Download className="w-4 h-4" />
-              {isDownloading ? 'Downloading…' : 'Download Image'}
+              {isDownloading ? 'Downloading…' : editedImgUrl ? 'Download Edited' : 'Download Image'}
             </button>
 
             {!confirmDelete ? (
@@ -303,7 +642,7 @@ function Lightbox({
               </div>
             )}
 
-            <p className="text-center text-white/30 text-xs pt-1">{idx + 1} of {all.length}</p>
+            <p className="text-center text-white/25 text-xs pt-1">{idx + 1} of {all.length}</p>
           </div>
         </div>
       </div>
@@ -312,8 +651,19 @@ function Lightbox({
       <HtmlConversionModal
         isOpen={showHtmlModal}
         onClose={() => setShowHtmlModal(false)}
-        imageUrl={image.public_url}
+        imageUrl={displayUrl}
       />
+
+      {/* Save Edited Modal */}
+      {showSaveModal && editedImgUrl && (
+        <SaveEditedModal
+          editedUrl={editedImgUrl}
+          original={image}
+          onReplaced={handleReplaced}
+          onSavedNew={handleSavedNew}
+          onClose={() => setShowSaveModal(false)}
+        />
+      )}
     </>
   );
 }
@@ -328,9 +678,9 @@ function ImageCard({
   onDeleted: (id: string) => void;
   priority?: boolean;
 }) {
-  const [loaded,         setLoaded]         = useState(false);
-  const [confirmDelete,  setConfirmDelete]  = useState(false);
-  const [isDeleting,     setIsDeleting]     = useState(false);
+  const [loaded,        setLoaded]        = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting,    setIsDeleting]    = useState(false);
   const showBadge = isSupabaseImage(image.public_url);
 
   const handleDelete = async () => {
@@ -363,7 +713,7 @@ function ImageCard({
         onError={() => setLoaded(true)}
       />
 
-      {/* Provider badge — always visible, only for Supabase images */}
+      {/* Provider badge — only for Supabase images */}
       {loaded && showBadge && !confirmDelete && (
         <div className="absolute top-2 left-2">
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm ${providerColors(image.provider)}`}>
@@ -373,7 +723,7 @@ function ImageCard({
         </div>
       )}
 
-      {/* Delete button — top right, shows on card hover */}
+      {/* Delete button — top right */}
       {loaded && !confirmDelete && (
         <button
           onClick={e => { e.stopPropagation(); setConfirmDelete(true); }}
@@ -394,10 +744,7 @@ function ImageCard({
             <p className="text-white/60 text-[10px]">{image.resolution}</p>
           </div>
           <button
-            onClick={async e => {
-              e.stopPropagation();
-              await downloadImage(image.public_url, image.filename);
-            }}
+            onClick={async e => { e.stopPropagation(); await downloadImage(image.public_url, image.filename); }}
             className="pointer-events-auto w-7 h-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
             title="Download"
           >
@@ -406,7 +753,7 @@ function ImageCard({
         </div>
       </div>
 
-      {/* Delete confirm overlay */}
+      {/* Delete confirm */}
       {confirmDelete && (
         <DeleteConfirm
           onConfirm={handleDelete}
@@ -466,6 +813,17 @@ export default function ImageLibrary() {
     setImages(prev => prev.filter(img => img.id !== id));
     if (lightbox?.id === id) setLightbox(null);
   };
+
+  // Called after "Replace Original" — updates the image in the grid and lightbox
+  const handleImageUpdated = useCallback((id: string, updated: GeneratedImage) => {
+    setImages(prev => prev.map(img => img.id === id ? updated : img));
+    setLightbox(updated);
+  }, []);
+
+  // Called after "Save as New" — prepends the new image to the grid
+  const handleNewImageAdded = useCallback((newImg: GeneratedImage) => {
+    setImages(prev => [newImg, ...prev]);
+  }, []);
 
   const lightboxIdx = lightbox ? images.findIndex(i => i.id === lightbox.id) : -1;
   const prevImage   = () => lightboxIdx > 0 && setLightbox(images[lightboxIdx - 1]);
@@ -622,6 +980,8 @@ export default function ImageLibrary() {
           onPrev={prevImage}
           onNext={nextImage}
           onDeleted={handleDeleted}
+          onImageUpdated={handleImageUpdated}
+          onNewImageAdded={handleNewImageAdded}
         />
       )}
     </div>

@@ -1,5 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { chatCompletion } from './_openai';
+
+async function chatCompletion(opts: {
+  systemPrompt: string; userPrompt: string; temperature?: number;
+  model?: string; responseFormat?: 'json' | 'text';
+}): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
+  const body: any = {
+    model: opts.model || 'gpt-4o-mini',
+    messages: [{ role: 'system', content: opts.systemPrompt }, { role: 'user', content: opts.userPrompt }],
+    temperature: opts.temperature ?? 1.0,
+  };
+  if (opts.responseFormat === 'json') body.response_format = { type: 'json_object' };
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const err = await res.text(); throw new Error(`OpenAI API failed (${res.status}): ${err}`); }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {

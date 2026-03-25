@@ -1,5 +1,32 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { chatCompletion } from './_openai';
+
+// Inline OpenAI helper to avoid cross-file import issues on Vercel
+async function chatCompletion(opts: {
+  systemPrompt: string; userPrompt: string; temperature?: number;
+  model?: string; maxTokens?: number; imageUrl?: string;
+}): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
+  const messages: any[] = [{ role: 'system', content: opts.systemPrompt }];
+  if (opts.imageUrl) {
+    messages.push({ role: 'user', content: [
+      { type: 'text', text: opts.userPrompt },
+      { type: 'image_url', image_url: { url: opts.imageUrl } },
+    ]});
+  } else {
+    messages.push({ role: 'user', content: opts.userPrompt });
+  }
+  const body: any = { model: opts.model || 'gpt-4o-mini', messages, temperature: opts.temperature ?? 1.0 };
+  if (opts.maxTokens) body.max_tokens = opts.maxTokens;
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const err = await res.text(); throw new Error(`OpenAI API failed (${res.status}): ${err}`); }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
 
 const SUPABASE_URL             = process.env.SUPABASE_URL             || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';

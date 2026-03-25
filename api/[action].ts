@@ -154,12 +154,12 @@ ${brandColorRule}`;
         if (instruction) {
           bgInstruction = `SPECIFIC INSTRUCTION — follow this precisely:\n${instruction}\nBuild the background around this instruction while staying consistent with the scene above.`;
         } else if (globalInstruction) {
-          bgInstruction = `Generate a background that CLEARLY reflects this theme: ${globalInstruction}\nThe theme must be the dominant visual concept of the background — not a subtle hint.`;
+          bgInstruction = `ADAPT the current background to reflect this theme: ${globalInstruction}\nKeep the same TYPE of environment (if it's a spacecraft bay, keep it a spacecraft bay — but add theme decorations). The theme should be visible through decorative elements added to the EXISTING setting, not by replacing the entire environment.\nExample: "Christmas theme" on a dark spacecraft bay = same spacecraft bay with Christmas lights strung on machinery, festive holographic displays, gift boxes near the equipment, snow particles in the air — NOT a snowy mountain landscape.`;
         } else {
           bgInstruction = `Generate a dramatically different background that fits naturally behind this subject.\nPick ONE clear environment. Make it specific and detailed — not generic.`;
         }
 
-        userPrompt = `${globalInstruction ? `OVERALL CREATIVE DIRECTION: ${globalInstruction}\n\n` : ''}Brand: ${brand}\n\nCurrent scene — background MUST be consistent with all of these:\n- Format Layout: ${format_layout}\n- Primary Object: ${primary_object}\n- Subject: ${subject}\n\n${bgInstruction}\n\nWrite ONLY the new background description.`;
+        userPrompt = `${globalInstruction ? `OVERALL CREATIVE DIRECTION: ${globalInstruction}\n\n` : ''}Brand: ${brand}\n\nCurrent scene — background MUST be consistent with all of these:\n- Format Layout: ${format_layout}\n- Primary Object: ${primary_object}\n- Subject: ${subject}\n\nOriginal Background (adapt this, don't replace it entirely):\n${background}\n\n${bgInstruction}\n\nWrite ONLY the new background description.`;
 
       } else if (field === 'lighting') {
         systemPrompt = `You are a cinematographer for casino brand imagery.
@@ -256,7 +256,8 @@ CRITICAL: Preserve EVERY detail from each component — especially the subject (
 ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to match the theme above. Keep the lighting direction/setup and mood energy, but replace their colors to fit the theme.\n` : ''}
 1. BACKGROUND: ${background}
 2. SUBJECT (PRESERVE EXACTLY — same characters, count, poses, equipment): ${subject}
-3. STYLE & COLOR REFERENCE (copy the rendering technique AND the color palette — same warmth, same tones, same brand feel): ${positive_prompt}`;
+3. LIGHTING (keep setup/direction, adapt colors to match theme if provided): ${lighting}
+4. STYLE & COLOR REFERENCE (copy the rendering technique AND the color palette — same warmth, same tones, same brand feel): ${positive_prompt}`;
 
         const ppValue = await chatCompletion({ systemPrompt, userPrompt, temperature: 0.3, model: 'gpt-4o-mini' });
         return res.status(200).json({ field, value: ppValue });

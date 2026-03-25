@@ -158,7 +158,7 @@ ${brandColorRule}`;
       } else if (field === 'lighting') {
         systemPrompt = `You are a cinematographer for casino brand imagery.
 
-Your job is to create a different lighting setup that transforms the scene.
+Your job is to create a DRAMATICALLY DIFFERENT lighting setup that transforms the scene.
 
 LOCKED — never change:
 - Physical consistency with the subject (character must still be lit, not obscured)
@@ -166,7 +166,7 @@ LOCKED — never change:
 
 MUST CHANGE — make these dramatically different:
 - Primary light source color, direction, and intensity
-- Accent and rim lighting
+- Accent and rim lighting (completely different color palette)
 - Atmospheric glow and effects
 - Shadow depth and contrast style
 - Overall color temperature
@@ -192,12 +192,12 @@ ${brandColorRule}`;
 Your job is to create a COMPLETELY DIFFERENT emotional atmosphere — but it must still feel like a ${brand} image.
 
 LOCKED — never change:
-- Brand identity
+- Brand identity (Roosterbet = bold/confident, SpinJo = energetic/playful, FortunePlay = lucky/vibrant, LuckyVibe = positive/electric, SpinsUp = upbeat/dynamic)
 - Premium casino/betting energy — never go cheap, flat, or generic
 
 MUST CHANGE — make these dramatically different:
-- Primary emotion
-- Atmospheric feeling
+- Primary emotion (confident → mysterious, opulent → edgy, luxurious → electric)
+- Atmospheric feeling (noir → neon-vibrant, luxury → gritty-premium)
 - Color emotion and energy level
 
 If an OVERALL CREATIVE DIRECTION is provided, apply it as the emotional theme while keeping brand identity.
@@ -213,6 +213,11 @@ ${brandColorRule}`;
         }
 
       } else if (field === 'positive_prompt') {
+        // Positive prompt uses FIXED temperature 0.3 (not dynamic) — matches n8n workflow
+        const brandColorBlock = brandColors
+          ? `\n${brandColors}\nEvery color in the output MUST comply with this palette. Replace any off-brand colors from lighting/mood/background with on-brand alternatives.`
+          : `\nPreserve the same color palette as the STYLE REFERENCE. Do NOT introduce colors not present in the original.`;
+
         systemPrompt = `You are a precise AI image prompt ASSEMBLER for premium casino/betting brand imagery.
 
 Your ONLY output is a single complete image generation prompt as one flowing paragraph.
@@ -221,20 +226,34 @@ ABSOLUTE RULES — VIOLATING ANY OF THESE IS A FAILURE:
 1. NEVER add, remove, or change characters. If the subject describes 4 athletes with specific sports, the output must have EXACTLY 4 athletes with those same sports, poses, and equipment.
 2. NEVER reinterpret the subject — preserve every detail: character count, species, clothing, poses, props, body type.
 3. NEVER reinterpret the background — include it as described.
-4. Preserve the exact rendering style from the STYLE REFERENCE (3D render, photorealistic, cinematic, anthropomorphic).
-5. The output must feel like a ${brand} branded image — premium, high-energy.
-6. NEVER include readable text, signs, words, or logos.
-7. If the instruction says a specific field was changed, give EXTRA attention to preserving ALL OTHER fields exactly.
+4. Weave lighting and mood naturally into the scene.
+5. Preserve the exact rendering style from the STYLE REFERENCE (3D render, photorealistic, cinematic, anthropomorphic).
+6. The output must feel like a ${brand} branded image — premium, high-energy.
+7. NEVER include readable text, signs, words, or logos.
+8. If the instruction says a specific field was changed, give EXTRA attention to preserving ALL OTHER fields exactly.
 
-You are an ASSEMBLER — stitch the components together faithfully. Do NOT reimagine them.
-${brandColorRule ? `\nBRAND COLOR ENFORCEMENT:\n${brandColors}\nEvery color in the output MUST comply with this palette.` : ''}`;
+COLOR CONSISTENCY RULE (CRITICAL):
+When a THEME / CREATIVE DIRECTION is provided, it sets the dominant color palette for the ENTIRE scene.
+- Adapt ALL color references (including those in lighting and mood) to match the theme.
+- Keep the lighting SETUP (direction, intensity, shadow style) but REPLACE its colors to match the theme.
+- Keep the mood ENERGY (intense, playful, mysterious) but REPLACE its atmosphere colors to match the theme.
+- Example: if theme is "golden New Year" and lighting says "neon purple rim light" → output "warm golden rim light" instead. Same setup, theme-appropriate color.
+- If no theme is provided, keep all original colors from the fields.
 
-        userPrompt = `${globalInstruction ? `THEME / CREATIVE DIRECTION: ${globalInstruction}\n\n` : ''}${instruction ? `${instruction}\n\n` : ''}Assemble these components into ONE image prompt paragraph.
-CRITICAL: Preserve EVERY detail from the subject — exact character count, poses, equipment, clothing, species.
+BRAND COLOR ENFORCEMENT (ALWAYS APPLIES):
+${brandColorBlock}
 
+You are an ASSEMBLER — stitch the components together faithfully. When a theme specifies colors, every color in the output must match that theme.`;
+
+        userPrompt = `${globalInstruction ? `THEME / CREATIVE DIRECTION — this sets the color palette for the ENTIRE scene. Adapt ALL lighting and mood colors to match this:\n${globalInstruction}\n\n` : ''}${instruction ? `${instruction}\n\n` : ''}Assemble these components into ONE image prompt paragraph.
+CRITICAL: Preserve EVERY detail from each component — especially the subject (exact character count, their poses, equipment, clothing).
+${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to match the theme above. Keep the lighting direction/setup and mood energy, but replace their colors to fit the theme.\n` : ''}
 1. BACKGROUND: ${background}
-2. SUBJECT (PRESERVE EXACTLY): ${subject}
-3. STYLE & COLOR REFERENCE (copy the rendering technique AND the color palette): ${positive_prompt}`;
+2. SUBJECT (PRESERVE EXACTLY — same characters, count, poses, equipment): ${subject}
+3. STYLE & COLOR REFERENCE (copy the rendering technique AND the color palette — same warmth, same tones, same brand feel): ${positive_prompt}`;
+
+        const ppValue = await chatCompletion({ systemPrompt, userPrompt, temperature: 0.3, model: 'gpt-4o-mini' });
+        return res.status(200).json({ field, value: ppValue });
 
       } else {
         return res.status(400).json({ error: `Unknown regenerable field: ${field}` });

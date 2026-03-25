@@ -25,16 +25,20 @@ interface GeneratedImage {
   _isFavorite?: boolean;
 }
 
+import { BRANDS } from '@/types/prompt';
+
 // Brand colors for badges
 const BRAND_BADGE: Record<string, string> = {
   FortunePlay: 'bg-amber-500 text-white',
+  PlayMojo:    'bg-rose-500 text-white',
   SpinJo:      'bg-purple-500 text-white',
-  Roosterbet:  'bg-red-500 text-white',
-  LuckyVibe:   'bg-emerald-500 text-white',
+  Roosterbet:  'bg-red-600 text-white',
   SpinsUp:     'bg-sky-500 text-white',
+  LuckyVibe:   'bg-emerald-500 text-white',
+  Lucky7even:  'bg-indigo-500 text-white',
+  NovaDreams:  'bg-violet-500 text-white',
+  Rollero:     'bg-orange-500 text-white',
 };
-
-const BRANDS = ['FortunePlay', 'SpinJo', 'Roosterbet', 'LuckyVibe', 'SpinsUp'];
 
 // ── Supabase helpers ────────────────────────────────────────────────────────────
 
@@ -779,12 +783,13 @@ function ImageCard({
       />
 
       {/* Brand badge for favorites */}
-      {loaded && image._isFavorite && image.brand_name && !confirmDelete && (
+      {loaded && image._isFavorite && !confirmDelete && (
         <div className="absolute top-2 left-2">
           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm ${
-            BRAND_BADGE[image.brand_name] || 'bg-black/60 text-white'
+            image.brand_name ? (BRAND_BADGE[image.brand_name] || 'bg-black/60 text-white') : 'bg-white/20 text-white backdrop-blur-sm'
           }`}>
-            {image.brand_name}
+            <Heart className="w-2.5 h-2.5 fill-current" />
+            {image.brand_name || 'Favorite'}
           </span>
         </div>
       )}

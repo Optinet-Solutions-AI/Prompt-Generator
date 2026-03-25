@@ -147,10 +147,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(result || { success: true });
     }
 
-    // DELETE GENERATED IMAGE — remove from generated_images table by UUID
+    // DELETE GENERATED IMAGE — remove from generated_images table AND storage file
     if (action === 'delete-generated-image') {
       const { id } = req.body;
       if (!id) return res.status(400).json({ error: 'id is required' });
+
+      // 1. Fetch the record first to get storage_path
+      const rows = await sbGet(`generated_images?id=eq.${id}&select=storage_path,public_url`);
+      const row = Array.isArray(rows) ? rows[0] : rows;
+
+      // 2. Delete the actual file from Supabase Storage (if storage_path exists)
+      if (row?.storage_path) {
+        try {
+          const storagePath = row.storage_path;
+          // Supabase Storage API: DELETE /storage/v1/object/{bucket}/{path}
+          // storage_path format is typically "bucket-name/folder/file.png"
+          const storageRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${storagePath}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'apikey':        SUPABASE_SERVICE_ROLE_KEY,
+            },
+          });
+          if (!storageRes.ok) {
+            console.warn(`Storage delete failed (${storageRes.status}) for ${storagePath} — continuing with DB delete`);
+          }
+        } catch (e) {
+          console.warn('Storage file delete failed, continuing with DB delete:', e);
+        }
+      }
+
+      // 3. Delete the database row
       await sbDelete(`generated_images?id=eq.${id}`);
       return res.status(200).json({ success: true });
     }

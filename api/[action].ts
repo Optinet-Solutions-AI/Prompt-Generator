@@ -204,8 +204,10 @@ ${brandColorRule}`;
 
       } else if (field === 'positive_prompt') {
         // Positive prompt uses FIXED temperature 0.3 (not dynamic) — matches n8n workflow
+        // brandColors is now always sent by the frontend (either strict palette or fallback rule).
+        // If somehow empty, fall back to preserving original colors.
         const brandColorBlock = brandColors
-          ? `\n${brandColors}\nEvery color in the output MUST comply with this palette. Replace any off-brand colors from lighting/mood/background with on-brand alternatives.`
+          ? `\n${brandColors}`
           : `\nPreserve the same color palette as the STYLE REFERENCE. Do NOT introduce colors not present in the original.`;
 
         systemPrompt = `You are a precise AI image prompt ASSEMBLER for premium casino/betting brand imagery.

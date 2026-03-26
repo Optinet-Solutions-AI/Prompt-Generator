@@ -17,7 +17,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const body = req.body;
 
-    // Brand color palettes — enforce brand-appropriate colors in generated prompts
+    // Brand color palettes — known brands get strict enforcement.
+    // Unknown/new brands get a fallback rule: "preserve the reference prompt's colors".
+    // To add a new brand, just add a key here. Everything else adapts automatically.
     const BRAND_PALETTES: Record<string, string> = {
       FortunePlay: 'Yellow, orange, gold, warm amber, warm casino lighting. NEVER use blue, purple, cyan, neon, or cold tones.',
       SpinJo: 'Purple, violet, magenta, neon-blue, electric cyan, deep space black. Sci-fi/futuristic palette. NEVER use gold, warm amber, orange, or earthy warm tones.',
@@ -25,9 +27,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       LuckyVibe: 'Golden hour warm tones, sunset orange, tropical coral, soft amber, warm backlight. NEVER use cold blue, purple, or neon tones.',
       SpinsUp: 'Neon purple, electric magenta, showman gold accents, deep black, circus-bright. Magical/mystical palette. NEVER use muted earthy tones or pastels.',
     };
-    const brandColorRule = (body.brand && BRAND_PALETTES[body.brand])
-      ? `\n6) BRAND COLOR ENFORCEMENT\nThis is a ${body.brand} branded image. Approved color palette: ${BRAND_PALETTES[body.brand]}\nAll lighting, mood, atmosphere, and background colors in the output MUST comply with this palette. Replace any off-brand colors with on-brand alternatives.\n`
-      : '';
+
+    let brandColorRule = '';
+    if (body.brand) {
+      const palette = BRAND_PALETTES[body.brand];
+      if (palette) {
+        // Known brand — strict palette enforcement
+        brandColorRule = `\n6) BRAND COLOR ENFORCEMENT\nThis is a ${body.brand} branded image. Approved color palette: ${palette}\nAll lighting, mood, atmosphere, and background colors in the output MUST comply with this palette. Replace any off-brand colors with on-brand alternatives.\n`;
+      } else {
+        // Unknown/new brand — preserve whatever colors are already in the reference prompt
+        brandColorRule = `\n6) BRAND COLOR ENFORCEMENT\nThis is a ${body.brand} branded image. Preserve the same color palette as the Base prompt. Do NOT introduce colors not present in the original. Keep the brand's visual identity consistent.\n`;
+      }
+    }
 
     // Build the EXACT same user message as the n8n "Message a model" node.
     // In n8n this is the only message sent (no separate system prompt).

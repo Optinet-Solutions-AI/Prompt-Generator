@@ -3,6 +3,7 @@ import { ChevronDown, Loader2, RefreshCw } from 'lucide-react';
 
 import type { ReferencePromptData } from '@/types/prompt';
 import { cn } from '@/lib/utils';
+import { BRAND_PALETTES, getBrandColorRule } from '@/lib/brand-colors';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
@@ -18,21 +19,6 @@ interface ReferencePromptDataDisplayProps {
   onChange?: (field: keyof ReferencePromptData, value: string) => void;
   onSaved?: () => void;
 }
-
-// Brand color palettes — sent to n8n so GPT knows which colors are on-brand.
-// Fill in each brand's approved palette. GPT will enforce these in all outputs.
-const BRAND_PALETTES: Record<string, string> = {
-  FortunePlay:
-    'Yellow, orange, gold, warm amber, warm casino lighting. NEVER use blue, purple, cyan, neon, or cold tones.',
-  SpinJo:
-    'Purple, violet, magenta, neon-blue, electric cyan, deep space black. Sci-fi/futuristic palette. NEVER use gold, warm amber, orange, or earthy warm tones.',
-  Roosterbet:
-    'Red, crimson, fiery orange, black, bold white. High-energy sports palette. NEVER use pastel, soft pink, or muted tones.',
-  LuckyVibe:
-    'Golden hour warm tones, sunset orange, tropical coral, soft amber, warm backlight. NEVER use cold blue, purple, or neon tones.',
-  SpinsUp:
-    'Neon purple, electric magenta, showman gold accents, deep black, circus-bright. Magical/mystical palette. NEVER use muted earthy tones or pastels.',
-};
 
 // Fields that have a regenerate icon next to their label.
 // Subject/lighting/mood/background regenerate their own descriptions.
@@ -73,7 +59,7 @@ export function ReferencePromptDataDisplay({ data, isLoading, disabled, brand, c
     setRegeneratingField(field);
 
     try {
-      const brandColors = (brand && BRAND_PALETTES[brand]) || '';
+      const brandColors = getBrandColorRule(brand);
 
       const response = await fetch('/api/regenerate-reference', {
         method: 'POST',
@@ -158,7 +144,7 @@ export function ReferencePromptDataDisplay({ data, isLoading, disabled, brand, c
     setIsRegeneratingAll(true);
 
     try {
-      const brandColors = (brand && BRAND_PALETTES[brand]) || '';
+      const brandColors = getBrandColorRule(brand);
 
       const makeCall = (field: RegenerableField) =>
         fetch('/api/regenerate-reference', {

@@ -229,6 +229,38 @@ export const BRAND_REFERENCES: Record<string, ReferenceOption[]> = {
 
 };
 
+// ─────────────────────────────────────────────
+// Sports Banner Wizard
+// ─────────────────────────────────────────────
+
+/** All data collected by the 5-question Sports Banner Wizard */
+export interface SportsBannerData {
+  // Q1
+  sport: string;
+  // Q2
+  playerCount: '1' | '2' | '3+';
+  action: string;           // selected chip or free text
+  kitColors: string;        // e.g. "red and white striped"
+  gender: 'Male' | 'Female' | 'Mixed';
+  // Q3
+  subjectPosition: string;  // one of SUBJECT_POSITIONS values
+  negativeSpaceRule: string; // auto-derived from position cell
+  // Q4
+  backgroundCategory: string;
+  backgroundDetail: string;
+  hasTrophy: boolean;
+  hasScoreboard: boolean;
+  scoreboardText: string;
+  hasEquipment: boolean;
+  // Q5
+  bannerSizeId: string;
+  bannerSizeLabel: string;
+  bannerDimensions: string;
+  aspectRatio: string;
+  occasion: string;
+  occasionMood: string;
+}
+
 export interface PromptMetadata {
   brand: string;
   reference: string;

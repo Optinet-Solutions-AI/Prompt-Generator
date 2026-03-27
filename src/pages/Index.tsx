@@ -1,13 +1,15 @@
-import { Images, Sparkles } from "lucide-react";
+import { Images, Sparkles, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PromptForm } from "@/components/PromptForm";
 import { ProcessingState } from "@/components/ProcessingState";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
+import { SportsBannerWizard } from "@/components/SportsBannerWizard";
 import { usePromptGenerator } from "@/hooks/usePromptGenerator";
 import { useReferencePromptData } from "@/hooks/useReferencePromptData";
 import { LikedImagesPanel } from "@/components/LikedImagesPanel";
+import { FormData } from "@/types/prompt";
 
 const Index = () => {
   const {
@@ -33,7 +35,12 @@ const Index = () => {
     handleMetadataChange,
     handleAddGeneratedImage,
     handleRemoveGeneratedImage,
+    handleSubmitWithData,
   } = usePromptGenerator();
+
+  // Track which top-level mode the user is in
+  // 'form' = normal prompt generator, 'wizard' = sports banner wizard
+  const [activeTab, setActiveTab] = useState<'form' | 'wizard'>('form');
 
   const { referencePromptData, isLoadingReferenceData, fetchReferencePromptData, clearReferencePromptData } =
     useReferencePromptData();
@@ -121,12 +128,44 @@ const Index = () => {
           </Link>
         </div>
 
+        {/* Mode tabs — only show when on the form/wizard, not during processing/result */}
+        {(appState === "FORM") && (
+          <div className="flex gap-1 p-1 rounded-xl bg-muted/50 border border-border mb-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab('form')}
+              className={[
+                'flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                activeTab === 'form'
+                  ? 'bg-card shadow-sm text-foreground border border-border'
+                  : 'text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+            >
+              <Sparkles className="w-4 h-4" />
+              Custom Prompt
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('wizard')}
+              className={[
+                'flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                activeTab === 'wizard'
+                  ? 'bg-card shadow-sm text-foreground border border-border'
+                  : 'text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+            >
+              <Trophy className="w-4 h-4" />
+              Sports Banner
+            </button>
+          </div>
+        )}
+
         {/* Main Card */}
         <div className="bg-card rounded-xl sm:rounded-2xl border border-border shadow-lg overflow-hidden">
           <div className="p-4 sm:p-6 md:p-8">
               {showError && <ErrorDisplay message={errorMessage} onGoBack={handleGoBack} />}
 
-              {showForm && !showError && (
+              {showForm && !showError && activeTab === 'form' && (
                 <PromptForm
                   formData={formData}
                   errors={errors}
@@ -137,6 +176,12 @@ const Index = () => {
                   onSubmit={handleSubmit}
                   onClear={handleClearFormWithReference}
                   onOpenFavorites={() => setShowLikedPanel(true)}
+                />
+              )}
+
+              {showForm && !showError && activeTab === 'wizard' && (
+                <SportsBannerWizard
+                  onSubmit={(data) => handleSubmitWithData(data as Partial<FormData>)}
                 />
               )}
 

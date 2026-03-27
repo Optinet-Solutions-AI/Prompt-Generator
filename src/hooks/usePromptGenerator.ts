@@ -258,6 +258,35 @@ export function usePromptGenerator() {
     setAppState('FORM');
   }, []);
 
+  /**
+   * Used by the Sports Banner Wizard to submit a fully assembled FormData
+   * without going through the normal form validation (brand + reference check).
+   * The wizard pre-fills all fields before calling this.
+   */
+  const handleSubmitWithData = useCallback(async (data: Partial<FormData>) => {
+    const mergedData: FormData = { ...INITIAL_FORM_DATA, ...data };
+    setFormData(mergedData);
+    setAppState('PROCESSING');
+    setElapsedTime(0);
+    setErrorMessage('');
+    setGeneratedImages({ chatgpt: [], gemini: [] });
+
+    try {
+      const startTime = Date.now();
+      const response = await generatePrompt(mergedData);
+      const endTime = Date.now();
+      setGeneratedPrompt(response.prompt);
+      setPromptMetadata(response.metadata);
+      setProcessingTime((endTime - startTime) / 1000);
+      setGeneratedTimestamp(new Date().toISOString());
+      setAppState('RESULT');
+    } catch (error) {
+      console.error('Error generating prompt:', error);
+      setErrorMessage('Something went wrong. Please try again.');
+      setAppState('FORM');
+    }
+  }, []);
+
   return {
     appState,
     formData,
@@ -281,5 +310,6 @@ export function usePromptGenerator() {
     handleMetadataChange,
     handleAddGeneratedImage,
     handleRemoveGeneratedImage,
+    handleSubmitWithData,
   };
 }

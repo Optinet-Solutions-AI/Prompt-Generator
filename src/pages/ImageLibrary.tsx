@@ -398,6 +398,10 @@ function Lightbox({
   const [variationViewerUrl, setVariationViewerUrl]   = useState<string | null>(null);
   const [variationViewerIdx, setVariationViewerIdx]   = useState(-1);
 
+  // Track which variations have been saved to library
+  const [savedVariationIdxs, setSavedVariationIdxs]   = useState<Set<number>>(new Set());
+  const [isSavingVariation,  setIsSavingVariation]    = useState<number | null>(null);
+
   // Reset edit + variation state on image change
   useEffect(() => {
     setEditInstructions('');
@@ -408,6 +412,10 @@ function Lightbox({
     setGeneratedVariations([]);
     setVariationError(null);
     setVariationInstructions('');
+    setSavedVariationIdxs(new Set());
+    setIsSavingVariation(null);
+    setVariationViewerUrl(null);
+    setVariationViewerIdx(-1);
   }, [image.id]);
 
   // Timer while editing
@@ -522,6 +530,44 @@ function Lightbox({
     } finally {
       setIsGeneratingVariations(false);
       if (variationIntervalRef.current) { clearInterval(variationIntervalRef.current); variationIntervalRef.current = null; }
+    }
+  };
+
+  // Save a variation URL as a new image in the library
+  const handleSaveVariationToLibrary = async (url: string, vidx: number) => {
+    setIsSavingVariation(vidx);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/generated_images`, {
+        method: 'POST',
+        headers: { ...SB_HEADERS, Prefer: 'return=representation' },
+        body: JSON.stringify({
+          public_url:   url,
+          provider:     'variation',
+          aspect_ratio: image.aspect_ratio || '',
+          resolution:   image.resolution   || '1K',
+          filename:     `variation-${variationType}-${vidx + 1}-${Date.now()}.png`,
+          storage_path: '',
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      const data = await res.json();
+      const row = Array.isArray(data) ? data[0] : data;
+      const newImg: GeneratedImage = {
+        id:           row.id            || `var-${Date.now()}`,
+        created_at:   row.created_at    || new Date().toISOString(),
+        filename:     row.filename      || `variation-${vidx + 1}.png`,
+        provider:     'variation',
+        aspect_ratio: row.aspect_ratio  || image.aspect_ratio || '',
+        resolution:   row.resolution    || image.resolution   || '1K',
+        storage_path: row.storage_path  || '',
+        public_url:   url,
+      };
+      onNewImageAdded(newImg);
+      setSavedVariationIdxs(prev => new Set([...prev, vidx]));
+    } catch {
+      // silent fail — user can retry
+    } finally {
+      setIsSavingVariation(null);
     }
   };
 
@@ -775,41 +821,63 @@ function Lightbox({
                       <p className="text-destructive text-xs bg-destructive/10 rounded-lg px-3 py-2">{variationError}</p>
                     )}
 
-                    {/* Variation results — click thumbnail to view full-size */}
+                    {/* Variation results — click image to view, Save to add to library */}
                     {generatedVariations.length > 0 && (
-                      <div className="space-y-1.5">
-                        <p className="text-white/40 text-[10px]">Click a thumbnail to view full-size</p>
+                      <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
+                          {generatedVariations.map((url, i) => (
+                            <div key={i} className="relative group">
+                              {/* Clickable image — opens full-size viewer */}
+                              <button
+                                type="button"
+                                onClick={() => { setVariationViewerUrl(url); setVariationViewerIdx(i); }}
+                                className="relative w-full rounded-xl overflow-hidden border border-white/10 hover:border-primary/60 aspect-square bg-zinc-800 transition-all hover:scale-[0.97] cursor-zoom-in block"
+                                title={`View Variation ${i + 1}`}
+                              >
+                                <img src={url} alt={`Variation ${i + 1}`} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/20 text-white text-xs font-semibold backdrop-blur-sm">
+                                    <Expand className="w-3 h-3" />
+                                    View
+                                  </span>
+                                </div>
+                                <span className="absolute bottom-1 left-1 text-[9px] bg-primary/80 text-white rounded px-1 py-0.5 leading-none">V{i + 1}</span>
+                                <span className={`absolute top-1 right-1 text-[8px] rounded px-1 py-0.5 leading-none font-semibold ${variationType === 'subtle' ? 'bg-sky-500/80 text-white' : 'bg-violet-500/80 text-white'}`}>
+                                  {variationType === 'subtle' ? 'SUB' : 'STR'}
+                                </span>
+                              </button>
+                              {/* Download — bottom right, appears on hover */}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try { const res = await fetch(url); const blob = await res.blob(); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `variation-${i + 1}-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+                                  catch { window.open(url, '_blank'); }
+                                }}
+                                className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded-lg bg-black/60 hover:bg-black/80 text-white transition-all"
+                                title="Download"
+                              ><Download className="w-3 h-3" /></button>
+                            </div>
+                          ))}
+                        </div>
+                        {/* Save to Library row */}
+                        <div className="flex gap-1.5">
                           {generatedVariations.map((url, i) => (
                             <button
                               key={i}
                               type="button"
-                              onClick={() => { setVariationViewerUrl(url); setVariationViewerIdx(i); }}
-                              className="relative group rounded-xl overflow-hidden border border-white/10 hover:border-primary/50 aspect-square bg-zinc-800 transition-all hover:scale-[0.97] cursor-pointer"
-                              title={`View Variation ${i + 1} full-size`}
+                              disabled={savedVariationIdxs.has(i) || isSavingVariation === i}
+                              onClick={() => handleSaveVariationToLibrary(url, i)}
+                              className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
+                                savedVariationIdxs.has(i)
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
+                                  : 'bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/40 text-white/60 hover:text-primary disabled:opacity-40'
+                              }`}
                             >
-                              <img src={url} alt={`Variation ${i + 1}`} className="w-full h-full object-cover" />
-                              {/* Hover overlay */}
-                              <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                                <span className="p-1.5 rounded-lg bg-white/20 text-white">
-                                  <Expand className="w-3 h-3" />
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    try { const res = await fetch(url); const blob = await res.blob(); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `variation-${i + 1}-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
-                                    catch { window.open(url, '_blank'); }
-                                  }}
-                                  className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 text-white transition-colors"
-                                  title="Download"
-                                ><Download className="w-3 h-3" /></button>
-                              </div>
-                              <span className="absolute bottom-1 left-1 text-[9px] bg-primary/80 text-white rounded px-1 py-0.5 leading-none">V{i + 1}</span>
-                              {/* Mode badge */}
-                              <span className={`absolute top-1 right-1 text-[8px] rounded px-1 py-0.5 leading-none font-semibold ${variationType === 'subtle' ? 'bg-sky-500/80 text-white' : 'bg-violet-500/80 text-white'}`}>
-                                {variationType === 'subtle' ? 'SUB' : 'STR'}
-                              </span>
+                              {isSavingVariation === i
+                                ? <><Loader2 className="w-2.5 h-2.5 animate-spin" />Saving…</>
+                                : savedVariationIdxs.has(i)
+                                  ? <><Save className="w-2.5 h-2.5" />Saved V{i + 1}</>
+                                  : <><Save className="w-2.5 h-2.5" />Save V{i + 1}</>}
                             </button>
                           ))}
                         </div>

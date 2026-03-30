@@ -100,18 +100,11 @@ export function ImageModal({
     }
   }, [isOpen, initialIndex]);
 
-  // Reset edit + variation state when navigating to a different BASE image (not a variation)
+  // Reset ONLY edit state when switching images — variation state persists for the whole modal session
   useEffect(() => {
-    const img = galleryImagesRef.current[activeIdx];
-    if (img?.isVariation) return; // Navigating to a variation — keep variation state
     setLastEditedUrl(null);
     setEditInstructions('');
     setEditError(null);
-    setGeneratedVariations([]);
-    setVariationError(null);
-    setVariationInstructions('');
-    setLocalVariations([]);
-    setVarGalleryStartIdx(-1);
   }, [activeIdx]);
 
   const current: GalleryImage = isGallery
@@ -188,8 +181,8 @@ export function ImageModal({
     setVariationError(null);
     setGeneratedVariations([]);
     setVariationElapsed(0);
-    // Capture start index BEFORE state updates
-    const startIdx = allImages!.length + localVariations.length;
+    // Variations always sit right after the original images — fixed position
+    const startIdx = allImages!.length;
     variationIntervalRef.current = setInterval(() => setVariationElapsed(p => p + 1), 1000);
     try {
       const resp = await fetch('/api/generate-variations', {
@@ -225,7 +218,8 @@ export function ImageModal({
       }));
 
       setGeneratedVariations(urls);
-      setLocalVariations(prev => [...prev, ...newVarImages]);
+      // Replace (not append) so re-generating always shows fresh variations at same positions
+      setLocalVariations(newVarImages);
       setVarGalleryStartIdx(startIdx);
       // Navigate to first variation in gallery strip
       setActiveIdx(startIdx);

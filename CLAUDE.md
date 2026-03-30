@@ -245,6 +245,12 @@ SpinJo, Roosterbet, FortunePlay, LuckyVibe, SpinsUp
 
 ## Coding Conventions
 
+### Screenshot-Driven Development (REQUIRED)
+- **Always take a screenshot before and after every UI fix.** Use the `seo-visual` agent or Playwright to capture `http://localhost:5173`.
+- **Self-analyze the screenshot** to verify the fix looks correct and nothing is broken.
+- If the fix looks wrong in the screenshot, iterate until it looks right — do not rely on the user to report visual problems.
+- This applies to ALL UI changes, not just bug fixes.
+
 ### Do
 - Keep frontend dumb — display + send to n8n only
 - Show loading and error states for every fetch
@@ -253,6 +259,7 @@ SpinJo, Roosterbet, FortunePlay, LuckyVibe, SpinsUp
 - Explain decisions in plain English
 - Small changes, one at a time, test between each
 - Preserve ALL existing functionality
+- **Always auto-commit and push every code change** (see feedback_autocommit.md)
 
 ### Don't
 - **Don't hardcode prompt data**
@@ -270,6 +277,12 @@ SpinJo, Roosterbet, FortunePlay, LuckyVibe, SpinsUp
 - Airtable free plan: 1,000 records (at 109 now — plenty of room)
 - Vercel hobby: 10-second timeout
 - Developer is a beginner — always explain, always keep it simple
+
+## Image Generation Tech Stack
+- **ChatGPT/Gemini** image generation: called via n8n webhooks
+- **Generate Variations**: `api/generate-variations.ts` — uses **OpenAI gpt-image-1 image edit API** directly with `OPENAI_API_KEY`. Does NOT use GCP/Cloud Run. Do not revert to GCP auth.
+- **Edit Image**: `api/edit-image.ts` — uses GCP Cloud Run (requires `GCP_WORKLOAD_PROVIDER`, `GCP_SERVICE_ACCOUNT`, Vercel OIDC)
+- Local dev URL: `http://localhost:5173` (Vite)
 
 ---
 

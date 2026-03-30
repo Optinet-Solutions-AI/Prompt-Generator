@@ -165,19 +165,6 @@ const Index = () => {
               <Trophy className="w-4 h-4" />
               Sports Banner
             </button>
-            <button
-              type="button"
-              onClick={() => handleTabChange('library')}
-              className={[
-                'flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-150',
-                activeTab === 'library'
-                  ? 'bg-card shadow-sm text-foreground border border-border'
-                  : 'text-muted-foreground hover:text-foreground',
-              ].join(' ')}
-            >
-              <Images className="w-4 h-4" />
-              Image Library
-            </button>
           </div>
         )}
 

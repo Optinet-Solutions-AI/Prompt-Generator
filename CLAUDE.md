@@ -243,6 +243,22 @@ SpinJo, Roosterbet, FortunePlay, LuckyVibe, SpinsUp
 
 ---
 
+## Token-Saving Rules
+
+### Before reading files
+Run `node scripts/find-relevant.js "<keyword>" --show-lines` first.
+This finds only the files that contain the relevant code — read those instead of the whole codebase.
+
+Examples:
+- `node scripts/find-relevant.js "ImageModal"` → find modal-related files
+- `node scripts/find-relevant.js "supabase" --type ts` → find all TS files touching Supabase
+- `node scripts/find-relevant.js "generate variations" --show-lines` → see exact line matches
+
+### What .claudeignore blocks
+`node_modules/`, `dist/`, lock files, screenshots — Claude will never read these automatically.
+
+---
+
 ## Coding Conventions
 
 ### Screenshot-Driven Development (REQUIRED)

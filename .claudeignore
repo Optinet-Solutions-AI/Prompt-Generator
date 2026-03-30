@@ -1,0 +1,28 @@
+# ── Never read these — they waste tokens and are never relevant ──────────────
+node_modules/
+dist/
+.next/
+build/
+out/
+
+# Lock files — huge, never useful to read
+package-lock.json
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+
+# Generated / compiled
+*.min.js
+*.min.css
+*.map
+
+# Screenshots (binary, not useful as text)
+screenshots/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

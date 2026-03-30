@@ -280,7 +280,7 @@ export function ImageModal({
         style={{ zIndex: 1001 }}
       >
         {/* Inner: stretches modal + strip to the SAME height */}
-        <div className="flex gap-4 items-stretch pointer-events-none" style={{ maxHeight: '88vh', width: 'min(calc(100vw - 32px), 1160px)' }}>
+        <div className="flex gap-3 items-stretch pointer-events-none" style={{ height: '90vh', width: 'min(calc(100vw - 32px), 1200px)' }}>
 
         {/* ── Main modal ── */}
         <div
@@ -329,87 +329,64 @@ export function ImageModal({
             </div>
           </div>
 
-          {/* Image */}
-          <div className="flex-1 overflow-auto flex items-center justify-center p-4 bg-muted/20 min-h-0">
+          {/* Image — flex-1 fills all remaining space; no fixed cap so it always shows fully */}
+          <div className="flex-1 flex items-center justify-center p-4 bg-muted/20 min-h-0 overflow-hidden">
             <img
               key={current.displayUrl}
               src={current.displayUrl}
               alt="Generated image"
               className="max-w-full max-h-full object-contain rounded-lg"
-              style={{ maxHeight: 'min(50vh, 480px)' }}
             />
           </div>
 
-          {/* Edit + actions */}
-          <div className="shrink-0 p-4 space-y-3 border-t border-border/40">
+          {/* Edit + actions — compact bottom panel */}
+          <div className="shrink-0 px-4 pt-3 pb-3 space-y-2 border-t border-border/40">
             {lastEditedUrl && (
-              <p className="text-xs text-emerald-600 font-medium">Edit applied! You can keep editing or save it to favorites.</p>
+              <p className="text-xs text-emerald-600 font-medium">Edit applied! Save it to favorites or keep editing.</p>
             )}
 
-            {/* Variations panel — shown when toggled */}
+            {/* Variations panel — single compact row */}
             {showVariationsPanel && (
-              <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Shuffle className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-semibold text-foreground">Generate Variations</span>
-                  </div>
+              <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+                <div className="flex items-center gap-2">
                   {/* Subtle / Strong toggle */}
-                  <div className="flex items-center gap-0.5 bg-background rounded-lg p-0.5 border border-border text-xs">
+                  <div className="flex items-center gap-0.5 bg-background rounded-md p-0.5 border border-border text-xs shrink-0">
                     <button
                       type="button"
                       onClick={() => setVariationType('subtle')}
-                      className={`px-2.5 py-1 rounded-md font-medium transition-all ${variationType === 'subtle' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      title="Subtle — adjust lighting & colors only, keep composition identical"
+                      className={`px-2.5 py-1 rounded font-medium transition-all ${variationType === 'subtle' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                     >Subtle</button>
                     <button
                       type="button"
                       onClick={() => setVariationType('strong')}
-                      className={`px-2.5 py-1 rounded-md font-medium transition-all ${variationType === 'strong' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      title="Strong — reimagine background & palette, keep subject & outfit"
+                      className={`px-2.5 py-1 rounded font-medium transition-all ${variationType === 'strong' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                     >Strong</button>
                   </div>
+                  {/* Inline guidance input */}
+                  <input
+                    type="text"
+                    placeholder="Optional guidance… e.g. 'Make it night time'"
+                    value={variationInstructions}
+                    onChange={e => setVariationInstructions(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !isGeneratingVariations) handleGenerateVariations(); }}
+                    className="flex-1 text-xs bg-background border border-border rounded-md px-2.5 py-1.5 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 min-w-0"
+                    disabled={isGeneratingVariations}
+                  />
+                  {/* Generate button */}
+                  <button
+                    type="button"
+                    onClick={handleGenerateVariations}
+                    disabled={isGeneratingVariations}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  >
+                    {isGeneratingVariations
+                      ? <><Loader2 className="w-3 h-3 animate-spin" /><span className="tabular-nums">{variationElapsed}s</span></>
+                      : <><Shuffle className="w-3 h-3" />{localVariations.length > 0 ? 'Regenerate' : 'Generate'}</>}
+                  </button>
                 </div>
-
-                {/* What the AI changes — clear description */}
-                <div className="rounded-lg bg-background/60 border border-border/50 px-2.5 py-2 space-y-1">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">What changes:</p>
-                  <p className="text-[10px] text-foreground/70 leading-relaxed">
-                    {variationType === 'subtle'
-                      ? '✦ Lighting warmth · color temperature · atmospheric mood'
-                      : '✦ Background environment · color palette · lighting color · overall mood'}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    {variationType === 'subtle'
-                      ? 'Composition, subject, pose & structure stay identical.'
-                      : 'Main subject & outfit are preserved exactly.'}
-                  </p>
-                </div>
-
-                <Textarea
-                  placeholder="Optional: add extra guidance… e.g. 'Make it feel like night time'"
-                  value={variationInstructions}
-                  onChange={e => setVariationInstructions(e.target.value)}
-                  className="min-h-[60px] resize-none text-xs"
-                  disabled={isGeneratingVariations}
-                />
-                {variationError && <p className="text-destructive text-xs">{variationError}</p>}
-
-                {/* Variations appear in the side gallery strip — no duplicate grid here */}
-                {localVariations.length > 0 && (
-                  <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
-                    ✓ {localVariations.length} variation{localVariations.length > 1 ? 's' : ''} generated — click them in the strip on the right to view.
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleGenerateVariations}
-                  disabled={isGeneratingVariations}
-                  className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isGeneratingVariations
-                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Generating 2 variations…</span><span className="tabular-nums text-primary-foreground/70">({variationElapsed}s)</span></>
-                    : <><Shuffle className="w-3.5 h-3.5" />{localVariations.length > 0 ? 'Regenerate Variations' : 'Generate 2 Variations'}</>}
-                </button>
+                {variationError && <p className="text-destructive text-[11px] mt-1.5">{variationError}</p>}
               </div>
             )}
 
@@ -417,19 +394,20 @@ export function ImageModal({
               placeholder="Enter editing instructions (e.g., 'Make the character face forward', 'Zoom in on the subject')"
               value={editInstructions}
               onChange={e => setEditInstructions(e.target.value)}
-              className="min-h-[80px] resize-none"
+              className="min-h-[52px] resize-none text-sm"
               disabled={isEditing}
             />
             {editError && <p className="text-destructive text-sm">{editError}</p>}
-            <div className="flex items-center gap-2">
-              {/* Variations toggle button */}
+            {/* Action bar — flex-wrap so it never clips on any screen size */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Variations toggle */}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => setShowVariationsPanel(v => !v)}
                 className={`gap-1.5 text-xs shrink-0 ${showVariationsPanel ? 'border-primary/50 text-primary bg-primary/5' : ''}`}
-                title="Generate 2 more variations"
+                title="Generate variations of this image"
               >
                 <Shuffle className="w-3.5 h-3.5" />
                 Variations
@@ -439,58 +417,54 @@ export function ImageModal({
                   </span>
                 )}
               </Button>
-              <div className="flex-1" />
+              {/* Spacer pushes remaining buttons to the right */}
+              <div className="flex-1 min-w-0" />
               <Button
                 onClick={handleEditImage}
                 disabled={isEditing || !editInstructions.trim()}
                 variant="outline"
-                className="gap-2"
+                size="sm"
+                className="gap-1.5 shrink-0"
               >
                 {isEditing
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /><span className="tabular-nums">{elapsedTime}s</span></>
-                  : <><Wand2 className="w-4 h-4" />Apply Edit & Regenerate</>}
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span className="tabular-nums">{elapsedTime}s</span></>
+                  : <><Wand2 className="w-3.5 h-3.5" />Apply Edit</>}
               </Button>
               {lastEditedUrl && brand && (
                 <Button
                   variant="outline"
-                  className="gap-2"
+                  size="sm"
+                  className="gap-1.5 shrink-0"
                   disabled={isEditing}
                   onClick={async () => {
                     try {
                       await fetch('/api/like-img', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          record_id: `edited-${Date.now()}`,
-                          img_url: lastEditedUrl,
-                          brand_name: brand,
-                        }),
+                        body: JSON.stringify({ record_id: `edited-${Date.now()}`, img_url: lastEditedUrl, brand_name: brand }),
                       });
                       setLastEditedUrl(null);
                     } catch { /* non-fatal */ }
                   }}
                 >
-                  <Heart className="w-4 h-4" />
-                  Save to Favorites
+                  <Heart className="w-3.5 h-3.5" />Save to Favorites
                 </Button>
               )}
-              <Button variant="outline" className="gap-2" onClick={() => setShowHtmlModal(true)} disabled={isEditing}>
-                <FileCode className="w-4 h-4" />
-                Convert to HTML
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => setShowHtmlModal(true)} disabled={isEditing}>
+                <FileCode className="w-3.5 h-3.5" />Convert to HTML
               </Button>
-              <Button className="gap-2 gradient-primary" onClick={handleDownload} disabled={isEditing}>
-                <Download className="w-4 h-4" />
-                Download Image
+              <Button size="sm" className="gap-1.5 gradient-primary shrink-0" onClick={handleDownload} disabled={isEditing}>
+                <Download className="w-3.5 h-3.5" />Download
               </Button>
             </div>
           </div>
         </div>
 
-        {/* ── Right-side thumbnail strip — 3-column grid, matches modal height ── */}
+        {/* ── Right-side thumbnail strip — responsive width, matches modal height ── */}
         {showStrip && (
           <div
             className="pointer-events-auto flex flex-col bg-card/95 rounded-2xl border border-border/60 shadow-2xl overflow-hidden shrink-0"
-            style={{ width: 440 }}
+            style={{ width: 'clamp(200px, 26vw, 340px)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}

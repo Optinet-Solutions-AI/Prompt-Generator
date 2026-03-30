@@ -150,26 +150,26 @@ export function ImageModal({
     setGeneratedVariations([]);
     setVariationElapsed(0);
     variationIntervalRef.current = setInterval(() => setVariationElapsed(p => p + 1), 1000);
-    const baseInstruction = variationType === 'subtle'
-      ? 'Create a subtle variation: keep the exact same composition, subject, outfit, and overall structure, but make slight adjustments to lighting, color tones, and minor atmospheric details. Stay very close to the original.'
-      : 'Create a strong creative variation: keep the same main subject but reimagine the background, lighting, color palette, and mood dramatically. Make it feel distinctly different while preserving the core subject identity.';
-    const fullInstruction = variationInstructions.trim()
-      ? `${baseInstruction} Additional guidance: ${variationInstructions.trim()}`
-      : baseInstruction;
     try {
-      const [r1, r2] = await Promise.allSettled([
-        fetch('/api/edit-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: srcUrl, editInstructions: fullInstruction, resolution }) }),
-        fetch('/api/edit-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: srcUrl, editInstructions: fullInstruction, resolution }) }),
-      ]);
-      const urls: string[] = [];
-      for (const r of [r1, r2]) {
-        if (r.status === 'fulfilled' && r.value.ok) {
-          const data = await r.value.json();
-          const rd = Array.isArray(data) ? data[0] : data;
-          const url = rd.thumbnailUrl || rd.imageUrl || rd.thumbnailLink || rd.webContentLink || rd.public_url;
-          if (url) urls.push(url);
-        }
+      const resp = await fetch('/api/generate-variations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: srcUrl,
+          mode: variationType,
+          guidance: variationInstructions.trim(),
+          count: 2,
+          resolution,
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Failed to generate variations');
       }
+      const data = await resp.json();
+      const urls: string[] = (data.variations ?? [])
+        .map((v: { imageUrl?: string }) => v.imageUrl)
+        .filter(Boolean);
       if (urls.length === 0) throw new Error('No variations were generated. Please try again.');
       setGeneratedVariations(urls);
     } catch (err) {

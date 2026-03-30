@@ -159,6 +159,8 @@ export function ResultDisplay({
   const [modalImage, setModalImage] = useState<{
     initialIndex: number;
   } | null>(null);
+  // Variations generated inside the modal persist here so they survive open/close cycles
+  const [persistedVariations, setPersistedVariations] = useState<GalleryImage[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState(prompt);
 
@@ -168,6 +170,11 @@ export function ResultDisplay({
   const [isRefSaving, setIsRefSaving] = useState(false);
   const [refSaveError, setRefSaveError] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  // Clear persisted variations whenever a fresh set of images is generated
+  useEffect(() => {
+    setPersistedVariations([]);
+  }, [generatedImages]);
 
   const handleSaveAsRef = async () => {
     if (!refTitle.trim()) { setRefSaveError('Please enter a title.'); return; }
@@ -965,6 +972,8 @@ export function ResultDisplay({
             onToggleFavorite={handleToggleFavorite}
             resolution={resolution}
             brand={metadata?.brand}
+            persistedVariations={persistedVariations}
+            onVariationsChange={setPersistedVariations}
           />
         );
       })()}

@@ -33,6 +33,9 @@ interface ImageModalProps {
   likedImages?: Set<string>;
   resolution?: string;
   brand?: string;
+  // Variations generated in a previous open session — restored when modal reopens
+  persistedVariations?: GalleryImage[];
+  onVariationsChange?: (variations: GalleryImage[]) => void;
 }
 
 export function ImageModal({
@@ -50,6 +53,8 @@ export function ImageModal({
   likedImages,
   resolution = '1K',
   brand,
+  persistedVariations = [],
+  onVariationsChange,
 }: ImageModalProps) {
   const isGallery = allImages && allImages.length > 0;
 
@@ -78,6 +83,12 @@ export function ImageModal({
   // Index in galleryImages where the current batch of variations starts
   const [varGalleryStartIdx, setVarGalleryStartIdx] = useState(-1);
 
+  // Ref so the open-effect can read the latest persistedVariations without adding it to deps
+  const persistedVariationsRef = useRef(persistedVariations);
+  persistedVariationsRef.current = persistedVariations;
+  const allImagesRef = useRef(allImages);
+  allImagesRef.current = allImages;
+
   // Combined gallery: original images + any variations generated
   const galleryImages: GalleryImage[] = isGallery ? [...allImages, ...localVariations] : [];
 
@@ -87,13 +98,16 @@ export function ImageModal({
 
   const showStrip = isGallery && galleryImages.length > 1;
 
-  // Reset everything when modal opens/closes
+  // Restore state when modal opens; variations persist across open/close cycles
   useEffect(() => {
     if (isOpen) {
       setActiveIdx(initialIndex);
-      setLocalVariations([]);
-      setVarGalleryStartIdx(-1);
-      setGeneratedVariations([]);
+      const pv = persistedVariationsRef.current;
+      const ai = allImagesRef.current;
+      // Restore any variations from the previous session
+      setLocalVariations(pv);
+      setVarGalleryStartIdx(pv.length > 0 ? (ai?.length ?? 0) : -1);
+      setGeneratedVariations(pv.map(v => v.displayUrl));
       setVariationError(null);
       setVariationInstructions('');
       updatedUrlsRef.current.clear();
@@ -232,10 +246,12 @@ export function ImageModal({
   };
 
   const handleClose = () => {
+    // Save variations to parent before closing so they survive the next open
+    onVariationsChange?.(localVariations);
     setEditInstructions(''); setEditError(null);
-    setGeneratedVariations([]); setVariationError(null); setVariationInstructions('');
-    setLocalVariations([]); setVarGalleryStartIdx(-1);
-    updatedUrlsRef.current.clear(); onClose();
+    setVariationError(null); setVariationInstructions('');
+    updatedUrlsRef.current.clear();
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -377,66 +393,11 @@ export function ImageModal({
                 />
                 {variationError && <p className="text-destructive text-xs">{variationError}</p>}
 
-                {/* Variation thumbnails — clickable to navigate in gallery strip */}
-                {generatedVariations.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] text-muted-foreground font-medium">
-                      Click a variation below or in the strip →
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {generatedVariations.map((url, i) => {
-                        const galleryIdx = varGalleryStartIdx + i;
-                        const isActive = activeIdx === galleryIdx;
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => setActiveIdx(galleryIdx)}
-                            className={`relative group rounded-lg overflow-hidden border-2 aspect-square bg-muted/30 transition-all ${
-                              isActive
-                                ? 'border-primary shadow-lg shadow-primary/30 scale-95'
-                                : 'border-border hover:border-primary/50 hover:scale-[0.97]'
-                            }`}
-                            title={`View Variation ${i + 1} in main viewer`}
-                          >
-                            <img src={url} alt={`Variation ${i + 1}`} className="w-full h-full object-cover" />
-                            {/* Hover overlay with download */}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  try { const res = await fetch(url); const blob = await res.blob(); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `variation-${i + 1}-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
-                                  catch { window.open(url, '_blank'); }
-                                }}
-                                className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 text-white transition-colors"
-                                title="Download"
-                              ><Download className="w-3 h-3" /></button>
-                              {brand && (
-                                <button
-                                  type="button"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    try { await fetch('/api/like-img', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ record_id: `var-${Date.now()}-${i}`, img_url: url, brand_name: brand }) }); }
-                                    catch { /* non-fatal */ }
-                                  }}
-                                  className="p-1.5 rounded-lg bg-white/20 hover:bg-rose-500/80 text-white transition-colors"
-                                  title="Save to Favorites"
-                                ><Heart className="w-3 h-3" /></button>
-                              )}
-                            </div>
-                            <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white rounded px-1 py-0.5 leading-none">V{i + 1}</span>
-                            {/* Mode badge */}
-                            <span className={`absolute top-1 right-1 text-[8px] rounded px-1 py-0.5 leading-none font-semibold ${variationType === 'subtle' ? 'bg-sky-500/80 text-white' : 'bg-violet-500/80 text-white'}`}>
-                              {variationType === 'subtle' ? 'SUB' : 'STR'}
-                            </span>
-                            {/* Active ring */}
-                            {isActive && <span className="absolute inset-0 ring-2 ring-primary ring-inset rounded-lg pointer-events-none" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                {/* Variations appear in the side gallery strip — no duplicate grid here */}
+                {localVariations.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+                    ✓ {localVariations.length} variation{localVariations.length > 1 ? 's' : ''} generated — click them in the strip on the right to view.
+                  </p>
                 )}
 
                 <button
@@ -447,7 +408,7 @@ export function ImageModal({
                 >
                   {isGeneratingVariations
                     ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Generating 2 variations…</span><span className="tabular-nums text-primary-foreground/70">({variationElapsed}s)</span></>
-                    : <><Shuffle className="w-3.5 h-3.5" />{generatedVariations.length > 0 ? 'Regenerate Variations' : 'Generate 2 Variations'}</>}
+                    : <><Shuffle className="w-3.5 h-3.5" />{localVariations.length > 0 ? 'Regenerate Variations' : 'Generate 2 Variations'}</>}
                 </button>
               </div>
             )}
@@ -472,9 +433,9 @@ export function ImageModal({
               >
                 <Shuffle className="w-3.5 h-3.5" />
                 Variations
-                {generatedVariations.length > 0 && (
+                {localVariations.length > 0 && (
                   <span className="ml-0.5 bg-primary text-primary-foreground rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold">
-                    {generatedVariations.length}
+                    {localVariations.length}
                   </span>
                 )}
               </Button>

@@ -260,9 +260,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ],
           }],
           parameters: {
-            editMode: 'EDIT_MODE_BGSWAP',
+            // Subtle: BGSWAP keeps scene nearly identical with minor tweaks
+            // Strong: INPAINT_INSERTION modifies the background region without full replacement
+            editMode: mode === 'subtle' ? 'EDIT_MODE_BGSWAP' : 'EDIT_MODE_INPAINT_INSERTION',
             editConfig: {
-              baseSteps: 75,
+              baseSteps: mode === 'subtle' ? 75 : 50,
             },
             sampleCount: 1,
             seed,

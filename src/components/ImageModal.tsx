@@ -462,7 +462,7 @@ export function ImageModal({
                   >
                     {isGeneratingVariations
                       ? <><Loader2 className="w-3 h-3 animate-spin" /><span className="tabular-nums">{variationElapsed}s</span></>
-                      : <><Shuffle className="w-3 h-3" />{compareEngines ? 'Compare' : (localVariations.length > 0 ? 'Regenerate' : 'Generate')}</>}
+                      : <><Shuffle className="w-3 h-3" />{selectedEngine === 'compare' ? 'Compare' : (localVariations.length > 0 ? 'Regenerate' : 'Generate')}</>}
                   </button>
                 </div>
 

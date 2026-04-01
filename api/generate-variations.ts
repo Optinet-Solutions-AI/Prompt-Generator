@@ -9,6 +9,137 @@ export const config = {
   maxDuration: 300,
 };
 
+// ------------------------------------------------------------------
+// Helper: read width/height from raw PNG or JPEG bytes
+// We use this to match output resolution to source resolution.
+// ------------------------------------------------------------------
+function detectImageDimensions(buffer: ArrayBuffer): { width: number; height: number } | null {
+  const bytes = new Uint8Array(buffer);
+
+  // PNG: magic bytes 0-7, IHDR chunk starts at byte 8
+  // Width = bytes 16-19, Height = bytes 20-23 (big-endian)
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+    const width  = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+    const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+    return { width, height };
+  }
+
+  // JPEG: starts with FF D8 — scan for SOF0-SOF3 markers which carry dimensions
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
+    let i = 2;
+    while (i < bytes.length - 8) {
+      if (bytes[i] === 0xFF) {
+        const marker = bytes[i + 1];
+        if (marker >= 0xC0 && marker <= 0xC3) {
+          // SOF segment: [FF Cx] [len 2b] [precision 1b] [height 2b] [width 2b]
+          const height = (bytes[i + 5] << 8) | bytes[i + 6];
+          const width  = (bytes[i + 7] << 8) | bytes[i + 8];
+          return { width, height };
+        }
+        // Skip this JPEG segment
+        if (i + 3 < bytes.length) {
+          const segLen = (bytes[i + 2] << 8) | bytes[i + 3];
+          i += 2 + segLen;
+        } else {
+          break;
+        }
+      } else {
+        i++;
+      }
+    }
+  }
+
+  return null; // WebP/GIF — fall back to 'auto'
+}
+
+// Map source dimensions → quality level for the OpenAI API.
+// Higher-res originals get 'high' quality so the output matches the fidelity
+// of the source rather than being downgraded to a medium/low render.
+function qualityForDimensions(dims: { width: number; height: number } | null): 'low' | 'medium' | 'high' {
+  if (!dims) return 'medium';
+  const longest = Math.max(dims.width, dims.height);
+  if (longest >= 1800) return 'high';   // 2 K+  → high
+  if (longest >= 900)  return 'medium'; // ~1 K  → medium
+  return 'low';                          // thumbnails → low
+}
+
+// Map source dimensions → gpt-image-1 size string.
+// 'auto' tells the API to match the input image's aspect ratio and resolution
+// (up to its maximum of 1536 px on the longest side).
+function sizeForDimensions(dims: { width: number; height: number } | null): string {
+  if (!dims) return 'auto';
+  const { width, height } = dims;
+  // Let OpenAI decide the exact pixel count; 'auto' preserves aspect ratio
+  // and resolution instead of hard-coding 1024×1024.
+  if (width > height) return '1536x1024';   // landscape
+  if (height > width) return '1024x1536';   // portrait
+  return '1024x1024';                        // square
+}
+
+// ------------------------------------------------------------------
+// Helper: build the variation prompt based on mode and user guidance.
+//
+// Problem we're solving for 'strong' mode:
+//   When the source image contains glowing/fire elements, GPT-image-1
+//   has a strong bias toward generating DARK backgrounds because its
+//   training data associates glow with night/dark scenes.
+//   We break that bias by explicitly forbidding dark treatments and
+//   demanding bright/high-key lighting — even more aggressively when
+//   the user's guidance already hints at something bright.
+// ------------------------------------------------------------------
+function buildPrompt(mode: string, guidance: string): string {
+  if (mode === 'subtle') {
+    // Subtle: almost nothing changes — just warmth and atmosphere
+    const base = [
+      'Create a subtle variation of this image.',
+      'Preserve the EXACT composition, subject, character, pose, outfit, colors, and overall structure.',
+      'Change ONLY minor lighting warmth, color temperature, and soft atmospheric mood details.',
+      'Stay extremely close to the original — do not reimagine the background or alter the subject.',
+    ].join(' ');
+    return guidance ? `${base} Additional refinement: ${guidance}` : base;
+  }
+
+  // ── STRONG mode ────────────────────────────────────────────────────────────
+  // Core subject lock — never changes regardless of guidance
+  const subjectLock = [
+    'The main subject (character, outfit, pose, and any brand-specific design elements such as a flaming ball, logo, or costume) must remain 100% identical to the source image.',
+    'Do NOT alter the subject in any way.',
+  ].join(' ');
+
+  // Detect whether the user is asking for something bright/outdoor
+  const brightKeywords = ['day', 'bright', 'sun', 'solar', 'noon', 'snow', 'stadium', 'beach',
+    'outdoor', 'sky', 'high-key', 'studio', 'white', 'light', 'golden hour', 'morning',
+    'afternoon', 'cloudy', 'overcast', 'neon city'];
+  const userWantsBright = brightKeywords.some(kw => guidance.toLowerCase().includes(kw));
+
+  // Anti-dark-bias block — always included for strong mode, amplified when user wants bright
+  const antiDarkRule = userWantsBright
+    ? [
+        'CRITICAL LIGHTING OVERRIDE: The new background MUST be brightly lit.',
+        'Use ONLY high-key, vivid, well-illuminated lighting — flooded with daylight, midday sun, or bright artificial studio light.',
+        'This is NON-NEGOTIABLE: absolutely NO dark backgrounds, no night scenes, no dim lighting, no moody shadows, no low-key or horror-style lighting, no black backgrounds.',
+        'Even though the subject contains fire or glowing elements, those effects remain visible in a bright environment.',
+        'Do not let the presence of fire/glow push the scene toward darkness.',
+      ].join(' ')
+    : [
+        'IMPORTANT: Avoid defaulting to dark, moody, or nighttime backgrounds simply because the subject contains glowing or fire elements.',
+        'Glowing effects can exist in any lighting environment.',
+        'Choose a background lighting style that complements the user direction, which may be bright, neutral, or atmospheric.',
+      ].join(' ');
+
+  const backgroundChange = [
+    'Dramatically reimagine ONLY the background environment, scene location, and overall color palette.',
+    'Make it feel distinctly different from the original while keeping the subject locked.',
+  ].join(' ');
+
+  const parts = [subjectLock, antiDarkRule, backgroundChange];
+  if (guidance) {
+    parts.push(`Direction for the new background/environment: ${guidance}`);
+  }
+
+  return parts.join('\n\n');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -65,16 +196,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const ext = extMap[baseMime] || 'png';
 
     // ------------------------------------------------------------------
-    // 2. Build the variation prompt based on mode
+    // 2. Detect source resolution so we can match output quality/size
     // ------------------------------------------------------------------
-    const basePrompt = mode === 'subtle'
-      ? 'Create a subtle variation of this image. Preserve the exact composition, subject, pose, outfit, and overall structure. Change only lighting warmth, color temperature, and minor atmospheric mood details. Stay very close to the original.'
-      : 'Create a creative variation of this image. Keep the same main subject and outfit but dramatically reimagine the background environment, lighting colors, overall palette, and mood. Make it feel distinctly different while preserving the core subject identity.';
+    const sourceDims = detectImageDimensions(imgArrayBuffer);
+    const outputQuality = qualityForDimensions(sourceDims);
+    const outputSize    = sizeForDimensions(sourceDims);
 
-    const prompt = guidance ? `${basePrompt} Additional guidance: ${guidance}` : basePrompt;
+    console.log(`[generate-variations] source dims: ${JSON.stringify(sourceDims)} → quality=${outputQuality}, size=${outputSize}`);
 
     // ------------------------------------------------------------------
-    // 3. Fire 2 variation requests in parallel via OpenAI image edit
+    // 3. Build the variation prompt based on mode and guidance
+    // ------------------------------------------------------------------
+    const prompt = buildPrompt(mode, guidance);
+
+    // ------------------------------------------------------------------
+    // 4. Fire variation requests in parallel via OpenAI image edit
     // ------------------------------------------------------------------
     const numVariations = Math.min(Number(count) || 2, 2);
 
@@ -84,7 +220,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       form.append('image', new File([imgArrayBuffer], `source.${ext}`, { type: baseMime }));
       form.append('prompt', prompt);
       form.append('n', '1');
-      form.append('quality', 'medium'); // 'low' | 'medium' | 'high' — medium balances speed/quality
+      form.append('quality', outputQuality); // matched to source resolution
+      form.append('size', outputSize);        // matched to source aspect ratio / resolution
 
       return fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',

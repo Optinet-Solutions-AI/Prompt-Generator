@@ -94,13 +94,16 @@ function buildPrompt(mode: string, guidance: string, brand: string): string {
     : 'Preserve the EXACT color palette, dominant colors, and visual style of the original image. The output colors must closely match the original.';
 
   if (mode === 'subtle') {
-    // Subtle: almost nothing changes — just warmth and atmosphere
+    // Subtle: minor refinements — the image should look almost identical but slightly polished.
+    // Think of it as the same photo with a different color grade or filter applied.
     const base = [
       'Create a subtle variation of this image.',
       brandIdentity,
-      'Preserve the EXACT composition, subject, character, pose, outfit, colors, and overall structure.',
-      'Change ONLY minor lighting warmth, color temperature, and soft atmospheric mood details.',
+      'Preserve the EXACT composition, subject, character, pose, outfit, and overall structure.',
+      'Change ONLY minor lighting warmth, color temperature, soft atmospheric mood details, and slight environmental ambience.',
       'Stay extremely close to the original — do not reimagine the background or alter the subject.',
+      'IMPORTANT: Output quality must be EQUAL or BETTER than the original. Do NOT downgrade resolution, detail, or visual fidelity.',
+      'Avoid defaulting to dark/moody lighting just because the subject has glowing or fire elements.',
     ].join(' ');
     return guidance ? `${base} Additional refinement: ${guidance}` : base;
   }

@@ -631,35 +631,17 @@ function Lightbox({
     }
   };
 
-  // Save a variation URL as a new image in the library
-  const handleSaveVariationToLibrary = async (url: string, vidx: number) => {
+  // Save a variation URL as a new image in the library (localStorage)
+  const handleSaveVariationToLibrary = (url: string, vidx: number) => {
     setIsSavingVariation(vidx);
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/generated_images`, {
-        method: 'POST',
-        headers: { ...SB_HEADERS, Prefer: 'return=representation' },
-        body: JSON.stringify({
-          public_url:   url,
-          provider:     'variation',
-          aspect_ratio: image.aspect_ratio || '',
-          resolution:   image.resolution   || '1K',
-          filename:     `variation-${variationType}-${vidx + 1}-${Date.now()}.png`,
-          storage_path: '',
-        }),
-      });
-      if (!res.ok) throw new Error('Failed to save');
-      const data = await res.json();
-      const row = Array.isArray(data) ? data[0] : data;
-      const newImg: GeneratedImage = {
-        id:           row.id            || `var-${Date.now()}`,
-        created_at:   row.created_at    || new Date().toISOString(),
-        filename:     row.filename      || `variation-${vidx + 1}.png`,
-        provider:     'variation',
-        aspect_ratio: row.aspect_ratio  || image.aspect_ratio || '',
-        resolution:   row.resolution    || image.resolution   || '1K',
-        storage_path: row.storage_path  || '',
+      const newImg = storeImage({
         public_url:   url,
-      };
+        provider:     'variation',
+        aspect_ratio: image.aspect_ratio || '',
+        resolution:   image.resolution   || '1K',
+        filename:     `variation-${variationType}-${vidx + 1}-${Date.now()}.png`,
+      }) as GeneratedImage;
       onNewImageAdded(newImg);
       setSavedVariationIdxs(prev => new Set([...prev, vidx]));
     } catch {

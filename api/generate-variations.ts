@@ -90,8 +90,8 @@ function sizeForDimensions(dims: { width: number; height: number } | null): stri
 function buildPrompt(mode: string, guidance: string, brand: string): string {
   // Brand identity rule — included in EVERY mode so the brand aesthetic is never lost
   const brandIdentity = brand
-    ? `BRAND IDENTITY RULE: This image belongs to the "${brand}" brand. The brand's signature color palette, visual style, and overall aesthetic MUST be preserved in the variation. Do not introduce colors or styles that conflict with the brand identity.`
-    : 'Preserve the overall color palette and visual style of the original image.';
+    ? `BRAND IDENTITY RULE (NON-NEGOTIABLE): This image belongs to the "${brand}" brand. You MUST preserve the brand's EXACT signature colors, color palette, visual style, and overall aesthetic in the variation. The dominant colors in the output must match the dominant colors of the original. Do NOT introduce new colors, tones, or styles that conflict with or dilute the "${brand}" brand identity. If the original is warm golden tones, the variation must stay warm golden. If the original has specific brand reds/blues/greens, those EXACT hues must remain dominant.`
+    : 'Preserve the EXACT color palette, dominant colors, and visual style of the original image. The output colors must closely match the original.';
 
   if (mode === 'subtle') {
     // Subtle: almost nothing changes — just warmth and atmosphere

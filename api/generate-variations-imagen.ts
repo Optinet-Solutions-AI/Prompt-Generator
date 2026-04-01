@@ -260,16 +260,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const results = await Promise.allSettled(seeds.map(makeRequest));
 
     const variations: { imageUrl: string }[] = [];
+    const apiErrors: string[] = [];
 
     for (const result of results) {
       if (result.status === 'rejected') {
-        console.error('[imagen] request rejected:', result.reason);
+        const msg = String(result.reason);
+        console.error('[imagen] request rejected:', msg);
+        apiErrors.push(msg);
         continue;
       }
       const resp = result.value;
       if (!resp.ok) {
         const errText = await resp.text();
-        console.error(`[imagen] Vertex AI failed (${resp.status}):`, errText);
+        const msg = `Vertex AI HTTP ${resp.status}: ${errText}`;
+        console.error('[imagen]', msg);
+        apiErrors.push(msg);
         continue;
       }
       const data = await resp.json() as {
@@ -279,13 +284,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (pred?.bytesBase64Encoded) {
         const outMime = pred.mimeType || 'image/png';
         variations.push({ imageUrl: `data:${outMime};base64,${pred.bytesBase64Encoded}` });
+      } else {
+        const msg = `No bytesBase64Encoded in prediction: ${JSON.stringify(data).substring(0, 300)}`;
+        console.error('[imagen]', msg);
+        apiErrors.push(msg);
       }
     }
 
     if (variations.length === 0) {
       return res.status(500).json({
-        error: 'Imagen failed to generate any variations.',
-        hint:  'bgswap requires a clear foreground subject. Ensure the source image has a distinct subject.',
+        error:     'Imagen failed to generate any variations.',
+        apiErrors,
+        hint:      'bgswap requires a clear foreground subject. Ensure the source image has a distinct subject.',
       });
     }
 

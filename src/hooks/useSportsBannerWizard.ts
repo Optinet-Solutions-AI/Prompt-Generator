@@ -109,8 +109,10 @@ export function useSportsBannerWizard() {
   }, [step, wizardData]);
 
   const assembleFormData = useCallback((brand: string): Partial<FormData> => {
+    const kitColors = wizardData.kitColors || BRAND_KIT_DEFAULTS[brand] || 'branded team colors';
     const positive_prompt = buildNarrativePrompt(wizardData, brand);
-    const negative_prompt = buildNegativePrompt(brand);
+    // Pass kitColors so the negative prompt doesn't block colors needed for athlete clothing
+    const negative_prompt = buildNegativePrompt(brand, kitColors);
 
     const countLabel = wizardData.playerCount === '1' ? 'Single' : wizardData.playerCount === '2' ? 'Two' : 'Team of';
     const roleStr = wizardData.playerRole ? ` ${wizardData.playerRole}` : '';

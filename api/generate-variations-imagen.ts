@@ -142,7 +142,7 @@ function buildImagenPrompt(mode: string, guidance: string, brand: string): strin
   // Brand identity constraint — Imagen only receives a background description,
   // so we embed the brand rule directly into the scene description.
   const brandNote = brand
-    ? `Maintain the "${brand}" brand color palette and visual aesthetic throughout. `
+    ? `IMPORTANT: Maintain the "${brand}" brand's EXACT color palette, signature colors, and visual aesthetic throughout. The dominant colors must match the original. `
     : '';
   const brightKeywords = [
     'day', 'bright', 'sun', 'solar', 'noon', 'snow', 'stadium', 'beach',

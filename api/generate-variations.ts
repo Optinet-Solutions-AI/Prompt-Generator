@@ -88,9 +88,11 @@ function sizeForDimensions(dims: { width: number; height: number } | null): stri
 //   the user's guidance already hints at something bright.
 // ------------------------------------------------------------------
 function buildPrompt(mode: string, guidance: string, brand: string): string {
-  // Brand identity rule — included in EVERY mode so the brand aesthetic is never lost
+  // Brand identity rule — included in EVERY mode so the brand aesthetic is never lost.
+  // IMPORTANT: brand palette applies to BACKGROUND, LIGHTING, and ATMOSPHERE only.
+  // Athlete/subject clothing colors from the original image must be preserved as-is.
   const brandIdentity = brand
-    ? `BRAND IDENTITY RULE (NON-NEGOTIABLE): This image belongs to the "${brand}" brand. You MUST preserve the brand's EXACT signature colors, color palette, visual style, and overall aesthetic in the variation. The dominant colors in the output must match the dominant colors of the original. Do NOT introduce new colors, tones, or styles that conflict with or dilute the "${brand}" brand identity. If the original is warm golden tones, the variation must stay warm golden. If the original has specific brand reds/blues/greens, those EXACT hues must remain dominant.`
+    ? `BRAND IDENTITY RULE (NON-NEGOTIABLE): This image belongs to the "${brand}" brand. You MUST preserve the brand's EXACT signature colors, color palette, visual style, and overall aesthetic in the variation. The dominant BACKGROUND and LIGHTING colors must match the dominant colors of the original. Do NOT introduce new colors, tones, or styles that conflict with or dilute the "${brand}" brand identity. EXCEPTION: preserve the athlete's clothing colors exactly as shown in the original image — do NOT recolor jersey, shorts, or any clothing to match the brand palette. Brand palette applies to background, atmosphere, and lighting ONLY.`
     : 'Preserve the EXACT color palette, dominant colors, and visual style of the original image. The output colors must closely match the original.';
 
   if (mode === 'subtle') {

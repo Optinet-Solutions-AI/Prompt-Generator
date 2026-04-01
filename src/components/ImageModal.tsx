@@ -162,7 +162,7 @@ export function ImageModal({
   }, [isEditing]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === 'Escape') { handleCloseAttempt(); return; }
     if (!showStrip) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, galleryImagesRef.current.length - 1)); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }

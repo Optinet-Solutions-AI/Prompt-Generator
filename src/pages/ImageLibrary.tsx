@@ -337,7 +337,7 @@ function Lightbox({
   const hasNext = idx < all.length - 1;
 
   const isEdited  = image.provider === 'edit';
-  const showBadge = isSupabaseImage(image.public_url);
+  const showBadge = isStoredImage(image.public_url);
 
   // Standard lightbox state
   const [isDownloading, setIsDownloading] = useState(false);
@@ -1303,7 +1303,7 @@ function ImageCard({
   const [errored,       setErrored]       = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting,    setIsDeleting]    = useState(false);
-  const showBadge = isSupabaseImage(image.public_url);
+  const showBadge = isStoredImage(image.public_url);
 
   const handleDelete = async () => {
     setIsDeleting(true);

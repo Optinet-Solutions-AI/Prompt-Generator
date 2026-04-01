@@ -171,11 +171,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Image URL and edit instructions are required' });
     }
 
+    // ── Resolve Google Drive view URLs to direct image links ──────────
+    let resolvedUrl = imageUrl;
+    if (typeof resolvedUrl === 'string') {
+      // Convert Drive view URLs to direct download URLs
+      const driveMatch = resolvedUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (driveMatch?.[1] && resolvedUrl.includes('drive.google.com')) {
+        resolvedUrl = `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+        console.log('[edit-image] Resolved Drive URL to:', resolvedUrl);
+      }
+    }
+
     // ── Fetch + decode the source image ────────────────────────────────
     let imgArrayBuffer: ArrayBuffer;
     let mimeType = 'image/png';
 
-    if (typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
+    if (typeof resolvedUrl === 'string' && resolvedUrl.startsWith('data:')) {
       const [header, b64] = imageUrl.split(',');
       mimeType = header.match(/data:([^;]+)/)?.[1] || 'image/png';
       const bin = atob(b64);

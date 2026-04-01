@@ -405,6 +405,12 @@ function Lightbox({
   const [savedVariationIdxs, setSavedVariationIdxs]   = useState<Set<number>>(new Set());
   const [isSavingVariation,  setIsSavingVariation]    = useState<number | null>(null);
 
+  // Unsaved changes dialog
+  const [showUnsavedDialog,    setShowUnsavedDialog]    = useState(false);
+  const [selectedVarsToSave,   setSelectedVarsToSave]   = useState<Set<number>>(new Set());
+  const [saveEditedChecked,    setSaveEditedChecked]    = useState(true);
+  const [isSavingUnsaved,      setIsSavingUnsaved]      = useState(false);
+
   // Reset edit + variation state on image change
   useEffect(() => {
     setEditInstructions('');

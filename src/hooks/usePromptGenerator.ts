@@ -7,6 +7,40 @@ import {
   PromptMetadata,
 } from '@/types/prompt';
 
+// Supabase config — used to auto-save every generated image to the library
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL      || '';
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SB_HEADERS = {
+  apikey: SUPABASE_ANON,
+  Authorization: `Bearer ${SUPABASE_ANON}`,
+  'Content-Type': 'application/json',
+};
+
+/** Save a single image record to the generated_images table (fire-and-forget). */
+function saveImageToLibrary(params: {
+  publicUrl: string;
+  provider: string;
+  aspectRatio: string;
+  resolution: string;
+  brand: string;
+  filename: string;
+}) {
+  if (!SUPABASE_URL || !params.publicUrl) return;
+  fetch(`${SUPABASE_URL}/rest/v1/generated_images`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      public_url:   params.publicUrl,
+      provider:     params.provider,
+      aspect_ratio: params.aspectRatio,
+      resolution:   params.resolution || '1K',
+      brand_name:   params.brand || '',
+      filename:     params.filename,
+      storage_path: '',
+    }),
+  }).catch(err => console.error('[saveImageToLibrary] failed:', err));
+}
+
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
 // API call to generate prompt via n8n webhook

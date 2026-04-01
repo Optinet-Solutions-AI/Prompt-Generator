@@ -240,6 +240,8 @@ const Index = () => {
                       onAddGeneratedImage={handleAddGeneratedImage}
                       onRemoveGeneratedImage={handleRemoveGeneratedImage}
                       onOpenFavorites={() => setShowLikedPanel(true)}
+                      persistedVariations={persistedVariations}
+                      onVariationsChange={setPersistedVariations}
                     />
                   )}
                 </>

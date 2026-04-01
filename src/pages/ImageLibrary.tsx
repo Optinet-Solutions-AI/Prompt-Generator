@@ -691,7 +691,7 @@ function Lightbox({
 
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={handleCloseAttempt}
           className="absolute top-3 right-3 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
         >
           <X className="w-4 h-4" />

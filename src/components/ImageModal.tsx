@@ -94,8 +94,11 @@ export function ImageModal({
   const [selectedVarsToSave, setSelectedVarsToSave] = useState<Set<number>>(new Set());
   const [saveEditedChecked, setSaveEditedChecked] = useState(true);
   const [isSavingUnsaved, setIsSavingUnsaved] = useState(false);
-  // Track which variations have already been saved to library during this session
+  // Track which variations have already been individually confirmed saved
   const [savedVariationIds, setSavedVariationIds] = useState<Set<string>>(new Set());
+  // Track localStorage IDs for auto-saved items so we can delete them if user discards
+  const varStoredIdsRef  = useRef<Map<string, string>>(new Map()); // imageId → StoredImage.id
+  const editStoredIdRef  = useRef<string | null>(null);
 
   // Ref so the open-effect can read the latest persistedVariations without adding it to deps
   const persistedVariationsRef = useRef(persistedVariations);

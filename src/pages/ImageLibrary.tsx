@@ -505,26 +505,71 @@ function Lightbox({
     setGeneratedVariations([]);
     setVariationElapsed(0);
     variationIntervalRef.current = setInterval(() => setVariationElapsed(p => p + 1), 1000);
+
+    const body = JSON.stringify({
+      imageUrl: srcUrl,
+      mode: variationType,
+      guidance: variationInstructions.trim(),
+      count: 2,
+      resolution: '1K',
+    });
+
     try {
-      const resp = await fetch('/api/generate-variations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: srcUrl,
-          mode: variationType,
-          guidance: variationInstructions.trim(),
-          count: 2,
-          resolution: '1K',
-        }),
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || err.message || 'Failed to generate variations');
+      let urls: string[] = [];
+
+      if (selectedEngine === 'compare') {
+        // Call both ChatGPT + Gemini in parallel
+        const [openaiResult, imagenResult] = await Promise.allSettled([
+          fetch('/api/generate-variations',        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+          fetch('/api/generate-variations-imagen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+        ]);
+
+        const errors: string[] = [];
+        const extractUrls = async (result: PromiseSettledResult<Response>, label: string): Promise<string[]> => {
+          if (result.status === 'rejected') { errors.push(`${label}: ${result.reason}`); return []; }
+          if (!result.value.ok) {
+            const e = await result.value.json().catch(() => ({})) as { error?: string };
+            errors.push(`${label}: ${e.error || result.value.status}`);
+            return [];
+          }
+          const data = await result.value.json() as { variations?: Array<{ imageUrl?: string }> };
+          return (data.variations ?? []).map((v: { imageUrl?: string }) => v.imageUrl).filter(Boolean) as string[];
+        };
+
+        const [openaiUrls, imagenUrls] = await Promise.all([
+          extractUrls(openaiResult, 'ChatGPT'),
+          extractUrls(imagenResult, 'Gemini'),
+        ]);
+
+        // Interleave: chatgpt[0], gemini[0], chatgpt[1], gemini[1]
+        const maxLen = Math.max(openaiUrls.length, imagenUrls.length);
+        for (let i = 0; i < maxLen; i++) {
+          if (openaiUrls[i]) urls.push(openaiUrls[i]);
+          if (imagenUrls[i]) urls.push(imagenUrls[i]);
+        }
+
+        if (urls.length === 0) throw new Error(`Both engines failed:\n${errors.join('\n')}`);
+        if (errors.length > 0) setVariationError(`Note: ${errors.join('; ')}`);
+      } else {
+        // Single engine
+        const endpoint = selectedEngine === 'gemini'
+          ? '/api/generate-variations-imagen'
+          : '/api/generate-variations';
+        const resp = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || err.message || 'Failed to generate variations');
+        }
+        const data = await resp.json();
+        urls = (data.variations ?? [])
+          .map((v: { imageUrl?: string }) => v.imageUrl)
+          .filter(Boolean) as string[];
       }
-      const data = await resp.json();
-      const urls: string[] = (data.variations ?? [])
-        .map((v: { imageUrl?: string }) => v.imageUrl)
-        .filter(Boolean);
+
       if (urls.length === 0) throw new Error('No variations were generated. Please try again.');
       setGeneratedVariations(urls);
     } catch (err) {

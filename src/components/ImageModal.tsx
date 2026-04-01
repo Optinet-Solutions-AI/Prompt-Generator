@@ -466,25 +466,32 @@ export function ImageModal({
                   </button>
                 </div>
 
-                {/* Row 2: Compare toggle — lets user run both OpenAI and Imagen side by side */}
+                {/* Row 2: Engine selector — ChatGPT / Gemini / Compare */}
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCompareEngines(v => !v)}
-                    disabled={isGeneratingVariations}
-                    title="Run both OpenAI gpt-image-1 and Vertex AI Imagen in parallel and compare results"
-                    className={`flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border transition-all font-medium ${
-                      compareEngines
-                        ? 'bg-orange-500/10 border-orange-400/50 text-orange-600'
-                        : 'border-border/50 text-muted-foreground hover:text-foreground hover:border-border'
-                    }`}
-                  >
-                    {/* Simple two-circles icon to suggest comparison */}
-                    <span className="text-[10px]">⚡</span>
-                    Compare: OpenAI vs Imagen
-                    {compareEngines && <span className="text-[9px] font-bold ml-0.5">ON</span>}
-                  </button>
-                  {compareEngines && (
+                  <div className="flex items-center gap-0.5 bg-background rounded-md p-0.5 border border-border text-xs shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEngine('chatgpt')}
+                      disabled={isGeneratingVariations}
+                      title="Generate variations using ChatGPT (OpenAI gpt-image-1)"
+                      className={`px-2.5 py-1 rounded font-medium transition-all ${selectedEngine === 'chatgpt' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >ChatGPT</button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEngine('gemini')}
+                      disabled={isGeneratingVariations}
+                      title="Generate variations using Gemini (Vertex AI Imagen)"
+                      className={`px-2.5 py-1 rounded font-medium transition-all ${selectedEngine === 'gemini' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >Gemini</button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEngine('compare')}
+                      disabled={isGeneratingVariations}
+                      title="Run both ChatGPT and Gemini in parallel and compare results"
+                      className={`px-2.5 py-1 rounded font-medium transition-all ${selectedEngine === 'compare' ? 'bg-orange-500 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                    >Compare</button>
+                  </div>
+                  {selectedEngine === 'compare' && (
                     <span className="text-[10px] text-muted-foreground italic">
                       Generates 4 images total (2 per engine) — takes longer
                     </span>

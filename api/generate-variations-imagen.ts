@@ -139,11 +139,12 @@ function aspectRatioString(dims: { width: number; height: number } | null): stri
 //
 // We still apply the same anti-dark-bias logic for strong mode.
 function buildImagenPrompt(mode: string, guidance: string, brand: string): string {
-  // Brand identity constraint — Imagen only receives a background description,
-  // so we embed the brand rule directly into the scene description.
+  // Brand identity — same strength as the ChatGPT prompt so both engines enforce equally.
+  // Imagen receives a scene description (not editing instructions), so brand is embedded directly.
   const brandNote = brand
-    ? `IMPORTANT: Maintain the "${brand}" brand's EXACT color palette, signature colors, and visual aesthetic throughout. The dominant colors must match the original. `
-    : '';
+    ? `BRAND RULE (NON-NEGOTIABLE): This belongs to the "${brand}" brand. Preserve the brand's EXACT signature colors, color palette, and visual aesthetic. The dominant colors MUST match the original — do NOT shift to different color tones or introduce conflicting hues. `
+    : 'Preserve the EXACT color palette and dominant colors of the original. ';
+
   const brightKeywords = [
     'day', 'bright', 'sun', 'solar', 'noon', 'snow', 'stadium', 'beach',
     'outdoor', 'sky', 'high-key', 'studio', 'white', 'light', 'morning',
@@ -152,32 +153,37 @@ function buildImagenPrompt(mode: string, guidance: string, brand: string): strin
   const userWantsBright = guidance.length > 0 &&
     brightKeywords.some(kw => guidance.toLowerCase().includes(kw));
 
+  const antiDarkNote = userWantsBright
+    ? 'Brightly lit environment, high-key lighting, vivid colors, no dark shadows. '
+    : 'Avoid dark or moody backgrounds unless the direction specifically calls for it. Do not default to dark just because of glowing or fire elements. ';
+
+  const qualityNote = 'Output quality must be EQUAL or BETTER than the original. Photorealistic, high quality, cinematic lighting, no text, no logos, no watermarks.';
+
   if (mode === 'subtle') {
-    // For subtle, describe a near-identical scene with only minor changes
-    const base = `${brandNote}Same scene as the original. Very slight variation in ambient lighting warmth and color temperature only. Keep composition and environment essentially identical.`;
+    // Subtle: minor refinements — almost identical but slightly polished.
+    const base = [
+      brandNote,
+      'Same scene as the original. Very slight variation in ambient lighting warmth, color temperature, and soft atmospheric details only.',
+      'Keep composition and environment essentially identical.',
+      antiDarkNote,
+      qualityNote,
+    ].join(' ');
     return guidance ? `${base} ${guidance}.` : base;
   }
 
   // Strong mode — mask-based editing with HIGH dilation so changes bleed
   // into the subject area too, creating a true variation (not just background swap).
-  // The prompt describes the desired scene changes for the masked region.
-  const lightingNote = userWantsBright
-    ? 'Brightly lit environment, high-key lighting, vivid colors, no dark shadows. '
-    : 'Avoid dark or moody backgrounds unless the direction specifically calls for it. ';
-
-  const qualityNote = 'Photorealistic, high quality, cinematic lighting, no text, no logos, no watermarks.';
-
   const sceneNote = [
-    'A fresh, improved variation of this scene.',
-    'Reimagine the background with creative changes: different arrangement of elements, varied atmospheric effects, enhanced dramatic details, shifted color tones.',
-    'The background MUST stay thematically related to the original context (e.g. sports scene stays sports-related).',
-    'Make it feel like a professional alternate version — same concept, fresh execution.',
+    'A fresh, improved variation of this scene — like a professional alternate version that could be even better than the original.',
+    'Reimagine the background with creative changes: different arrangement of elements, varied atmospheric effects, enhanced dramatic details, shifted composition.',
+    'The background MUST stay thematically related to the original context (e.g. sports scene stays sports-related, casino scene stays casino-related).',
+    'Same concept, fresh execution.',
   ].join(' ');
 
   if (guidance) {
-    return `${brandNote}${lightingNote}${sceneNote} Creative direction: ${guidance}. ${qualityNote}`;
+    return `${brandNote}${antiDarkNote}${sceneNote} Creative direction: ${guidance}. ${qualityNote}`;
   }
-  return `${brandNote}${lightingNote}${sceneNote} ${qualityNote}`;
+  return `${brandNote}${antiDarkNote}${sceneNote} ${qualityNote}`;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────

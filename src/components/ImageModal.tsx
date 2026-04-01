@@ -202,15 +202,17 @@ export function ImageModal({
         onImageUpdated?.(newDisplay, newEdit);
         setActiveIdx(i => i);
 
-        // Auto-save edited image to localStorage immediately so it persists when navigating away
+        // Auto-save edited image to localStorage so it persists if user navigates away.
+        // Track the ID so we can delete it if user discards via the dialog.
         try {
-          storeImage({
+          const stored = storeImage({
             public_url:   newDisplay,
             provider:     'edit',
             aspect_ratio: 'edited',
             resolution:   resolution || '1K',
             filename:     `edited-${Date.now()}.png`,
           });
+          editStoredIdRef.current = stored.id;
         } catch (err) { console.error('Auto-save edit failed:', err); }
       } else throw new Error('No image URL returned');
     } catch (err) {

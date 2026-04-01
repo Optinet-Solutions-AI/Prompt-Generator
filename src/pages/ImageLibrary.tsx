@@ -1426,7 +1426,10 @@ const FILTERS = [
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean; onBack?: () => void } = {}) {
-  const [images,      setImages]      = useState<GeneratedImage[]>([]);
+  // Lazy-init from localStorage so the first render already has images (no empty-state flash)
+  const [images,      setImages]      = useState<GeneratedImage[]>(() => {
+    try { return getImages(0, 'all').data as GeneratedImage[]; } catch { return []; }
+  });
   const [page,        setPage]        = useState(0);
   const [hasMore,     setHasMore]     = useState(true);
   const [isLoading,   setIsLoading]   = useState(false);

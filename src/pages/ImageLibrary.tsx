@@ -1173,6 +1173,155 @@ function Lightbox({
           onClose={() => setShowSaveModal(false)}
         />
       )}
+
+      {/* Unsaved Changes Dialog */}
+      {showUnsavedDialog && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => !isSavingUnsaved && setShowUnsavedDialog(false)}
+          />
+          <div
+            className="relative z-10 w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between px-6 pt-6 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <h2 className="text-white font-semibold text-base">Unsaved Changes</h2>
+                  <p className="text-white/40 text-sm mt-0.5">Choose what to save to Image Library</p>
+                </div>
+              </div>
+              <button
+                onClick={() => !isSavingUnsaved && setShowUnsavedDialog(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/50 transition-colors ml-3 mt-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="px-6 pb-4 space-y-4 max-h-[55vh] overflow-y-auto">
+              {/* Edited image */}
+              {editedImgUrl && (
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={saveEditedChecked}
+                    onChange={e => setSaveEditedChecked(e.target.checked)}
+                    className="w-4 h-4 rounded accent-primary"
+                  />
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <img src={editedImgUrl} alt="Edited" className="w-14 h-14 rounded-lg object-cover border border-white/10 shrink-0" />
+                    <div>
+                      <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                        <Wand2 className="w-3.5 h-3.5 text-amber-400" />Edited Image
+                      </p>
+                      <p className="text-white/40 text-xs">Save as new entry in the library</p>
+                    </div>
+                  </div>
+                </label>
+              )}
+
+              {/* Unsaved variations */}
+              {unsavedVariations.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                      <Shuffle className="w-3.5 h-3.5 text-primary/70" />
+                      Variations ({unsavedVariations.length} unsaved)
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedVarsToSave.size === unsavedVariations.length) {
+                          setSelectedVarsToSave(new Set());
+                        } else {
+                          setSelectedVarsToSave(new Set(unsavedVariations.map((_, i) => i)));
+                        }
+                      }}
+                      className="text-xs text-primary hover:text-primary/80 font-medium"
+                    >
+                      {selectedVarsToSave.size === unsavedVariations.length ? 'Deselect all' : 'Select all'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {unsavedVariations.map((url, i) => (
+                      <label
+                        key={`unsaved-var-${i}`}
+                        className={`relative rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
+                          selectedVarsToSave.has(i)
+                            ? 'border-primary shadow-md shadow-primary/20'
+                            : 'border-white/10 opacity-50 hover:opacity-70'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedVarsToSave.has(i)}
+                          onChange={e => {
+                            const next = new Set(selectedVarsToSave);
+                            if (e.target.checked) next.add(i); else next.delete(i);
+                            setSelectedVarsToSave(next);
+                          }}
+                          className="sr-only"
+                        />
+                        <div className="aspect-square">
+                          <img src={url} alt={`Variation ${i + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                        {selectedVarsToSave.has(i) && (
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-1.5 left-1.5">
+                          <span className={`text-[9px] rounded px-1 py-0.5 leading-none font-semibold ${
+                            variationType === 'subtle' ? 'bg-sky-500/80 text-white' : 'bg-violet-500/80 text-white'
+                          }`}>
+                            V{i + 1}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="px-6 pb-6 pt-2 grid grid-cols-2 gap-3">
+              <button
+                onClick={onClose}
+                disabled={isSavingUnsaved}
+                className="py-2.5 rounded-xl text-white/60 hover:text-white border border-white/10 hover:bg-white/5 text-sm font-medium transition-colors disabled:opacity-40"
+              >
+                Discard & Exit
+              </button>
+              <button
+                onClick={handleSaveAndClose}
+                disabled={isSavingUnsaved || (!saveEditedChecked && selectedVarsToSave.size === 0)}
+                className="py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {isSavingUnsaved
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving…</>
+                  : <><Save className="w-3.5 h-3.5" />Save & Exit</>}
+              </button>
+            </div>
+
+            {/* Saving overlay */}
+            {isSavingUnsaved && (
+              <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/85 backdrop-blur-sm rounded-2xl">
+                <div className="flex flex-col items-center gap-3 text-white">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <p className="text-sm font-medium">Saving to Image Library…</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

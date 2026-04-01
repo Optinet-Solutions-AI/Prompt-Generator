@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const palette = BRAND_PALETTES[body.brand];
       if (palette) {
         // Known brand — strict palette enforcement
-        brandColorRule = `\n6) BRAND COLOR ENFORCEMENT\nThis is a ${body.brand} branded image. Approved color palette: ${palette}\nAll lighting, mood, atmosphere, and background colors in the output MUST comply with this palette. Replace any off-brand colors with on-brand alternatives.\n`;
+        brandColorRule = `\n6) BRAND COLOR ENFORCEMENT\nThis is a ${body.brand} branded image. Approved color palette: ${palette}\nAll lighting, mood, atmosphere, and background colors in the output MUST comply with this palette. Replace any off-brand colors with on-brand alternatives.\nIMPORTANT EXCEPTION: If the prompt specifies athlete/subject clothing colors (jersey, shorts, uniform kit), those clothing colors are FIXED and must NOT be changed to match the brand palette. Brand palette applies to background, lighting, and atmosphere ONLY.\n`;
       } else {
         // Unknown/new brand — preserve whatever colors are already in the reference prompt
         brandColorRule = `\n6) BRAND COLOR ENFORCEMENT\nThis is a ${body.brand} branded image. Preserve the same color palette as the Base prompt. Do NOT introduce colors not present in the original. Keep the brand's visual identity consistent.\n`;

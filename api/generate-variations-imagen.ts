@@ -232,63 +232,84 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const project     = getProjectNumber();
 
     // ------------------------------------------------------------------
-    // 3. Call Vertex AI imagen-3.0-capability-001 with BGSWAP edit mode
+    // 3. Call Vertex AI imagen-3.0-capability-001
     //
-    // API format changed in Imagen 3 capability model vs the old imagegeneration@006:
-    //   - Image goes in referenceImages[] with referenceType REFERENCE_TYPE_RAW
-    //   - editMode moves to parameters level (not inside editConfig)
-    //   - editConfig now takes baseSteps instead of editMode
-    //   - Mask auto-detection via MASK_MODE_BACKGROUND (no mask image required)
+    // Two different approaches per mode:
+    //   SUBTLE: Mask-based editing (BGSWAP) — only background changes,
+    //           subject stays pixel-perfect. Uses REFERENCE_TYPE_RAW + MASK.
+    //   STRONG: Style-referenced generation — generates a NEW image inspired
+    //           by the original's style. Both subject and background can vary.
+    //           Uses REFERENCE_TYPE_STYLE (no mask needed).
     // ------------------------------------------------------------------
     const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${project}/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
 
     const numVariations = Math.min(Number(count) || 2, 2);
 
     // Use different seeds per request so we get actual variation between the two results
-    const makeRequest = (seed: number) =>
-      fetch(vertexUrl, {
+    const makeRequest = (seed: number) => {
+      // Build request body differently per mode
+      const requestBody = mode === 'subtle'
+        ? {
+            // SUBTLE: mask-based background editing — subject preserved pixel-perfect
+            instances: [{
+              prompt,
+              referenceImages: [
+                {
+                  referenceType: 'REFERENCE_TYPE_RAW',
+                  referenceId: 1,
+                  referenceImage: { bytesBase64Encoded: b64Image },
+                },
+                {
+                  referenceType: 'REFERENCE_TYPE_MASK',
+                  referenceId: 2,
+                  maskImageConfig: {
+                    maskMode: 'MASK_MODE_BACKGROUND',
+                    dilation: 0.0,
+                  },
+                },
+              ],
+            }],
+            parameters: {
+              editMode: 'EDIT_MODE_BGSWAP',
+              editConfig: { baseSteps: 75 },
+              sampleCount: 1,
+              seed,
+              safetyFilterLevel: 'block_some',
+              personGeneration: 'allow_adult',
+            },
+          }
+        : {
+            // STRONG: style-referenced generation — whole image varies (subject + background)
+            // Uses the original image as a STYLE reference so brand colors/aesthetic are preserved
+            // but allows the AI to regenerate the entire scene with creative variations.
+            instances: [{
+              prompt,
+              referenceImages: [
+                {
+                  referenceType: 'REFERENCE_TYPE_STYLE',
+                  referenceId: 1,
+                  referenceImage: { bytesBase64Encoded: b64Image },
+                },
+              ],
+            }],
+            parameters: {
+              aspectRatio,
+              sampleCount: 1,
+              seed,
+              safetyFilterLevel: 'block_some',
+              personGeneration: 'allow_adult',
+            },
+          };
+
+      return fetch(vertexUrl, {
         method: 'POST',
         headers: {
           'Content-Type':  'application/json',
           'Authorization': `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          instances: [{
-            prompt,
-            referenceImages: [
-              {
-                // The source image to edit
-                referenceType: 'REFERENCE_TYPE_RAW',
-                referenceId: 1,
-                referenceImage: {
-                  bytesBase64Encoded: b64Image,
-                },
-              },
-              {
-                // Auto-detect background for masking — no mask image needed
-                referenceType: 'REFERENCE_TYPE_MASK',
-                referenceId: 2,
-                maskImageConfig: {
-                  maskMode: 'MASK_MODE_BACKGROUND',
-                  dilation: 0.0,
-                },
-              },
-            ],
-          }],
-          parameters: {
-            // Subtle: BGSWAP keeps scene nearly identical with minor tweaks
-            // Strong: INPAINT_INSERTION modifies the background region without full replacement
-            editMode: mode === 'subtle' ? 'EDIT_MODE_BGSWAP' : 'EDIT_MODE_INPAINT_INSERTION',
-            editConfig: {
-              baseSteps: mode === 'subtle' ? 75 : 50,
-            },
-            sampleCount: 1,
-            seed,
-            safetyFilterLevel: 'block_some',
-            personGeneration: 'allow_adult',
-          },
-        }),
+        body: JSON.stringify(requestBody),
       });
+    };
 
     const seeds   = Array.from({ length: numVariations }, () => Math.floor(Math.random() * 2 ** 31));
     const results = await Promise.allSettled(seeds.map(makeRequest));

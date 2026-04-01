@@ -55,6 +55,12 @@ const Index = () => {
 
   const [showLikedPanel, setShowLikedPanel] = useState(false);
 
+  // Variation images generated inside the modal — lifted here so they survive tab switches
+  const [persistedVariations, setPersistedVariations] = useState<GalleryImage[]>([]);
+
+  // Clear variations whenever new images are generated (fresh session)
+  useEffect(() => { setPersistedVariations([]); }, [generatedImages]);
+
   // Get current brand from metadata (result view) or formData (form view)
   const currentBrand = promptMetadata?.brand || formData.brand || "";
 

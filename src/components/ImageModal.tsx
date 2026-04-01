@@ -212,52 +212,51 @@ export function ImageModal({
     try {
       let newVarImages: GalleryImage[] = [];
 
-      if (compareEngines) {
-        // ── Compare mode: call OpenAI + Imagen in parallel ─────────────────
-        // Both requests fire at the same time so we get results from both engines.
+      // Helper to extract variation images from an API response
+      const extractVariations = async (
+        result: PromiseSettledResult<Response>,
+        engine: 'openai' | 'imagen',
+        label: string,
+        errors: string[],
+      ): Promise<GalleryImage[]> => {
+        if (result.status === 'rejected') {
+          errors.push(`${label}: ${result.reason}`);
+          return [];
+        }
+        if (!result.value.ok) {
+          const e = await result.value.json().catch(() => ({})) as { error?: string; apiErrors?: string[] };
+          const detail = e.apiErrors?.length ? ` — ${e.apiErrors[0]}` : '';
+          errors.push(`${label}: ${e.error || result.value.status}${detail}`);
+          return [];
+        }
+        const data = await result.value.json() as { variations?: Array<{ imageUrl?: string }> };
+        const urls = (data.variations ?? []).map(v => v.imageUrl).filter(Boolean) as string[];
+        return urls.map((url, i) => ({
+          displayUrl: url,
+          editUrl: url,
+          provider: current.provider,
+          imageId: `var-${engine}-${activeIdx}-${Date.now()}-${i}`,
+          isVariation: true,
+          variationMode: variationType,
+          variationIndex: i + 1,
+          variationEngine: engine,
+        }));
+      };
+
+      if (selectedEngine === 'compare') {
+        // ── Compare mode: call ChatGPT + Gemini in parallel ──────────────
         const [openaiResult, imagenResult] = await Promise.allSettled([
           fetch('/api/generate-variations',        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
           fetch('/api/generate-variations-imagen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
         ]);
 
         const errors: string[] = [];
-
-        const extractVariations = async (
-          result: PromiseSettledResult<Response>,
-          engine: 'openai' | 'imagen',
-          label: string,
-        ): Promise<GalleryImage[]> => {
-          if (result.status === 'rejected') {
-            errors.push(`${label}: ${result.reason}`);
-            return [];
-          }
-          if (!result.value.ok) {
-            const e = await result.value.json().catch(() => ({})) as { error?: string; apiErrors?: string[] };
-            const detail = e.apiErrors?.length ? ` — ${e.apiErrors[0]}` : '';
-            errors.push(`${label}: ${e.error || result.value.status}${detail}`);
-            return [];
-          }
-          const data = await result.value.json() as { variations?: Array<{ imageUrl?: string }> };
-          const urls = (data.variations ?? []).map(v => v.imageUrl).filter(Boolean) as string[];
-          return urls.map((url, i) => ({
-            displayUrl: url,
-            editUrl: url,
-            provider: current.provider,
-            imageId: `var-${engine}-${activeIdx}-${Date.now()}-${i}`,
-            isVariation: true,
-            variationMode: variationType,
-            variationIndex: i + 1,
-            variationEngine: engine,
-          }));
-        };
-
         const [openaiImages, imagenImages] = await Promise.all([
-          extractVariations(openaiResult, 'openai', 'OpenAI'),
-          extractVariations(imagenResult, 'imagen', 'Imagen'),
+          extractVariations(openaiResult, 'openai', 'ChatGPT', errors),
+          extractVariations(imagenResult, 'imagen', 'Gemini', errors),
         ]);
 
-        // Interleave: openai[0], imagen[0], openai[1], imagen[1]
-        // This groups them visually as pairs in the strip for easy comparison.
+        // Interleave: chatgpt[0], gemini[0], chatgpt[1], gemini[1]
         const maxLen = Math.max(openaiImages.length, imagenImages.length);
         for (let i = 0; i < maxLen; i++) {
           if (openaiImages[i]) newVarImages.push(openaiImages[i]);
@@ -268,14 +267,18 @@ export function ImageModal({
           throw new Error(`Both engines failed:\n${errors.join('\n')}`);
         }
         if (errors.length > 0) {
-          // Non-fatal: at least one engine succeeded — show error as a warning
           console.warn('[compare] partial failure:', errors);
           setVariationError(`Note: ${errors.join('; ')}`);
         }
 
       } else {
-        // ── Single-engine mode (original behaviour) ─────────────────────────
-        const resp = await fetch('/api/generate-variations', {
+        // ── Single-engine mode: ChatGPT or Gemini ───────────────────────
+        const endpoint = selectedEngine === 'gemini'
+          ? '/api/generate-variations-imagen'
+          : '/api/generate-variations';
+        const engineTag: 'openai' | 'imagen' = selectedEngine === 'gemini' ? 'imagen' : 'openai';
+
+        const resp = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body,
@@ -292,11 +295,11 @@ export function ImageModal({
           displayUrl: url,
           editUrl: url,
           provider: current.provider,
-          imageId: `var-${activeIdx}-${Date.now()}-${i}`,
+          imageId: `var-${engineTag}-${activeIdx}-${Date.now()}-${i}`,
           isVariation: true,
           variationMode: variationType,
           variationIndex: i + 1,
-          variationEngine: 'openai' as const,
+          variationEngine: engineTag,
         }));
       }
 

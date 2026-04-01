@@ -135,7 +135,7 @@ function buildPrompt(mode: string, guidance: string): string {
     'Do NOT replace the background with a different setting.',
   ].join(' ');
 
-  const parts = [subjectLock, antiDarkRule, backgroundChange];
+  const parts = [subjectLock, antiDarkRule, sceneVariation];
   if (guidance) {
     parts.push(`Direction for the new background/environment: ${guidance}`);
   }

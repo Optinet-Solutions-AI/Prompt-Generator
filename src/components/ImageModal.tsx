@@ -14,6 +14,8 @@ export interface GalleryImage {
   isVariation?: boolean;
   variationMode?: 'subtle' | 'strong';
   variationIndex?: number;
+  // Which AI engine generated this variation — 'openai' (gpt-image-1) or 'imagen' (Vertex AI)
+  variationEngine?: 'openai' | 'imagen';
 }
 
 interface ImageModalProps {

@@ -434,7 +434,7 @@ export function ImageModal({
     <>
       {/* Backdrop */}
       <div
-        onClick={handleClose}
+        onClick={handleCloseAttempt}
         style={{
           position: 'fixed', top: -100, left: -100, right: -100, bottom: -100,
           backgroundColor: 'rgba(0,0,0,0.88)',

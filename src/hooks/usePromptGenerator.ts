@@ -22,7 +22,6 @@ function saveImageToLibrary(params: {
   provider: string;
   aspectRatio: string;
   resolution: string;
-  brand: string;
   filename: string;
 }) {
   if (!SUPABASE_URL || !params.publicUrl) return;
@@ -34,7 +33,6 @@ function saveImageToLibrary(params: {
       provider:     params.provider,
       aspect_ratio: params.aspectRatio,
       resolution:   params.resolution || '1K',
-      brand_name:   params.brand || '',
       filename:     params.filename,
       storage_path: '',
     }),

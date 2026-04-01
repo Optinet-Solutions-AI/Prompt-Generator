@@ -1,9 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Download, FileCode, Loader2, Wand2, Bot, Gem, Heart, Shuffle } from 'lucide-react';
+import { X, Download, FileCode, Loader2, Wand2, Bot, Gem, Heart, Shuffle, Save, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { HtmlConversionModal } from './HtmlConversionModal';
 import { FavoriteHeart } from './FavoriteHeart';
+
+// Supabase config for saving to image library
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL      || '';
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SB_HEADERS = {
+  apikey: SUPABASE_ANON,
+  Authorization: `Bearer ${SUPABASE_ANON}`,
+  'Content-Type': 'application/json',
+};
 
 export interface GalleryImage {
   displayUrl: string;

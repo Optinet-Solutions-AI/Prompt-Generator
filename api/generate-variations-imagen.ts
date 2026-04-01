@@ -101,10 +101,10 @@ function buildGeminiPrompt(mode: string, guidance: string, brand: string): strin
       'CRITICAL: You must OUTPUT a COMPLETE NEW IMAGE at the SAME resolution and dimensions. Do NOT crop, zoom, or trim the image. The output must be the same size as the input.',
       brandIdentity,
       'Preserve the EXACT composition, subject, character, pose, outfit, and overall structure.',
-      'Change ONLY minor lighting warmth, color temperature, soft atmospheric mood details, and slight environmental ambience.',
+      'Change ONLY minor color grading — slightly adjust warmth, color temperature, or tonal balance. Like applying a different photo filter.',
+      'Do NOT add any new visual elements, effects, particles, lightning, sparks, glows, or any element not present in the original.',
       'Stay extremely close to the original — do not reimagine the background or alter the subject.',
       'Output quality must be EQUAL or BETTER than the original. Photorealistic, high detail.',
-      'Avoid defaulting to dark/moody lighting just because the subject has glowing or fire elements.',
     ].join(' ');
     return guidance ? `${base} Additional refinement: ${guidance}` : base;
   }

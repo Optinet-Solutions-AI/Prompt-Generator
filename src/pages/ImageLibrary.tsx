@@ -124,8 +124,8 @@ async function downloadImage(url: string, filename: string) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function isSupabaseImage(url: string) {
-  return url.includes('supabase.co');
+function isStoredImage(_url: string) {
+  return true; // All images in the library are stored images — always show provider badge
 }
 
 function providerLabel(p: string) {

@@ -1438,19 +1438,22 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
   const isFavoritesMode = filter === 'favorites';
 
   const load = useCallback(async (pageNum: number, activeFilter: string, activeBrand: string, reset = false) => {
-    setIsLoading(true);
+    const isFavorites = activeFilter === 'favorites';
+    // Only show loading spinner for async Supabase calls (favorites).
+    // localStorage reads are synchronous — no spinner needed (avoids empty-state flash).
+    if (isFavorites) setIsLoading(true);
     setError(null);
     try {
-      const { data, hasMore: more } = activeFilter === 'favorites'
+      const { data, hasMore: more } = isFavorites
         ? await fetchFavorites(activeBrand)
-        : await fetchImages(pageNum, activeFilter);
+        : fetchImages(pageNum, activeFilter); // sync — no await
       setImages(prev => reset ? data : [...prev, ...data]);
       setHasMore(more);
       setPage(pageNum);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load images');
     } finally {
-      setIsLoading(false);
+      if (isFavorites) setIsLoading(false);
     }
   }, []);
 

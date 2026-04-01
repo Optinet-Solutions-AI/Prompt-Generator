@@ -438,14 +438,58 @@ function Lightbox({
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isEditing]);
 
+  // Unsaved work helpers
+  const unsavedVariations = generatedVariations.filter((_, i) => !savedVariationIdxs.has(i));
+  const hasUnsavedWork    = !!editedImgUrl || unsavedVariations.length > 0;
+
+  const handleCloseAttempt = () => {
+    if (hasUnsavedWork && !showUnsavedDialog) {
+      setSelectedVarsToSave(new Set(unsavedVariations.map((_, i) => i)));
+      setSaveEditedChecked(true);
+      setShowUnsavedDialog(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleSaveAndClose = async () => {
+    setIsSavingUnsaved(true);
+    try {
+      const saves: Promise<void>[] = [];
+
+      // Save edited image
+      if (editedImgUrl && saveEditedChecked) {
+        saves.push(
+          insertNewImage(editedImgUrl, image)
+            .then(newImg => { onNewImageAdded(newImg); })
+            .catch(() => { /* non-fatal */ })
+        );
+      }
+
+      // Save selected variations
+      for (const idx of selectedVarsToSave) {
+        const url = unsavedVariations[idx];
+        if (!url) continue;
+        // Find the original variation index
+        const origIdx = generatedVariations.indexOf(url);
+        saves.push(handleSaveVariationToLibrary(url, origIdx < 0 ? idx : origIdx));
+      }
+
+      await Promise.all(saves);
+    } finally {
+      setIsSavingUnsaved(false);
+      onClose();
+    }
+  };
+
   // Keyboard nav
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showHtmlModal || confirmDelete || showSaveModal) return;
+      if (showHtmlModal || confirmDelete || showSaveModal || showUnsavedDialog) return;
       if (e.key === 'Escape') {
         // Close variation viewer first if open, then close main lightbox
         if (variationViewerUrl) { setVariationViewerUrl(null); setVariationViewerIdx(-1); return; }
-        onClose();
+        handleCloseAttempt();
       }
       if (variationViewerUrl) return; // Don't navigate when viewing a variation
       if (e.key === 'ArrowLeft'  && hasPrev) onPrev();
@@ -453,7 +497,8 @@ function Lightbox({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, confirmDelete, showSaveModal, variationViewerUrl]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, confirmDelete, showSaveModal, showUnsavedDialog, variationViewerUrl, hasUnsavedWork]);
 
   const displayUrl = editedImgUrl || image.public_url;
 

@@ -247,7 +247,7 @@ export function usePromptGenerator() {
     }
   }, [promptMetadata, handleSubmit]);
 
-  const handleAddGeneratedImage = useCallback((provider: 'chatgpt' | 'gemini', image: { displayUrl: string; editUrl: string; referenceLabel: string; generatedBrand: string }) => {
+  const handleAddGeneratedImage = useCallback((provider: 'chatgpt' | 'gemini', image: { displayUrl: string; editUrl: string; referenceLabel: string; generatedBrand: string; resolution?: string }) => {
     setGeneratedImages(prev => ({
       ...prev,
       [provider]: [...prev[provider], { ...image, provider }]
@@ -258,11 +258,11 @@ export function usePromptGenerator() {
       publicUrl:   image.displayUrl,
       provider,
       aspectRatio: promptMetadata?.aspectRatio || '16:9',
-      resolution:  formData.resolution || '1K',
+      resolution:  image.resolution || '1K',
       brand:       image.generatedBrand,
       filename:    `${provider}-${Date.now()}.png`,
     });
-  }, [promptMetadata, formData.resolution]);
+  }, [promptMetadata]);
 
   const handleRemoveGeneratedImage = useCallback((provider: 'chatgpt' | 'gemini', index: number) => {
     setGeneratedImages(prev => ({

@@ -57,14 +57,11 @@ function fetchImages(page: number, filter: string): { data: GeneratedImage[]; ha
   return getImages(page, filter) as { data: GeneratedImage[]; hasMore: boolean };
 }
 
-// ── One-time migration: copy old Supabase generated_images → localStorage ──────
-// Runs once per browser (flag stored in localStorage). Silently skips on error.
-const MIGRATION_KEY = 'pg_supabase_migrated_v1';
-
-async function migrateFromSupabase(): Promise<number> {
+// ── Background sync: copy Supabase generated_images → localStorage ─────────────
+// Runs every time the library opens. Adds any Supabase rows missing from
+// localStorage (deduplicates by public_url). Silent on error — never blocks UI.
+async function syncFromSupabase(): Promise<number> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return 0;
-  if (localStorage.getItem(MIGRATION_KEY)) return 0; // already done
-
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/generated_images?select=*&order=created_at.desc&limit=500`,
@@ -75,16 +72,15 @@ async function migrateFromSupabase(): Promise<number> {
       id: string; public_url: string; provider: string; aspect_ratio: string;
       resolution: string; filename: string; storage_path: string; created_at: string;
     }>;
-    if (!Array.isArray(rows) || rows.length === 0) {
-      localStorage.setItem(MIGRATION_KEY, '1');
-      return 0;
-    }
+    if (!Array.isArray(rows) || rows.length === 0) return 0;
 
-    // Import each row into localStorage (storeImage deduplicates by prepending)
-    // Process in reverse so newest ends up at the front
+    // Build a set of all URLs already in localStorage so we don't add duplicates
+    const existingUrls = new Set(getAllStoredImages().map(i => i.public_url));
+
+    // Process oldest-first so newest ends up at the front after prepending
     let count = 0;
     for (const row of [...rows].reverse()) {
-      if (!row.public_url) continue;
+      if (!row.public_url || existingUrls.has(row.public_url)) continue;
       storeImage({
         public_url:   row.public_url,
         provider:     row.provider     || 'chatgpt',
@@ -92,12 +88,12 @@ async function migrateFromSupabase(): Promise<number> {
         resolution:   row.resolution   || '1K',
         filename:     row.filename     || `image-${row.id}.png`,
       });
+      existingUrls.add(row.public_url); // prevent double-adds within the same batch
       count++;
     }
-    localStorage.setItem(MIGRATION_KEY, '1');
     return count;
   } catch {
-    return 0; // silent fail — migration is best-effort
+    return 0; // silent fail — sync is best-effort
   }
 }
 

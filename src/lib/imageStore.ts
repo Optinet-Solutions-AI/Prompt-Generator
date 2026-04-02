@@ -69,6 +69,11 @@ export function getImages(
   return { data, hasMore: data.length === pageSize };
 }
 
+/** Return ALL stored images (used for deduplication during Supabase sync). */
+export function getAllStoredImages(): StoredImage[] {
+  return loadAll();
+}
+
 /** Permanently remove an image by id. */
 export function deleteStoredImage(id: string): void {
   saveAll(loadAll().filter(i => i.id !== id));

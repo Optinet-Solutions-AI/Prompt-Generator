@@ -1322,11 +1322,16 @@ function ImageCard({
 
   return (
     <div
-      className="group relative overflow-hidden rounded-2xl cursor-pointer bg-muted/40 border border-border/60 hover:border-primary/50 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 aspect-[4/3]"
+      className="group relative overflow-hidden rounded-2xl cursor-pointer bg-zinc-100 dark:bg-zinc-800 border border-border/60 hover:border-primary/50 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 aspect-[4/3]"
       onClick={!confirmDelete ? onClick : undefined}
     >
-      {/* Skeleton */}
-      {!loaded && !errored && <div className="absolute inset-0 bg-muted/60 animate-pulse rounded-2xl" />}
+      {/* Skeleton — solid fill so it's clearly visible while image loads */}
+      {!loaded && !errored && (
+        <div className="absolute inset-0 rounded-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-zinc-200 dark:bg-zinc-700" />
+          <div className="absolute inset-0 animate-pulse bg-zinc-300/60 dark:bg-zinc-600/60" />
+        </div>
+      )}
 
       {/* Broken image placeholder */}
       {errored && (

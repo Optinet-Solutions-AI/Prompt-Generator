@@ -1,27 +1,77 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // ── Generate Image Variations via OpenAI gpt-image-1 ──────────────────────────
-// Uses OpenAI's image edit API directly — no GCP/Cloud Run auth needed.
 //
-// SPECTRUM APPROACH (v2):
-//   Instead of sending the same prompt N times (producing near-duplicate results),
-//   we generate 4 variations using 4 DIFFERENT prompts at increasing creative levels:
+// SPECTRUM APPROACH (v3 — brand color lock):
+//   Generates 4 variations using 4 DIFFERENT prompts at increasing creative levels.
 //
-//   Tier 1 — Color Grade:    Adjust warmth/tone only. Almost identical to original.
-//   Tier 2 — Lighting:       Change light direction, mood, atmosphere.
-//   Tier 3 — Composition:    Shift camera angle, subject position, background layout.
-//   Tier 4 — Reimagine:      Fresh execution — new pose, new energy, same brand.
+//   The #1 problem with v2 was that brand identity (colors) was lost because:
+//     1. The model doesn't know brand-specific colors just from a brand name.
+//     2. Tier prompts suggested color changes (e.g. "cooler studio light") that
+//        contradicted the brand palette.
 //
-//   Mode controls which tiers are used:
-//     subtle → T1, T1, T2, T2  (conservative spread — color & lighting range)
-//     strong → T2, T3, T3, T4  (creative spread — composition & reimagining range)
+//   Fix: A "COLOR LOCK" instruction is now the FIRST and HIGHEST-PRIORITY rule
+//   in every prompt. It explicitly names the brand's known dominant colors AND
+//   instructs the model to derive the palette from the source image.
+//   Tier prompts now only allow changes that don't touch the color palette.
 //
-//   This ensures each of the 4 outputs looks visibly different from the others
-//   while all remaining recognizably related to the original.
+//   Tier summary:
+//     T1 — Composition angle: different camera angle, same lighting & colors
+//     T2 — Subject pose:      different subject pose/expression, same background & colors
+//     T3 — Background detail: fresh background arrangement, same subject & colors
+//     T4 — Creative:          new overall composition, same brand colors & concept
 
 export const config = {
   maxDuration: 300,
 };
+
+// ------------------------------------------------------------------
+// Known brand color palettes.
+// Giving the model explicit color names is far more reliable than
+// asking it to infer colors from a brand name it may not recognize.
+// ------------------------------------------------------------------
+const BRAND_PALETTES: Record<string, string> = {
+  fortuneplay: 'rich gold, warm amber, deep bronze, warm orange glow — a luxurious golden casino aesthetic',
+  spinjo:      'vibrant purple, electric blue, silver chrome, neon purple-blue energy',
+  roosterbet:  'deep crimson red, warm gold accents, dark rich backgrounds with red highlights',
+  luckyvibe:   'emerald green, bright gold, vivid neon green-and-gold energy',
+  spinsup:     'royal blue, silver, electric white, clean dynamic energy',
+};
+
+function getBrandColorDescription(brand: string): string {
+  const key = brand.toLowerCase().replace(/\s+/g, '');
+  return BRAND_PALETTES[key] || '';
+}
+
+// ------------------------------------------------------------------
+// COLOR LOCK — the single most important rule in every prompt.
+// This always comes FIRST so the model cannot miss it.
+// ------------------------------------------------------------------
+function buildColorLock(brand: string): string {
+  const knownColors = brand ? getBrandColorDescription(brand) : '';
+
+  if (knownColors) {
+    return (
+      `⚠️ COLOR LOCK — ABSOLUTE RULE, NEVER VIOLATE: ` +
+      `This image belongs to the ${brand} brand whose signature palette is: ${knownColors}. ` +
+      `You MUST replicate these EXACT dominant colors in the variation. ` +
+      `The background, lighting, and atmosphere MUST stay within this palette. ` +
+      `NEVER switch to cool blues, purples, dark moody tones, or any color NOT present in the source image. ` +
+      `If the source image is warm and golden, the variation MUST also be warm and golden. ` +
+      `Clothing and outfit colors on the subject must remain exactly as in the source.`
+    );
+  }
+
+  // Fallback: no known brand — instruct model to derive palette from source image
+  return (
+    `⚠️ COLOR LOCK — ABSOLUTE RULE, NEVER VIOLATE: ` +
+    `Study the dominant color palette in the source image very carefully. ` +
+    `Whatever those dominant colors are (the background tones, lighting color, atmosphere), ` +
+    `you MUST preserve them exactly in the variation. ` +
+    `Do NOT introduce dominant colors that were not prominent in the source image. ` +
+    `Clothing and outfit colors on the subject must remain exactly as in the source.`
+  );
+}
 
 // ------------------------------------------------------------------
 // Helper: read width/height from raw PNG or JPEG bytes
@@ -29,14 +79,12 @@ export const config = {
 function detectImageDimensions(buffer: ArrayBuffer): { width: number; height: number } | null {
   const bytes = new Uint8Array(buffer);
 
-  // PNG: magic bytes 0-7, IHDR chunk starts at byte 8
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
     const width  = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
     const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
     return { width, height };
   }
 
-  // JPEG: starts with FF D8 — scan for SOF0-SOF3 markers
   if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
     let i = 2;
     while (i < bytes.length - 8) {
@@ -79,62 +127,61 @@ function sizeForDimensions(dims: { width: number; height: number } | null): stri
 }
 
 // ------------------------------------------------------------------
-// Build a SPECTRUM of 4 prompts — each targets a different tier of change.
+// Build the spectrum of 4 tier prompts.
 //
-// Every prompt is kept SHORT (3-4 sentences) and NON-CONTRADICTORY.
-// The brand rule is condensed to one sentence per prompt.
-// Each prompt says clearly what TO change — not a long list of what NOT to change.
+// KEY CHANGE from v2:
+//   - COLOR LOCK appears FIRST (not buried in the middle)
+//   - Tier instructions only describe STRUCTURAL changes (angle, pose, layout)
+//   - No tier instruction suggests changing colors, warmth, or light color
+//   - Lighting changes = direction/softness ONLY, never color temperature
 // ------------------------------------------------------------------
 function buildPromptSpectrum(mode: string, guidance: string, brand: string): string[] {
-  // One-sentence brand rule included in every prompt
-  const brandRule = brand
-    ? `Preserve "${brand}" brand colors in the background and lighting; keep the subject's clothing/outfit colors exactly as in the original.`
-    : 'Preserve the exact color palette and visual style of the original image.';
+  const colorLock = buildColorLock(brand);
+  const qualityRule = 'Output quality must match or exceed the original.';
+  const guidanceSuffix = guidance ? ` User direction: ${guidance}.` : '';
 
-  const qualityRule = 'Match or exceed the original image quality and resolution.';
-
-  const guidanceSuffix = guidance ? ` Creative direction: ${guidance}` : '';
-
-  // ── TIER DEFINITIONS ─────────────────────────────────────────────
-  // T1 — Color Grade only
+  // T1 — Composition angle: vary the camera perspective
   const t1 = [
-    'Create a subtle variation of this image — like applying a different color grade or photo filter.',
-    brandRule,
-    'Keep the exact composition, subject, pose, and all elements. Only shift the overall warmth, color temperature, or tonal balance slightly.',
+    colorLock,
+    'Create a variation of this image with a different camera angle or perspective.',
+    'Keep the exact same subject, lighting color, color palette, and brand aesthetic.',
+    'Only change: the viewing angle (slightly closer, further, or shifted), OR the subject framing within the shot.',
     qualityRule,
   ].join(' ') + guidanceSuffix;
 
-  // T2 — Lighting & Atmosphere
+  // T2 — Subject pose/expression: vary what the subject is doing
   const t2 = [
-    'Create a variation of this image with different lighting and atmosphere.',
-    brandRule,
-    'Keep the same composition and subject position. Change the lighting direction, intensity, or time-of-day feel — for example warmer golden-hour light, cooler studio light, or softer diffused light.',
+    colorLock,
+    'Create a variation of this image where the subject has a different pose or expression.',
+    'Keep the exact same background, lighting color, color palette, and brand aesthetic.',
+    'Only change: the subject\'s pose, stance, or facial expression — everything else stays the same.',
     qualityRule,
   ].join(' ') + guidanceSuffix;
 
-  // T3 — Composition Shift
+  // T3 — Background detail: vary the background arrangement
   const t3 = [
-    'Create a variation of this image with a refreshed composition.',
-    brandRule,
-    'Keep the same subject, brand theme, and overall concept. Adjust the camera angle, subject positioning, or background arrangement — give it a different but equally strong layout.',
+    colorLock,
+    'Create a variation of this image with a refreshed background.',
+    'Keep the same subject, subject pose, lighting color, and color palette.',
+    'Only change: background details and arrangement — same overall color palette but different background elements or depth.',
     qualityRule,
   ].join(' ') + guidanceSuffix;
 
-  // T4 — Creative Reimagining
+  // T4 — Creative: new overall scene energy
   const t4 = [
-    'Create a fresh alternate version of this image — same brand and concept, completely new execution.',
-    brandRule,
-    'Reimagine the subject pose, expression, and background. The viewer should recognize it as the same brand campaign but feel it is a genuinely different image that could stand on its own.',
+    colorLock,
+    'Create a fresh alternate version of this image — same brand, concept, and color palette; completely new composition and energy.',
+    'Keep the exact same color palette and brand aesthetic from the source.',
+    'Change: the overall composition, subject pose, and background layout. Make it feel like a strong alternate creative for the same campaign.',
     qualityRule,
   ].join(' ') + guidanceSuffix;
 
-  // ── MODE → TIER SELECTION ─────────────────────────────────────────
-  // subtle: conservative spread (color grade + lighting, 2 of each)
-  // strong: creative spread (lighting → composition → reimagine)
+  // Mode → tier selection
+  // subtle: minimal changes (angle + pose)
+  // strong: bigger changes (pose + background + creative)
   if (mode === 'subtle') {
     return [t1, t1, t2, t2];
   }
-  // strong
   return [t2, t3, t3, t4];
 }
 
@@ -198,20 +245,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const outputQuality = qualityForDimensions(sourceDims);
     const outputSize    = sizeForDimensions(sourceDims);
 
-    console.log(`[generate-variations] source dims: ${JSON.stringify(sourceDims)} → quality=${outputQuality}, size=${outputSize}, mode=${mode}`);
+    console.log(`[generate-variations] source dims: ${JSON.stringify(sourceDims)} → quality=${outputQuality}, size=${outputSize}, mode=${mode}, brand=${brand}`);
 
     // ------------------------------------------------------------------
-    // 3. Build the spectrum of 4 different prompts
+    // 3. Build spectrum prompts
     // ------------------------------------------------------------------
     const numVariations = Math.min(Number(count) || 4, 4);
     const prompts = buildPromptSpectrum(mode, guidance, brand);
-    // Use only as many prompts as requested (slice in case count < 4)
     const activePrompts = prompts.slice(0, numVariations);
 
-    console.log(`[generate-variations] generating ${numVariations} variations with ${activePrompts.length} distinct prompts`);
+    console.log(`[generate-variations] generating ${numVariations} variations`);
 
     // ------------------------------------------------------------------
-    // 4. Fire requests in parallel — each with a different tier prompt
+    // 4. Fire requests in parallel — each with its own tier prompt
     // ------------------------------------------------------------------
     const requests = activePrompts.map((prompt) => {
       const form = new FormData();

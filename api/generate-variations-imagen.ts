@@ -2,15 +2,23 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // ── Generate Image Variations via Gemini Native Image Generation ─────────────
 //
-// Previously used Imagen mask-based editing (BGSWAP), which could ONLY change
-// the background — the subject was preserved pixel-perfect by the mask.
-// This was NOT a true variation since the subject never changed.
+// Uses Gemini's native image generation (generateContent with image output).
+// Gemini sees the FULL image and generates a completely new variation.
 //
-// Now uses Gemini's native image generation (generateContent with image output).
-// Gemini sees the FULL image and generates a completely new variation —
-// both subject and background can change, just like ChatGPT's approach.
+// SPECTRUM APPROACH (v2):
+//   Generates 4 variations using 4 DIFFERENT prompts at increasing creative levels,
+//   each paired with an appropriate temperature value:
 //
-// Auth flow (same WIF pattern used by edit-image.ts and generate-image.ts):
+//   Tier 1 — Color Grade:    temp 0.3  — almost identical, just color grade shift
+//   Tier 2 — Lighting:       temp 0.5  — same composition, different light/mood
+//   Tier 3 — Composition:    temp 0.8  — different angle/layout, same subject
+//   Tier 4 — Reimagine:      temp 1.0  — fresh execution, same brand/concept
+//
+//   Mode controls which tiers are used:
+//     subtle → T1, T1, T2, T2  (conservative spread)
+//     strong → T2, T3, T3, T4  (creative spread)
+//
+// Auth flow:
 //   Vercel OIDC token → Google STS federated token → SA access token → Vertex AI
 
 export const config = { maxDuration: 300 };
@@ -76,7 +84,6 @@ async function getServiceAccountAccessToken(req: VercelRequest): Promise<string>
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Extract GCP project number from GCP_WORKLOAD_PROVIDER env var.
 function getProjectNumber(): string {
   const wp = process.env.GCP_WORKLOAD_PROVIDER || '';
   const match = wp.match(/^projects\/(\d+)\//);
@@ -86,60 +93,83 @@ function getProjectNumber(): string {
   return '69452143295';
 }
 
-// Build the variation prompt for Gemini native image generation.
-// Unlike Imagen BGSWAP (which only edited the background), Gemini sees the
-// full image and generates a new one — so the prompt describes the FULL variation.
-// Same style as ChatGPT's buildPrompt() so both engines produce comparable results.
-function buildGeminiPrompt(mode: string, guidance: string, brand: string): string {
-  // Brand palette applies to background/lighting/atmosphere ONLY — not athlete clothing.
-  const brandIdentity = brand
-    ? `BRAND IDENTITY RULE (NON-NEGOTIABLE): This image belongs to the "${brand}" brand. You MUST preserve the brand's EXACT signature colors, color palette, visual style, and overall aesthetic. The dominant BACKGROUND and LIGHTING colors must match the dominant colors of the original. Do NOT introduce new colors, tones, or styles that conflict with the "${brand}" brand identity. EXCEPTION: preserve the athlete's clothing colors exactly as shown in the original image — do NOT recolor jersey, shorts, or any clothing to match the brand palette. Brand palette applies to background, atmosphere, and lighting ONLY.`
-    : 'Preserve the EXACT color palette, dominant colors, and visual style of the original image.';
+// ------------------------------------------------------------------
+// Build a SPECTRUM of 4 prompts for Gemini.
+//
+// Gemini generates images from scratch (not inpainting like OpenAI edits),
+// so the prompts include a "CRITICAL: generate a FULL NEW IMAGE" instruction.
+// Each prompt is kept concise (3-4 sentences) to avoid contradictions.
+// Temperature is paired per tier for natural progression.
+// ------------------------------------------------------------------
+function buildGeminiPromptSpectrum(
+  mode: string,
+  guidance: string,
+  brand: string
+): Array<{ prompt: string; temperature: number }> {
+  // One-sentence brand rule
+  const brandRule = brand
+    ? `Preserve "${brand}" brand colors in the background and lighting; keep the subject's clothing/outfit colors exactly as in the original.`
+    : 'Preserve the exact color palette and visual style of the original image.';
 
+  const criticalRule = 'CRITICAL: Generate a FULL NEW IMAGE at the same dimensions and aspect ratio as the reference. Do NOT crop, zoom, or just filter the input — create a genuinely new image.';
+  const qualityRule  = 'Photorealistic, high detail, no text, no logos. Match or exceed original quality.';
+
+  const guidanceSuffix = guidance ? ` Creative direction: ${guidance}` : '';
+
+  // T1 — Color Grade only (temp 0.3)
+  const t1 = {
+    prompt: [
+      'Generate a NEW image that is a subtle color-grade variation of the reference image.',
+      criticalRule,
+      brandRule,
+      'Keep the exact composition, subject, pose, and all elements identical. Only shift the overall warmth, color temperature, or tonal balance — like applying a different photo filter.',
+      qualityRule,
+    ].join(' ') + guidanceSuffix,
+    temperature: 0.3,
+  };
+
+  // T2 — Lighting & Atmosphere (temp 0.5)
+  const t2 = {
+    prompt: [
+      'Generate a NEW image that is a lighting variation of the reference image.',
+      criticalRule,
+      brandRule,
+      'Keep the same composition and subject position. Change the lighting direction, intensity, or time-of-day feel — warmer golden-hour light, cooler studio light, or softer diffused light.',
+      qualityRule,
+    ].join(' ') + guidanceSuffix,
+    temperature: 0.5,
+  };
+
+  // T3 — Composition Shift (temp 0.8)
+  const t3 = {
+    prompt: [
+      'Generate a NEW image that is a composition variation of the reference image.',
+      criticalRule,
+      brandRule,
+      'Keep the same subject, brand theme, and overall concept. Adjust the camera angle, subject positioning, or background arrangement — a different but equally compelling layout.',
+      qualityRule,
+    ].join(' ') + guidanceSuffix,
+    temperature: 0.8,
+  };
+
+  // T4 — Creative Reimagining (temp 1.0)
+  const t4 = {
+    prompt: [
+      'Using the reference image as inspiration, generate a COMPLETELY NEW IMAGE that is a fresh creative variation.',
+      criticalRule,
+      brandRule,
+      'Same brand and general concept, completely new execution. Reimagine the subject pose, expression, and background. It should feel like an alternate version a professional designer created — same campaign, fresh energy.',
+      qualityRule,
+    ].join(' ') + guidanceSuffix,
+    temperature: 1.0,
+  };
+
+  // Mode → tier selection
   if (mode === 'subtle') {
-    const base = [
-      'Generate a NEW image that is a subtle variation of the reference image I provided.',
-      'CRITICAL: You must OUTPUT a COMPLETE NEW IMAGE at the SAME resolution and dimensions. Do NOT crop, zoom, or trim the image. The output must be the same size as the input.',
-      brandIdentity,
-      'Preserve the EXACT composition, subject, character, pose, outfit, and overall structure.',
-      'Change ONLY minor color grading — slightly adjust warmth, color temperature, or tonal balance. Like applying a different photo filter.',
-      'Do NOT add any new visual elements, effects, particles, lightning, sparks, glows, or any element not present in the original.',
-      'Stay extremely close to the original — do not reimagine the background or alter the subject.',
-      'Output quality must be EQUAL or BETTER than the original. Photorealistic, high detail.',
-    ].join(' ');
-    return guidance ? `${base} Additional refinement: ${guidance}` : base;
+    return [t1, t1, t2, t2];
   }
-
-  // Strong mode — true variation, same concept fresh execution
-  const brightKeywords = [
-    'day', 'bright', 'sun', 'solar', 'noon', 'snow', 'stadium', 'beach',
-    'outdoor', 'sky', 'high-key', 'studio', 'white', 'light', 'morning',
-    'afternoon', 'cloudy', 'overcast',
-  ];
-  const userWantsBright = guidance.length > 0 &&
-    brightKeywords.some(kw => guidance.toLowerCase().includes(kw));
-
-  const antiDarkRule = userWantsBright
-    ? 'LIGHTING: The scene MUST be brightly lit — high-key, vivid, well-illuminated. No dark backgrounds, no night scenes.'
-    : 'LIGHTING: Avoid defaulting to dark/moody backgrounds just because the subject has glowing or fire elements. Match lighting to the original.';
-
-  const variation = [
-    'Using the reference image I provided as inspiration, GENERATE A COMPLETELY NEW IMAGE from scratch that is a creative variation of it.',
-    'CRITICAL RULES:',
-    '- You MUST generate a FULL NEW IMAGE at the SAME dimensions and aspect ratio as the reference. Do NOT crop, zoom, pan, or trim the reference image. Do NOT just slightly modify the reference — create something NEW.',
-    '- The output must be a freshly generated image, NOT a filtered/adjusted version of the input.',
-    brandIdentity,
-    'What to KEEP: The same brand, same type of subject, same general theme and concept. The viewer should recognize it as the same brand and campaign.',
-    'What to CHANGE CREATIVELY: Reimagine the composition — try a different angle, adjust the subject pose or position, vary the arrangement of elements, enhance or rearrange background details. Make it look like a professional designer created an alternate version.',
-    'Do NOT add visual effects that are not in the original image (no lightning, sparks, electric arcs, lens flares, or extra glows unless the original already has them).',
-    'Output quality must be EQUAL or BETTER than the original. Photorealistic, high detail, no text, no logos, no watermarks.',
-    antiDarkRule,
-  ].join('\n');
-
-  if (guidance) {
-    return `${variation}\n\nCreative direction: ${guidance}`;
-  }
-  return variation;
+  // strong
+  return [t2, t3, t3, t4];
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -153,7 +183,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { imageUrl, mode = 'subtle', guidance = '', count = 2, brand = '' } = req.body;
+    const { imageUrl, mode = 'subtle', guidance = '', count = 4, brand = '' } = req.body;
     if (!imageUrl) return res.status(400).json({ error: 'imageUrl is required' });
 
     // ------------------------------------------------------------------
@@ -178,35 +208,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       imgArrayBuffer = await imgRes.arrayBuffer();
     }
 
-    const prompt   = buildGeminiPrompt(mode, guidance, brand);
     const b64Image = Buffer.from(imgArrayBuffer).toString('base64');
 
-    console.log(`[generate-variations-gemini] mode=${mode}, prompt="${prompt.substring(0, 80)}..."`);
+    // ------------------------------------------------------------------
+    // 2. Build the spectrum of prompts + temperatures
+    // ------------------------------------------------------------------
+    const numVariations = Math.min(Number(count) || 4, 4);
+    const spectrum = buildGeminiPromptSpectrum(mode, guidance, brand).slice(0, numVariations);
+
+    console.log(`[generate-variations-gemini] mode=${mode}, generating ${numVariations} tiered variations`);
 
     // ------------------------------------------------------------------
-    // 2. Authenticate
+    // 3. Authenticate with GCP
     // ------------------------------------------------------------------
     const accessToken = await getServiceAccountAccessToken(req);
     const project     = getProjectNumber();
 
-    // ------------------------------------------------------------------
-    // 3. Call Gemini native image generation via Vertex AI
-    //
-    // Uses generateContent with responseModalities: ["IMAGE", "TEXT"]
-    // Gemini sees the full source image and generates a true variation
-    // where BOTH subject and background can change.
-    //
-    // Temperature controls variation amount:
-    //   subtle = 0.4 (close to original)
-    //   strong = 1.0 (more creative freedom)
-    // ------------------------------------------------------------------
     const geminiModel = 'gemini-2.5-flash-image';
     const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${project}/locations/us-central1/publishers/google/models/${geminiModel}:generateContent`;
 
-    const numVariations = Math.min(Number(count) || 2, 2);
-    const temperature = mode === 'subtle' ? 0.4 : 1.4;
-
-    const makeRequest = () =>
+    // ------------------------------------------------------------------
+    // 4. Fire requests in parallel — each with its own prompt + temperature
+    // ------------------------------------------------------------------
+    const requests = spectrum.map(({ prompt, temperature }) =>
       fetch(vertexUrl, {
         method: 'POST',
         headers: {
@@ -217,15 +241,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           contents: [{
             role: 'user',
             parts: [
-              {
-                inlineData: {
-                  mimeType,
-                  data: b64Image,
-                },
-              },
-              {
-                text: prompt,
-              },
+              { inlineData: { mimeType, data: b64Image } },
+              { text: prompt },
             ],
           }],
           generationConfig: {
@@ -235,17 +252,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           },
           safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
             { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
           ],
         }),
-      });
-
-    // Fire parallel requests for variation diversity
-    const results = await Promise.allSettled(
-      Array.from({ length: numVariations }, makeRequest)
+      })
     );
+
+    const results = await Promise.allSettled(requests);
 
     const variations: { imageUrl: string }[] = [];
     const apiErrors: string[] = [];
@@ -266,7 +281,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         continue;
       }
 
-      // Gemini response: { candidates: [{ content: { parts: [{ inlineData: { mimeType, data } }, ...] } }] }
       const data = await resp.json() as {
         candidates?: Array<{
           content?: {
@@ -285,7 +299,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const outMime = part.inlineData.mimeType || 'image/png';
           variations.push({ imageUrl: `data:${outMime};base64,${part.inlineData.data}` });
           foundImage = true;
-          break; // Take first image from each response
+          break;
         }
       }
       if (!foundImage) {
@@ -303,7 +317,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Return variations + engine tag so the frontend can label them correctly
     return res.status(200).json({ variations, engine: 'imagen' });
 
   } catch (error) {

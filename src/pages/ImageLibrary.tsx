@@ -1024,7 +1024,7 @@ function Lightbox({
                       {isGeneratingVariations ? (
                         <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>Generating…</span><span className="tabular-nums text-primary/60 ml-1">({variationElapsed}s)</span></>
                       ) : (
-                        <><Shuffle className="w-3.5 h-3.5" />{generatedVariations.length > 0 ? 'Regenerate Variations' : (selectedEngine === 'compare' ? 'Generate Both' : 'Generate 2 Variations')}</>
+                        <><Shuffle className="w-3.5 h-3.5" />{generatedVariations.length > 0 ? 'Regenerate Variations' : (selectedEngine === 'compare' ? 'Generate Both (4 total)' : 'Generate 4 Variations')}</>
                       )}
                     </button>
                   </div>

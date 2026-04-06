@@ -99,10 +99,14 @@ function getProjectNumber(): string {
 // ------------------------------------------------------------------
 const BRAND_PALETTES: Record<string, string> = {
   fortuneplay: 'rich gold, warm amber, deep bronze, warm orange glow — luxurious golden casino aesthetic',
+  playmojo:    'vibrant orange, electric yellow, warm energetic tones — bold punchy casino aesthetic',
   spinjo:      'vibrant purple, electric blue, silver chrome, neon purple-blue energy',
   roosterbet:  'deep crimson red, warm gold accents, dark rich backgrounds with red highlights',
-  luckyvibe:   'emerald green, bright gold, vivid neon green-and-gold energy',
   spinsup:     'royal blue, silver, electric white, clean dynamic energy',
+  luckyvibe:   'emerald green, bright gold, vivid neon green-and-gold energy',
+  lucky7even:  'classic casino red, deep black, bright gold, lucky seven aesthetics',
+  novadreams:  'cosmic purple, deep navy blue, silver stardust, dreamy nebula tones',
+  rollero:     'warm casino red, gold, deep mahogany — classic rolling dice aesthetic',
 };
 
 function getBrandColorDescription(brand: string): string {

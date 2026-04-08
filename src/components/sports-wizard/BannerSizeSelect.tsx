@@ -12,12 +12,30 @@ type Props = {
   bannerSizeId: string;
   occasion: string;
   mirrorArabic: boolean;
+  subjectPosition: string;
   onChange: (
     field: keyof Pick<SportsBannerData, 'bannerSizeId' | 'bannerSizeLabel' | 'bannerDimensions' | 'aspectRatio' | 'occasion' | 'occasionMood'>,
     value: string
   ) => void;
   onMirrorArabicChange: (value: boolean) => void;
 };
+
+/**
+ * Given a subject position label, returns what the mirrored position will be.
+ * Center positions are flagged — flipping produces an identical image.
+ */
+function getMirrorInfo(position: string): { flippedPosition: string; isCentered: boolean } {
+  const p = position.toLowerCase();
+  if (p.includes('left') && !p.includes('right')) {
+    const flipped = position.replace(/left/gi, 'Right').replace(/Left/g, 'Right');
+    return { flippedPosition: flipped, isCentered: false };
+  }
+  if (p.includes('right') && !p.includes('left')) {
+    const flipped = position.replace(/right/gi, 'Left').replace(/Right/g, 'Left');
+    return { flippedPosition: flipped, isCentered: false };
+  }
+  return { flippedPosition: position, isCentered: true };
+}
 
 function AspectPreview({ ratio, selected }: { ratio: number; selected: boolean }) {
   const clampedRatio = Math.min(ratio, 4);

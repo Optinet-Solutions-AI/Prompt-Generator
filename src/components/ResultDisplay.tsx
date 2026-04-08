@@ -48,7 +48,6 @@ interface ResultDisplayProps {
   onRemoveGeneratedImage?: (provider: "chatgpt" | "gemini", index: number) => void;
   persistedVariations?: GalleryImage[];
   onVariationsChange?: (variations: GalleryImage[]) => void;
-  mirrorArabic?: boolean;
 }
 
 export function ResultDisplay({

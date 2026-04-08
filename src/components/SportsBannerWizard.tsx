@@ -166,7 +166,7 @@ export function SportsBannerWizard({ onSubmit }: Props) {
 
   const handleGenerate = () => {
     if (!brand) return;
-    onSubmit(assembleFormData(brand));
+    onSubmit(assembleFormData(brand), wizardData.mirrorArabic);
   };
 
   const handleReset = () => {

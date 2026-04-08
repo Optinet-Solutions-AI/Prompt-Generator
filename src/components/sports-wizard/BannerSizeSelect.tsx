@@ -31,7 +31,7 @@ function AspectPreview({ ratio, selected }: { ratio: number; selected: boolean }
   );
 }
 
-export function BannerSizeSelect({ bannerSizeId, occasion, onChange }: Props) {
+export function BannerSizeSelect({ bannerSizeId, occasion, mirrorArabic, onChange, onMirrorArabicChange }: Props) {
   const [customOccasion, setCustomOccasion] = useState('');
   const [showCustomOccasion, setShowCustomOccasion] = useState(false);
   const [customWidth, setCustomWidth] = useState('');

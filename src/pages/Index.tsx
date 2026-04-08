@@ -54,6 +54,7 @@ const Index = () => {
     useReferencePromptData();
 
   const [showLikedPanel, setShowLikedPanel] = useState(false);
+  const [mirrorArabic, setMirrorArabic] = useState(false);
 
   // Variation images generated inside the modal — stored in localStorage so they
   // survive ANY tab switch, including switching to the Image Library and back.
@@ -202,7 +203,8 @@ const Index = () => {
                   Switching back to Custom Prompt preserves form/result state intact. */}
               {activeTab === 'wizard' && !showProcessing && (
                 <SportsBannerWizard
-                  onSubmit={(data) => {
+                  onSubmit={(data, mirror) => {
+                    setMirrorArabic(mirror);
                     handleTabChange('form'); // switch to Custom Prompt tab to show the result
                     handleSubmitWithData(data as Partial<FormData>);
                   }}

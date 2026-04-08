@@ -54,7 +54,6 @@ const Index = () => {
     useReferencePromptData();
 
   const [showLikedPanel, setShowLikedPanel] = useState(false);
-  const [mirrorArabic, setMirrorArabic] = useState(false);
 
   // Variation images generated inside the modal — stored in localStorage so they
   // survive ANY tab switch, including switching to the Image Library and back.

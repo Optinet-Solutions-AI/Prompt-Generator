@@ -721,11 +721,9 @@ export function ImageModal({
               <Button size="sm" className="gap-1.5 gradient-primary shrink-0" onClick={handleDownload} disabled={isEditing}>
                 <Download className="w-3.5 h-3.5" />Download
               </Button>
-              {mirrorArabic && (
-                <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={handleDownloadMirrored} disabled={isEditing} title="Download horizontally flipped copy for Arabic RTL layout">
-                  <Download className="w-3.5 h-3.5" />Download (Arabic)
-                </Button>
-              )}
+              <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={handleDownloadMirrored} disabled={isEditing} title="Download horizontally flipped copy for Arabic (RTL) layout">
+                <Download className="w-3.5 h-3.5" />Arabic (RTL)
+              </Button>
             </div>
           </div>
         </div>

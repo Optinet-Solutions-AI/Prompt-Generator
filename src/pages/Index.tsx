@@ -257,6 +257,7 @@ const Index = () => {
                       onOpenFavorites={() => setShowLikedPanel(true)}
                       persistedVariations={persistedVariations}
                       onVariationsChange={setPersistedVariations}
+                      mirrorArabic={mirrorArabic}
                     />
                   )}
                 </>

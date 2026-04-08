@@ -266,6 +266,7 @@ export interface SportsBannerData {
   aspectRatio: string;
   occasion: string;
   occasionMood: string;
+  mirrorArabic: boolean;
 }
 
 export interface PromptMetadata {

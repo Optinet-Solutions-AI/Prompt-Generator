@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,237 +9,229 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Download, Eye, FileCode, Clock } from 'lucide-react';
+import { Download, Eye, FileCode, AlignLeft, AlignRight } from 'lucide-react';
+import { getBrandStyle } from '@/lib/brand-standards';
 
 interface HtmlConversionModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string;
+  brand?: string;
 }
 
-interface BonusFormData {
+interface BannerFormData {
   welcomeBonus: string;
-  amountToUnlock: string;
-  bonusCode: string;
-  extraSpins: string;
   bonusPercentage: string;
-  maximumBonus: string;
+  bonusCode: string;
+  ctaUrl: string;
 }
 
-export function HtmlConversionModal({ isOpen, onClose, imageUrl }: HtmlConversionModalProps) {
-  const [formData, setFormData] = useState<BonusFormData>({
+type TextPosition = 'left' | 'right';
+
+export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlConversionModalProps) {
+  const [formData, setFormData] = useState<BannerFormData>({
     welcomeBonus: '',
-    amountToUnlock: '',
-    bonusCode: '',
-    extraSpins: '',
     bonusPercentage: '',
-    maximumBonus: '',
+    bonusCode: '',
+    ctaUrl: '#',
   });
-  const [isConverting, setIsConverting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [textPosition, setTextPosition] = useState<TextPosition>('right');
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Elapsed time counter
-  useEffect(() => {
-    if (isConverting) {
-      setElapsedTime(0);
-      intervalRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isConverting]);
-
-  const handleInputChange = (field: keyof BonusFormData, value: string) => {
+  const handleInputChange = (field: keyof BannerFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const buildEditPrompt = () => {
-    return `Do not change the main image or subject.
+  const buildHtml = (): string => {
+    const style = getBrandStyle(brand);
 
-Same lighting, same environment, same framing.
+    // 'right' → image left, text right  → flex-row
+    // 'left'  → text left, image right → flex-row-reverse
+    const flexDirection = textPosition === 'right' ? 'row' : 'row-reverse';
 
-Only add clean, modern promotional UI text and a call-to-action overlay in the empty dark space on the left side of the image.
+    const googleFontsUrl = `https://fonts.googleapis.com/css2?family=${style.googleFont}&display=swap`;
 
-Before choosing any colors, analyze the background area where the text and button will be placed and determine the dominant background color and brightness.
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${brand || 'Casino'} Banner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="${googleFontsUrl}" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-Then:
+    body {
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: ${style.fontFamily};
+    }
 
-• Choose a CTA button color that complements the dominant background color (harmonious, not clashing, not same tone).
+    .banner {
+      display: flex;
+      flex-direction: ${flexDirection};
+      width: 100%;
+      max-width: 900px;
+      overflow: hidden;
+      border-radius: 14px;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+    }
 
-• Choose the text color as the visual counterpart of the button color so that contrast and readability are maximized.
+    /* On mobile, always stack vertically */
+    @media (max-width: 600px) {
+      .banner { flex-direction: column; }
+    }
 
-• Ensure WCAG-style high contrast: text must be clearly readable from a distance.
+    /* ── Image panel ── */
+    .banner__image {
+      flex: 1;
+      min-height: 320px;
+      overflow: hidden;
+    }
 
-TEXT AND UI TO ADD (exact wording):
+    .banner__image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
 
-Large headline below it:
+    /* ── Text panel ── */
+    .banner__text {
+      flex: 1;
+      background: ${style.panelBg};
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 44px 40px;
+      gap: 18px;
+    }
 
-"${formData.welcomeBonus} FREE SPINS"
+    .banner__headline {
+      font-family: ${style.fontFamily};
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 900;
+      color: ${style.headlineColor};
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+    }
 
-Smaller subtext below headline:
+    .banner__subtext {
+      font-family: ${style.fontFamily};
+      font-size: 13px;
+      font-weight: 600;
+      color: ${style.bodyColor};
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
 
-"NO DEPOSIT NEEDED"
+    .banner__bonus {
+      font-family: ${style.fontFamily};
+      font-size: clamp(22px, 2.5vw, 32px);
+      font-weight: 700;
+      color: ${style.accentColor};
+      letter-spacing: -0.01em;
+    }
 
-Bonus line:
+    /* ── CTA Button ── */
+    .banner__cta {
+      display: inline-block;
+      background: ${style.buttonBg};
+      color: ${style.buttonText};
+      font-family: ${style.fontFamily};
+      font-size: 16px;
+      font-weight: 800;
+      text-decoration: none;
+      padding: 15px 38px;
+      border-radius: 50px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      box-shadow: 0 4px 24px ${style.buttonShadow};
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      cursor: pointer;
+      margin-top: 6px;
+    }
 
-"+${formData.bonusPercentage}% Bonus"
+    .banner__cta:hover {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
 
-Call-to-action button below the text:
+    .banner__code {
+      font-family: ${style.fontFamily};
+      font-size: 11px;
+      font-weight: 500;
+      color: ${style.bodyColor};
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
 
-Rounded rectangular button with subtle glow and soft shadow, text:
+    <!-- Image panel -->
+    <div class="banner__image">
+      <img src="${imageUrl}" alt="${brand || 'Casino'} promotional banner" />
+    </div>
 
-"PLAY NOW"
+    <!-- Text / CTA panel -->
+    <div class="banner__text">
+      <h2 class="banner__headline">${formData.welcomeBonus ? `${formData.welcomeBonus} Free Spins` : 'Free Spins'}</h2>
+      <p class="banner__subtext">No Deposit Needed</p>
+      ${formData.bonusPercentage ? `<p class="banner__bonus">+${formData.bonusPercentage}% Bonus</p>` : ''}
+      <a href="${formData.ctaUrl || '#'}" class="banner__cta">Join Now</a>
+      ${formData.bonusCode ? `<p class="banner__code">Bonus Code: ${formData.bonusCode}</p>` : ''}
+    </div>
 
-Below the button in smaller text:
-
-"Bonus Code: ${formData.bonusCode}"
-
-LAYOUT:
-
-• All text aligned vertically on the left third of the image.
-
-• Respect safe margins from edges.
-
-• Headline is dominant and bold.
-
-• Button is clearly clickable and visually separated.
-
-STYLE:
-
-• Modern clean sans-serif typography.
-
-• Minimal, premium, not flashy.
-
-• No neon unless the background is dark enough to support it.
-
-• Subtle glow only if needed for legibility.
-
-CONSTRAINTS:
-
-• Do not cover the subject.
-
-• Do not modify the background scene.
-
-• Do not add any elements besides the text and button.
-
-• Do not crop or zoom.
-
-The final result should look like a professionally designed casino promotional banner with adaptive color harmony and perfect readability.`;
+  </div>
+</body>
+</html>`;
   };
 
-  const handleConvert = async () => {
-    setIsConverting(true);
+  const handleGenerate = () => {
     setError(null);
-
-    try {
-      // Step 1: Edit the image with promotional overlay
-      const editResponse = await fetch('/api/edit-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl,
-          editInstructions: buildEditPrompt(),
-          provider: 'gemini',
-        }),
-      });
-
-      if (!editResponse.ok) {
-        const errorText = await editResponse.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || 'Failed to edit image');
-        } catch {
-          throw new Error('Failed to edit image');
-        }
-      }
-
-      const editData = await editResponse.json();
-      const editedImageUrl = editData.webViewLink || editData.imageUrl || editData.url;
-
-      if (!editedImageUrl) {
-        throw new Error('No edited image URL received');
-      }
-
-      // Step 2: Convert the edited image to HTML
-      const htmlResponse = await fetch('/api/convert-to-html', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: editedImageUrl,
-          ...formData,
-        }),
-      });
-
-      if (!htmlResponse.ok) {
-        const errorText = await htmlResponse.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || 'Failed to convert to HTML');
-        } catch {
-          throw new Error('Failed to convert to HTML');
-        }
-      }
-
-      // Response is raw HTML
-      const htmlContent = await htmlResponse.text();
-      setGeneratedHtml(htmlContent);
-    } catch (err) {
-      console.error('HTML conversion error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to convert to HTML');
-    } finally {
-      setIsConverting(false);
+    if (!formData.welcomeBonus.trim()) {
+      setError('Please enter the number of free spins.');
+      return;
     }
+    setGeneratedHtml(buildHtml());
   };
 
   const handleDownload = () => {
-    if (generatedHtml) {
-      const blob = new Blob([generatedHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'email-template.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+    if (!generatedHtml) return;
+    const blob = new Blob([generatedHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${brand ? brand.toLowerCase() : 'banner'}-email.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handlePreview = () => {
-    if (generatedHtml) {
-      const blob = new Blob([generatedHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    }
+    if (!generatedHtml) return;
+    const blob = new Blob([generatedHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
   };
 
   const handleClose = () => {
-    setFormData({
-      welcomeBonus: '',
-      amountToUnlock: '',
-      bonusCode: '',
-      extraSpins: '',
-      bonusPercentage: '',
-      maximumBonus: '',
-    });
+    setFormData({ welcomeBonus: '', bonusPercentage: '', bonusCode: '', ctaUrl: '#' });
     setGeneratedHtml(null);
+    setTextPosition('right');
     setError(null);
     onClose();
   };
@@ -250,104 +242,98 @@ The final result should look like a professionally designed casino promotional b
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileCode className="w-5 h-5" />
-            Convert to HTML
+            Convert to HTML Banner
+            {brand && (
+              <span className="text-xs font-normal text-muted-foreground ml-1">· {brand}</span>
+            )}
           </DialogTitle>
         </DialogHeader>
-        
+
         {!generatedHtml ? (
           <>
             <div className="space-y-4 py-4">
+
+              {/* Text Position toggle */}
               <div className="space-y-2">
-                <Label htmlFor="welcomeBonus">Welcome Bonus Spins</Label>
+                <Label>Text Position</Label>
+                <div className="inline-flex rounded-lg bg-muted p-1 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setTextPosition('left')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      textPosition === 'left'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <AlignLeft className="w-3.5 h-3.5" />
+                    Text Left
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTextPosition('right')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      textPosition === 'right'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <AlignRight className="w-3.5 h-3.5" />
+                    Text Right
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="welcomeBonus">Free Spins *</Label>
                 <Input
                   id="welcomeBonus"
-                  placeholder="No. of free spins e.g 20"
+                  placeholder="e.g. 20"
                   value={formData.welcomeBonus}
                   onChange={(e) => handleInputChange('welcomeBonus', e.target.value)}
-                  disabled={isConverting}
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="amountToUnlock">Amount to Unlock</Label>
-                <Input
-                  id="amountToUnlock"
-                  placeholder="e.g., $100"
-                  value={formData.amountToUnlock}
-                  onChange={(e) => handleInputChange('amountToUnlock', e.target.value)}
-                  disabled={isConverting}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="bonusCode">Bonus Code</Label>
-                <Input
-                  id="bonusCode"
-                  placeholder="e.g., WELCOME100"
-                  value={formData.bonusCode}
-                  onChange={(e) => handleInputChange('bonusCode', e.target.value)}
-                  disabled={isConverting}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="extraSpins">No. of Extra Spins</Label>
-                <Input
-                  id="extraSpins"
-                  placeholder="e.g., 50"
-                  value={formData.extraSpins}
-                  onChange={(e) => handleInputChange('extraSpins', e.target.value)}
-                  disabled={isConverting}
-                />
-              </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="bonusPercentage">Bonus Percentage</Label>
                 <Input
                   id="bonusPercentage"
-                  placeholder="e.g., 100%"
+                  placeholder="e.g. 100"
                   value={formData.bonusPercentage}
                   onChange={(e) => handleInputChange('bonusPercentage', e.target.value)}
-                  disabled={isConverting}
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="maximumBonus">Maximum Bonus</Label>
+                <Label htmlFor="bonusCode">Bonus Code</Label>
                 <Input
-                  id="maximumBonus"
-                  placeholder="e.g., $500"
-                  value={formData.maximumBonus}
-                  onChange={(e) => handleInputChange('maximumBonus', e.target.value)}
-                  disabled={isConverting}
+                  id="bonusCode"
+                  placeholder="e.g. WELCOME100"
+                  value={formData.bonusCode}
+                  onChange={(e) => handleInputChange('bonusCode', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ctaUrl">CTA Link URL</Label>
+                <Input
+                  id="ctaUrl"
+                  placeholder="https://your-casino.com/register"
+                  value={formData.ctaUrl === '#' ? '' : formData.ctaUrl}
+                  onChange={(e) => handleInputChange('ctaUrl', e.target.value || '#')}
                 />
               </div>
             </div>
 
-            {error && (
-              <p className="text-destructive text-sm">{error}</p>
-            )}
+            {error && <p className="text-destructive text-sm">{error}</p>}
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose} disabled={isConverting}>
+              <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handleConvert} 
-                disabled={isConverting}
-                className="gradient-primary gap-2 min-w-[140px]"
-              >
-                {isConverting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="tabular-nums">{elapsedTime}s</span>
-                  </>
-                ) : (
-                  <>
-                    <FileCode className="w-4 h-4" />
-                    Convert
-                  </>
-                )}
+              <Button onClick={handleGenerate} className="gradient-primary gap-2">
+                <FileCode className="w-4 h-4" />
+                Generate HTML
               </Button>
             </DialogFooter>
           </>
@@ -357,20 +343,23 @@ The final result should look like a professionally designed casino promotional b
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <FileCode className="w-8 h-8 text-primary" />
               </div>
-              <p className="text-foreground font-medium mb-2">HTML Generated Successfully!</p>
+              <p className="text-foreground font-medium mb-1">HTML Banner Ready</p>
               <p className="text-sm text-muted-foreground">
-                Completed in {elapsedTime}s • Your HTML file is ready to download or preview.
+                Text on {textPosition} · {brand || 'Generic'} brand styles applied
               </p>
             </div>
 
             <DialogFooter className="flex gap-2 sm:gap-2">
+              <Button variant="outline" onClick={() => setGeneratedHtml(null)} className="gap-2">
+                Edit
+              </Button>
               <Button variant="outline" onClick={handlePreview} className="gap-2">
                 <Eye className="w-4 h-4" />
                 Preview
               </Button>
               <Button onClick={handleDownload} className="gradient-primary gap-2">
                 <Download className="w-4 h-4" />
-                Download HTML
+                Download
               </Button>
             </DialogFooter>
           </>

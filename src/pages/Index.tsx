@@ -1,5 +1,5 @@
 import { Images, Sparkles, Trophy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { PromptForm } from "@/components/PromptForm";
 import { ProcessingState } from "@/components/ProcessingState";
 import { ResultDisplay } from "@/components/ResultDisplay";
@@ -8,6 +8,7 @@ import { SportsBannerWizard } from "@/components/SportsBannerWizard";
 import ImageLibrary from "@/pages/ImageLibrary";
 import { usePromptGenerator } from "@/hooks/usePromptGenerator";
 import { useReferencePromptData } from "@/hooks/useReferencePromptData";
+import { useSportsBannerWizard } from "@/hooks/useSportsBannerWizard";
 import { LikedImagesPanel } from "@/components/LikedImagesPanel";
 import { FormData } from "@/types/prompt";
 import type { GalleryImage } from "@/components/ImageModal";

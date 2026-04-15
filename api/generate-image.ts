@@ -164,7 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               'Authorization': `Bearer ${idToken}`,
             },
             body: JSON.stringify({
-              prompt,
+              prompt: enrichedPrompt,
               provider,
               aspectRatio: aspectRatio || '1:1',
               resolution:  resolution  || '1K',

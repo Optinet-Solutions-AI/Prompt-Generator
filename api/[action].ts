@@ -380,25 +380,6 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       return res.status(500).json({ error: 'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured' });
     }
 
-    // SAVE GENERATED IMAGE — persist to generated_images table so sync can recover it on any device
-    if (action === 'save-generated-image') {
-      const { public_url, provider, aspect_ratio, resolution, filename } = req.body;
-      if (!public_url) return res.status(400).json({ error: 'public_url is required' });
-      const data = await sbPost(
-        'generated_images',
-        {
-          public_url,
-          provider:     (provider || 'chatgpt').toLowerCase(),
-          aspect_ratio: aspect_ratio || '16:9',
-          resolution:   resolution   || '1K',
-          filename:     filename     || `generated-${Date.now()}.png`,
-        },
-        { 'Prefer': 'return=representation' }
-      );
-      const result = Array.isArray(data) ? data[0] : data;
-      return res.status(200).json(result || { success: true });
-    }
-
     // LIST PROMPTS — used by the reference dropdown
     if (action === 'list-prompts') {
       const data = await sbGet(

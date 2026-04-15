@@ -40,6 +40,13 @@ const Index = () => {
     handleSubmitWithData,
   } = usePromptGenerator();
 
+  // Wizard state lifted here so it survives switching to the form/result tab
+  const wizardState = useSportsBannerWizard();
+  const [wizardBrand, setWizardBrand] = useState('');
+
+  // Track whether the latest result came from the wizard or the custom form
+  const [lastGenerationSource, setLastGenerationSource] = useState<'form' | 'wizard'>('form');
+
   // Track which top-level mode the user is in — persisted in localStorage so
   // switching to Image Library and back restores exactly where they left off
   const [activeTab, setActiveTab] = useState<'form' | 'wizard' | 'library'>(() => {

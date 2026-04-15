@@ -1170,6 +1170,7 @@ function Lightbox({
         isOpen={showHtmlModal}
         onClose={() => setShowHtmlModal(false)}
         imageUrl={displayUrl}
+        brand={image.brand_name}
       />
 
       {/* Save Edited Modal */}

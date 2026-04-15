@@ -8,11 +8,11 @@
  *  - Every field has a "Custom" escape hatch — no hard restrictions
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Zap, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSportsBannerWizard, TOTAL_STEPS } from '@/hooks/useSportsBannerWizard';
+import { type useSportsBannerWizard, TOTAL_STEPS } from '@/hooks/useSportsBannerWizard';
 import { SportSelect } from './sports-wizard/SportSelect';
 import { SceneSelect } from './sports-wizard/SceneSelect';
 import { PositionGrid } from './sports-wizard/PositionGrid';

@@ -24,6 +24,7 @@ interface BannerFormData {
   bonusPercentage: string;
   bonusCode: string;
   ctaUrl: string;
+  ctaText: string;
 }
 
 type TextPosition = 'left' | 'right';

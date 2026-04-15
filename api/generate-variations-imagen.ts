@@ -297,7 +297,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           generationConfig: {
             responseModalities: ['IMAGE', 'TEXT'],
             temperature,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 16384,
           },
           safetySettings: [
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },

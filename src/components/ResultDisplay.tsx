@@ -543,6 +543,17 @@ export function ResultDisplay({
           />
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
+            {lastGenerationSource === 'wizard' && onEditWizard ? (
+              <Button variant="outline" size="sm" onClick={onEditWizard} className="gap-2">
+                <Pencil className="w-4 h-4" />
+                Edit in Wizard
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={onEditForm} className="gap-2">
+                <Pencil className="w-4 h-4" />
+                Edit Form
+              </Button>
+            )}
             <Button
               onClick={onGenerateAgain}
               disabled={isRegeneratingPrompt || isLoadingReferenceData}

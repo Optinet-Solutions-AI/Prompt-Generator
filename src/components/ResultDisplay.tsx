@@ -357,6 +357,7 @@ export function ResultDisplay({
           aspectRatio: metadata?.aspectRatio || "16:9",
           backend: "cloud-run",
           resolution,
+          brand: metadata?.brand || "",
         }),
       });
 

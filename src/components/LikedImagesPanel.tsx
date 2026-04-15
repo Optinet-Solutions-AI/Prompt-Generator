@@ -510,6 +510,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
           isOpen={showHtmlModal}
           onClose={() => setShowHtmlModal(false)}
           imageUrl={activeImgUrl}
+          brand={activeRecord?.brand_name || brand}
         />
       )}
     </>

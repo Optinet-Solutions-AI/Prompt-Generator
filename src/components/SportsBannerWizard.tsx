@@ -33,6 +33,10 @@ import {
 
 type Props = {
   onSubmit: (data: Partial<FormData>) => void;
+  // Wizard state is lifted to Index.tsx so it survives tab switches
+  wizardState: ReturnType<typeof useSportsBannerWizard>;
+  brand: string;
+  onBrandChange: (brand: string) => void;
 };
 
 const STEP_LABELS = [

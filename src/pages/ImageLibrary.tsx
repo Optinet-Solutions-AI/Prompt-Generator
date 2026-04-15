@@ -87,7 +87,7 @@ async function syncFromSupabase(): Promise<number> {
     // Single batch write (one localStorage read + one write) — much faster than 500 individual writes
     return batchStoreImages(newRows.map(row => ({
       public_url:   row.public_url,
-      provider:     row.provider     || 'chatgpt',
+      provider:     (row.provider || 'chatgpt').toLowerCase(),
       aspect_ratio: row.aspect_ratio || '16:9',
       resolution:   row.resolution   || '1K',
       filename:     row.filename     || `image-${row.id}.png`,

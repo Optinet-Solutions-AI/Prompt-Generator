@@ -366,7 +366,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
   // Live preview — uses the raw imageUrl (no base64 conversion needed, fast).
   // Rebuilds whenever any form field or setting changes.
   const previewHtml = useMemo(() => buildHtml(imageUrl), [
-    imageUrl, formData, offerType, textPosition, brand,
+    imageUrl, formData, offerType, bannerSize, textPosition, brand,
   ]);
 
   const handleGenerate = async () => {

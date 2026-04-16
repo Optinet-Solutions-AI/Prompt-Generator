@@ -691,34 +691,24 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
           <>
             <div className="px-6 py-5">
               {/* Dynamic preview — ratio-aware */}
-              {(() => {
-                const sz = BANNER_SIZES[bannerSize];
-                const iframeW = 900;
-                const iframeH = Math.round(iframeW * sz.h / sz.w);
-                // Fill available dialog width (~500px inner)
-                const scale = 500 / iframeW;
-                const containerH = Math.min(Math.round(iframeH * scale), 400);
-                return (
-                  <div
-                    className="w-full overflow-hidden rounded-lg bg-black mb-4"
-                    style={{ height: `${containerH}px` }}
-                  >
-                    <iframe
-                      srcDoc={previewHtml}
-                      sandbox="allow-same-origin"
-                      title="Final banner preview"
-                      style={{
-                        width: `${iframeW}px`,
-                        height: `${iframeH}px`,
-                        transform: `scale(${scale})`,
-                        transformOrigin: 'top left',
-                        border: 'none',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  </div>
-                );
-              })()}
+              <div
+                className="w-full overflow-hidden rounded-lg bg-black mb-4"
+                style={{ height: `${successContainerH}px` }}
+              >
+                <iframe
+                  srcDoc={previewHtml}
+                  sandbox="allow-same-origin"
+                  title="Final banner preview"
+                  style={{
+                    width: `${previewIframeW}px`,
+                    height: `${previewIframeH}px`,
+                    transform: `scale(${successScale})`,
+                    transformOrigin: 'top left',
+                    border: 'none',
+                    pointerEvents: 'none',
+                  }}
+                />
+              </div>
               <p className="text-center text-foreground font-semibold mb-1">HTML Banner Ready</p>
               <p className="text-center text-xs text-muted-foreground">
                 {cfg.typeLabel} · {BANNER_SIZES[bannerSize].label} · Text {textPosition} · {brand || 'Generic'}

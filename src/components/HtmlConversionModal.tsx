@@ -184,16 +184,15 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       font-family: ${style.fontFamily};
     }
 
-    /* ── Banner wrapper ── */
+    /* ── Banner wrapper — ratio adapts to banner size ── */
     .banner {
       position: relative;
       width: 100%;
-      max-width: 900px;
+      max-width: ${isLeaderboard ? '728px' : '900px'};
       overflow: hidden;
-      border-radius: 10px;
+      border-radius: ${isLeaderboard ? '6px' : '10px'};
       box-shadow: 0 8px 48px rgba(0,0,0,0.7);
-      aspect-ratio: 16 / 7;
-      min-height: 280px;
+      aspect-ratio: ${size.w} / ${size.h};
     }
 
     /* Layer 0 — full-bleed AI image fills the whole banner */

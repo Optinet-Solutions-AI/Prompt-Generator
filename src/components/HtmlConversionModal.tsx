@@ -259,7 +259,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 
     /* Big headline number / amount */
     .banner__number {
-      font-size: clamp(56px, 8.5vw, 96px);
+      font-size: ${isLeaderboard ? 'clamp(28px, 4vw, 40px)' : 'clamp(56px, 8.5vw, 96px)'};
       font-weight: 900;
       color: ${style.headlineColor};
       line-height: 0.9;

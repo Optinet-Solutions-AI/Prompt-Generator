@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,15 +19,67 @@ interface HtmlConversionModalProps {
   brand?: string;
 }
 
+// The 4 offer types supported
+type OfferType = 'freespins' | 'bonus' | 'nodeposit' | 'freebet';
+
 interface BannerFormData {
-  welcomeBonus: string;
-  bonusPercentage: string;
+  mainValue: string;    // Big number: spin count / bonus % / dollar amount
+  subValue: string;     // Only for % Bonus → "Up to $4,000"
+  crossSell: string;    // Optional accent line e.g. "+ 500% Bonus" or "100 Extra Spins"
   bonusCode: string;
   ctaUrl: string;
   ctaText: string;
 }
 
 type TextPosition = 'left' | 'right';
+
+// Per-offer-type display config used in both the form labels and the HTML output
+const OFFER_CONFIG: Record<OfferType, {
+  label: string;
+  mainPlaceholder: string;
+  typeLabel: string;
+  descriptor: string;
+  showSubValue: boolean;
+}> = {
+  freespins: {
+    label: 'Number of Spins',
+    mainPlaceholder: 'e.g. 20',
+    typeLabel: 'Free Spins',
+    descriptor: 'No Deposit Bonus',
+    showSubValue: false,
+  },
+  bonus: {
+    label: 'Bonus %',
+    mainPlaceholder: 'e.g. 400',
+    typeLabel: 'Bonus',
+    descriptor: '',          // filled from subValue below
+    showSubValue: true,
+  },
+  nodeposit: {
+    label: 'Bonus Amount',
+    mainPlaceholder: 'e.g. $5',
+    typeLabel: 'No Deposit',
+    descriptor: 'Bonus',
+    showSubValue: false,
+  },
+  freebet: {
+    label: 'Bet Amount',
+    mainPlaceholder: 'e.g. $50',
+    typeLabel: 'Free Bet',
+    descriptor: 'No Deposit Required',
+    showSubValue: false,
+  },
+};
+
+// Converts a 6-char hex colour to rgba() so we can use brand colours in the gradient.
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(0,0,0,${alpha})`;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 // Fetches an image URL and returns it as a base64 data URI so the
 // downloaded HTML file works everywhere — no blob URLs, no broken images.
@@ -43,19 +95,20 @@ async function toBase64DataUri(url: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } catch {
-    // CORS or network failure — fall back to the original URL
     return url;
   }
 }
 
 export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlConversionModalProps) {
   const [formData, setFormData] = useState<BannerFormData>({
-    welcomeBonus: '',
-    bonusPercentage: '',
+    mainValue: '',
+    subValue: '',
+    crossSell: '',
     bonusCode: '',
     ctaUrl: '#',
     ctaText: 'Play Now',
   });
+  const [offerType, setOfferType] = useState<OfferType>('freespins');
   const [textPosition, setTextPosition] = useState<TextPosition>('right');
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -65,18 +118,34 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Builds the final HTML string.
-  // imageSrc is already a base64 data URI so the file is self-contained.
+  // Builds the banner HTML. imageSrc can be the original URL (for live preview)
+  // or a base64 data URI (for the final downloadable file).
   const buildHtml = (imageSrc: string): string => {
     const style = getBrandStyle(brand);
+    const cfg = OFFER_CONFIG[offerType];
+    const ctaLabel = formData.ctaText.trim() || 'Play Now';
 
-    // 'right' → text on RIGHT → gradient fades left-to-right (transparent → dark)
-    // 'left'  → text on LEFT  → gradient fades right-to-left (transparent → dark)
+    // Use the brand's own dark colour in the gradient so it feels on-brand
+    const dark95 = hexToRgba(style.panelBg, 0.95);
+    const dark70 = hexToRgba(style.panelBg, 0.70);
+    const dark40 = hexToRgba(style.panelBg, 0.40);
+
+    // Text on right → gradient flows left-to-right (image visible on left, dark on right)
+    // Text on left  → gradient flows right-to-left
     const gradientDirection = textPosition === 'right' ? 'to right' : 'to left';
-    const textAlign = textPosition === 'right' ? 'flex-end' : 'flex-start';
+    const justifyContent  = textPosition === 'right' ? 'flex-end' : 'flex-start';
+
+    // Descriptor line: for % Bonus use the subValue ("Up to $4,000"), otherwise the preset string
+    const descriptor = offerType === 'bonus'
+      ? (formData.subValue ? `Up to ${formData.subValue}` : 'Welcome Bonus')
+      : cfg.descriptor;
+
+    // The big headline: % Bonus appends "%" automatically
+    const headline = offerType === 'bonus'
+      ? `${formData.mainValue}%`
+      : formData.mainValue;
 
     const googleFontsUrl = `https://fonts.googleapis.com/css2?family=${style.googleFont}&display=swap`;
-    const ctaLabel = formData.ctaText.trim() || 'Play Now';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -99,7 +168,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       font-family: ${style.fontFamily};
     }
 
-    /* ── Banner wrapper — fixed aspect ratio, clips all layers ── */
+    /* ── Banner wrapper ── */
     .banner {
       position: relative;
       width: 100%;
@@ -107,12 +176,11 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       overflow: hidden;
       border-radius: 10px;
       box-shadow: 0 8px 48px rgba(0,0,0,0.7);
-      /* Maintain ~16:9 aspect ratio */
       aspect-ratio: 16 / 7;
       min-height: 280px;
     }
 
-    /* ── Layer 0: full-bleed background image ── */
+    /* Layer 0 — full-bleed AI image fills the whole banner */
     .banner__bg {
       position: absolute;
       inset: 0;
@@ -124,21 +192,22 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       z-index: 0;
     }
 
-    /* ── Layer 1: gradient overlay for text readability ── */
+    /* Layer 1 — brand-coloured gradient overlay for text readability */
     .banner__gradient {
       position: absolute;
       inset: 0;
       background: linear-gradient(
         ${gradientDirection},
-        transparent 10%,
-        rgba(0,0,0,0.55) 45%,
-        rgba(0,0,0,0.92) 70%,
-        rgba(0,0,0,0.97) 100%
+        transparent 5%,
+        ${dark40} 35%,
+        ${dark70} 55%,
+        ${dark95} 75%,
+        ${dark95} 100%
       );
       z-index: 1;
     }
 
-    /* ── Layer 2: text block positioned over the gradient ── */
+    /* Layer 2 — text content sits above the gradient */
     .banner__content {
       position: relative;
       z-index: 2;
@@ -146,113 +215,106 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       height: 100%;
       display: flex;
       align-items: center;
-      justify-content: ${textAlign};
+      justify-content: ${justifyContent};
     }
 
-    /* ── Text / offer panel — contained width so it sits over the dark half ── */
+    /* Text panel — floats over the dark half of the gradient */
     .banner__text {
       display: flex;
       flex-direction: column;
       justify-content: center;
       width: 46%;
       padding: 32px 40px;
-      gap: 10px;
+      gap: 8px;
     }
 
-    /* Mobile: full-width text panel */
     @media (max-width: 600px) {
       .banner { aspect-ratio: auto; min-height: 320px; }
-      .banner__text { width: 100%; padding: 28px 24px; background: rgba(0,0,0,0.6); }
+      .banner__text { width: 100%; padding: 28px 24px; background: ${dark70}; }
     }
 
-    /* Small brand label at the top */
+    /* Small brand label */
     .banner__brand {
-      font-family: ${style.fontFamily};
       font-size: 10px;
       font-weight: 700;
       color: ${style.accentColor};
       letter-spacing: 0.28em;
       text-transform: uppercase;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
-    /* The dominant visual — huge bold number e.g. "20" or "$5" */
+    /* Big headline number / amount */
     .banner__number {
-      font-family: ${style.fontFamily};
-      font-size: clamp(64px, 9vw, 96px);
+      font-size: clamp(56px, 8.5vw, 96px);
       font-weight: 900;
       color: ${style.headlineColor};
-      line-height: 0.95;
+      line-height: 0.9;
       letter-spacing: -0.03em;
       display: block;
     }
 
-    /* "FREE SPINS" — sits directly below the number */
+    /* Offer type label e.g. "FREE SPINS" / "BONUS" */
     .banner__type {
-      font-family: ${style.fontFamily};
-      font-size: clamp(18px, 2.6vw, 28px);
+      font-size: clamp(16px, 2.4vw, 26px);
       font-weight: 800;
       color: ${style.headlineColor};
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       line-height: 1;
       display: block;
-      margin-top: 4px;
+      margin-top: 6px;
     }
 
-    /* "NO DEPOSIT BONUS" — smaller faded qualifier */
+    /* Qualifier / descriptor text */
     .banner__descriptor {
-      font-family: ${style.fontFamily};
       font-size: 11px;
       font-weight: 600;
       color: ${style.bodyColor};
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      opacity: 0.75;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+
+    /* Optional cross-sell accent line */
+    .banner__crosssell {
+      font-size: clamp(12px, 1.6vw, 18px);
+      font-weight: 700;
+      color: ${style.accentColor};
+      letter-spacing: 0.04em;
       margin-top: 2px;
     }
 
-    /* "+ X% BONUS" accent line */
-    .banner__bonus {
-      font-family: ${style.fontFamily};
-      font-size: clamp(14px, 1.8vw, 20px);
-      font-weight: 700;
-      color: ${style.accentColor};
-      letter-spacing: 0.02em;
-    }
-
-    /* ── CTA Button — full-width, flat rounded rect ── */
+    /* CTA button */
     .banner__cta {
       display: block;
       width: 100%;
       background: ${style.buttonBg};
       color: ${style.buttonText};
-      font-family: ${style.fontFamily};
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       text-decoration: none;
       text-align: center;
-      padding: 14px 20px;
+      padding: 13px 20px;
       border-radius: 7px;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      margin-top: 10px;
+      margin-top: 12px;
       cursor: pointer;
+      box-shadow: 0 4px 18px ${style.buttonShadow};
       transition: opacity 0.15s ease;
     }
-
     .banner__cta:hover { opacity: 0.85; }
 
-    /* Bonus code — tiny faded text below button */
+    /* Bonus code */
     .banner__code {
-      font-family: ${style.fontFamily};
       font-size: 10px;
       font-weight: 500;
       color: ${style.bodyColor};
       letter-spacing: 0.18em;
       text-transform: uppercase;
       opacity: 0.45;
-      margin-top: 2px;
+      margin-top: 4px;
       text-align: center;
     }
   </style>
@@ -260,25 +322,25 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 <body>
   <div class="banner">
 
-    <!-- Layer 0: full-bleed background image, base64-embedded -->
+    <!-- Layer 0: full-bleed AI image, base64-embedded for portability -->
     <img class="banner__bg" src="${imageSrc}" alt="${brand || 'Casino'} promotional banner" />
 
-    <!-- Layer 1: gradient overlay — transparent on image side, dark on text side -->
+    <!-- Layer 1: brand-coloured gradient overlay -->
     <div class="banner__gradient"></div>
 
-    <!-- Layer 2: text content positioned over the gradient -->
+    <!-- Layer 2: offer text -->
     <div class="banner__content">
       <div class="banner__text">
         ${brand ? `<p class="banner__brand">${brand}</p>` : ''}
 
-        <span class="banner__number">${formData.welcomeBonus}</span>
-        <span class="banner__type">Free Spins</span>
+        <span class="banner__number">${headline}</span>
+        <span class="banner__type">${cfg.typeLabel}</span>
 
-        <p class="banner__descriptor">No Deposit Bonus</p>
-        ${formData.bonusPercentage ? `<p class="banner__bonus">+ ${formData.bonusPercentage}% Bonus</p>` : ''}
+        ${descriptor ? `<p class="banner__descriptor">${descriptor}</p>` : ''}
+        ${formData.crossSell ? `<p class="banner__crosssell">${formData.crossSell}</p>` : ''}
 
         <a href="${formData.ctaUrl || '#'}" class="banner__cta">${ctaLabel}</a>
-        ${formData.bonusCode ? `<p class="banner__code">Code: ${formData.bonusCode}</p>` : ''}
+        ${formData.bonusCode ? `<p class="banner__code">Use code: ${formData.bonusCode}</p>` : ''}
       </div>
     </div>
 
@@ -287,16 +349,20 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 </html>`;
   };
 
+  // Live preview — uses the raw imageUrl (no base64 conversion needed, fast).
+  // Rebuilds whenever any form field or setting changes.
+  const previewHtml = useMemo(() => buildHtml(imageUrl), [
+    imageUrl, formData, offerType, textPosition, brand,
+  ]);
+
   const handleGenerate = async () => {
     setError(null);
-    if (!formData.welcomeBonus.trim()) {
-      setError('Please enter the number of free spins.');
+    if (!formData.mainValue.trim()) {
+      setError(`Please enter the ${OFFER_CONFIG[offerType].label.toLowerCase()}.`);
       return;
     }
     setIsGenerating(true);
     try {
-      // Convert the image to a base64 data URI before building the HTML.
-      // This ensures the downloaded file renders the image everywhere.
       const imageSrc = await toBase64DataUri(imageUrl);
       setGeneratedHtml(buildHtml(imageSrc));
     } catch {
@@ -312,7 +378,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${brand ? brand.toLowerCase() : 'banner'}-email.html`;
+    a.download = `${brand ? brand.toLowerCase() : 'banner'}-${offerType}-banner.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -327,16 +393,19 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
   };
 
   const handleClose = () => {
-    setFormData({ welcomeBonus: '', bonusPercentage: '', bonusCode: '', ctaUrl: '#', ctaText: 'Play Now' });
+    setFormData({ mainValue: '', subValue: '', crossSell: '', bonusCode: '', ctaUrl: '#', ctaText: 'Play Now' });
+    setOfferType('freespins');
     setGeneratedHtml(null);
     setTextPosition('right');
     setError(null);
     onClose();
   };
 
+  const cfg = OFFER_CONFIG[offerType];
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileCode className="w-5 h-5" />
@@ -349,24 +418,12 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 
         {!generatedHtml ? (
           <>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-2">
 
-              {/* Image position toggle */}
+              {/* ── Text position ── */}
               <div className="space-y-2">
-                <Label>Image Position</Label>
+                <Label>Text Position</Label>
                 <div className="inline-flex rounded-lg bg-muted p-1 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setTextPosition('right')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                      textPosition === 'right'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <AlignLeft className="w-3.5 h-3.5" />
-                    Image Left
-                  </button>
                   <button
                     type="button"
                     onClick={() => setTextPosition('left')}
@@ -376,50 +433,103 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
+                    <AlignLeft className="w-3.5 h-3.5" />
+                    Text Left
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTextPosition('right')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      textPosition === 'right'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
                     <AlignRight className="w-3.5 h-3.5" />
-                    Image Right
+                    Text Right
                   </button>
                 </div>
               </div>
 
+              {/* ── Offer type ── */}
               <div className="space-y-2">
-                <Label htmlFor="welcomeBonus">Free Spins *</Label>
+                <Label>Offer Type</Label>
+                <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+                  {(Object.keys(OFFER_CONFIG) as OfferType[]).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setOfferType(type)}
+                      className={`px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        offerType === type
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {OFFER_CONFIG[type].typeLabel}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Main value ── */}
+              <div className="space-y-2">
+                <Label htmlFor="mainValue">{cfg.label} *</Label>
                 <Input
-                  id="welcomeBonus"
-                  placeholder="e.g. 20"
-                  value={formData.welcomeBonus}
-                  onChange={(e) => handleInputChange('welcomeBonus', e.target.value)}
+                  id="mainValue"
+                  placeholder={cfg.mainPlaceholder}
+                  value={formData.mainValue}
+                  onChange={(e) => handleInputChange('mainValue', e.target.value)}
                 />
               </div>
 
+              {/* ── Sub value (% Bonus only) ── */}
+              {cfg.showSubValue && (
+                <div className="space-y-2">
+                  <Label htmlFor="subValue">Up to Amount</Label>
+                  <Input
+                    id="subValue"
+                    placeholder="e.g. $4,000"
+                    value={formData.subValue}
+                    onChange={(e) => handleInputChange('subValue', e.target.value)}
+                  />
+                </div>
+              )}
+
+              {/* ── Cross-sell accent line ── */}
               <div className="space-y-2">
-                <Label htmlFor="bonusPercentage">Bonus Percentage</Label>
+                <Label htmlFor="crossSell">
+                  Cross-sell Line{' '}
+                  <span className="text-muted-foreground font-normal">(optional accent)</span>
+                </Label>
                 <Input
-                  id="bonusPercentage"
-                  placeholder="e.g. 100"
-                  value={formData.bonusPercentage}
-                  onChange={(e) => handleInputChange('bonusPercentage', e.target.value)}
+                  id="crossSell"
+                  placeholder="e.g. + 500% Bonus  /  100 Extra Spins"
+                  value={formData.crossSell}
+                  onChange={(e) => handleInputChange('crossSell', e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="bonusCode">Bonus Code</Label>
-                <Input
-                  id="bonusCode"
-                  placeholder="e.g. WELCOME100"
-                  value={formData.bonusCode}
-                  onChange={(e) => handleInputChange('bonusCode', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ctaText">Button Text</Label>
-                <Input
-                  id="ctaText"
-                  placeholder="e.g. Play Now"
-                  value={formData.ctaText}
-                  onChange={(e) => handleInputChange('ctaText', e.target.value)}
-                />
+              {/* ── Bottom row: code + button + url ── */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="ctaText">Button Text</Label>
+                  <Input
+                    id="ctaText"
+                    placeholder="Play Now"
+                    value={formData.ctaText}
+                    onChange={(e) => handleInputChange('ctaText', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bonusCode">Bonus Code</Label>
+                  <Input
+                    id="bonusCode"
+                    placeholder="e.g. WELCOME100"
+                    value={formData.bonusCode}
+                    onChange={(e) => handleInputChange('bonusCode', e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -431,6 +541,34 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
                   onChange={(e) => handleInputChange('ctaUrl', e.target.value || '#')}
                 />
               </div>
+
+              {/* ── Live preview ── */}
+              <div className="space-y-2 pt-1">
+                <Label className="text-muted-foreground text-xs uppercase tracking-widest">
+                  Live Preview
+                </Label>
+                {/* Container is ~100% of dialog inner width (~420px). Banner iframe is 900px
+                    wide scaled down so scale ≈ 420/900 ≈ 0.467. Height = 394 * 0.467 ≈ 184px */}
+                <div
+                  className="relative w-full overflow-hidden rounded-lg border border-border"
+                  style={{ height: '184px' }}
+                >
+                  <iframe
+                    srcDoc={previewHtml}
+                    sandbox="allow-same-origin"
+                    title="Banner preview"
+                    style={{
+                      width: '900px',
+                      height: '394px',
+                      transform: 'scale(0.467)',
+                      transformOrigin: 'top left',
+                      border: 'none',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
             </div>
 
             {error && <p className="text-destructive text-sm">{error}</p>}
@@ -450,13 +588,29 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
           </>
         ) : (
           <>
-            <div className="py-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <FileCode className="w-8 h-8 text-primary" />
+            <div className="py-4">
+              {/* Mini preview of the final output */}
+              <div
+                className="relative w-full overflow-hidden rounded-lg border border-border mb-5"
+                style={{ height: '184px' }}
+              >
+                <iframe
+                  srcDoc={generatedHtml}
+                  sandbox="allow-same-origin"
+                  title="Final banner preview"
+                  style={{
+                    width: '900px',
+                    height: '394px',
+                    transform: 'scale(0.467)',
+                    transformOrigin: 'top left',
+                    border: 'none',
+                    pointerEvents: 'none',
+                  }}
+                />
               </div>
-              <p className="text-foreground font-medium mb-1">HTML Banner Ready</p>
-              <p className="text-sm text-muted-foreground">
-                Image {textPosition === 'right' ? 'left' : 'right'} · {brand || 'Generic'} · image embedded
+              <p className="text-center text-foreground font-medium mb-1">HTML Banner Ready</p>
+              <p className="text-center text-sm text-muted-foreground">
+                {cfg.typeLabel} · Text {textPosition} · {brand || 'Generic'} · image embedded
               </p>
             </div>
 
@@ -466,7 +620,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
               </Button>
               <Button variant="outline" onClick={handlePreview} className="gap-2">
                 <Eye className="w-4 h-4" />
-                Preview
+                Full Preview
               </Button>
               <Button onClick={handleDownload} className="gradient-primary gap-2">
                 <Download className="w-4 h-4" />

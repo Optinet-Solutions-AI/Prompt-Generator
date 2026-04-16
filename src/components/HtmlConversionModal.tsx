@@ -427,7 +427,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
         </div>
 
         {!generatedHtml ? (
-          <div className="flex gap-0 min-h-0">
+          <div className="flex min-h-0">
 
             {/* ════════════════════════════════════
                 LEFT COLUMN — form fields

@@ -643,33 +643,24 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Live Preview
                 </p>
-                {(() => {
-                  const sz = BANNER_SIZES[bannerSize];
-                  const iframeW = 900;
-                  const iframeH = Math.round(iframeW * sz.h / sz.w);
-                  const scale = 224 / iframeW;
-                  const containerH = Math.round(iframeH * scale);
-                  return (
-                    <div
-                      className="w-full overflow-hidden rounded-lg bg-black"
-                      style={{ height: `${containerH}px` }}
-                    >
-                      <iframe
-                        srcDoc={previewHtml}
-                        sandbox="allow-same-origin"
-                        title="Banner preview"
-                        style={{
-                          width: `${iframeW}px`,
-                          height: `${iframeH}px`,
-                          transform: `scale(${scale})`,
-                          transformOrigin: 'top left',
-                          border: 'none',
-                          pointerEvents: 'none',
-                        }}
-                      />
-                    </div>
-                  );
-                })()}
+                <div
+                  className="w-full overflow-hidden rounded-lg bg-black"
+                  style={{ height: `${sideContainerH}px` }}
+                >
+                  <iframe
+                    srcDoc={previewHtml}
+                    sandbox="allow-same-origin"
+                    title="Banner preview"
+                    style={{
+                      width: `${previewIframeW}px`,
+                      height: `${previewIframeH}px`,
+                      transform: `scale(${sideScale})`,
+                      transformOrigin: 'top left',
+                      border: 'none',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2 text-center">
                   Updates as you type

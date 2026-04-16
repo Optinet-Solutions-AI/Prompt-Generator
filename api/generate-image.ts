@@ -129,7 +129,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Inject brand-mandatory style rules into the prompt
     const enrichedPrompt = enrichPromptWithBrandStyle(prompt, brand || '');
 
-    // ── Cloud Run backend (high-res 1K/2K/3K/4K) ───────────────────────────
+    // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────
+    // Uses gpt-image-1 via Vercel's OPENAI_API_KEY — no Cloud Run needed.
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (provider === 'chatgpt' && openaiKey) {
+      console.log('[generate-image] Using OpenAI direct generation');
+
+      // Map aspect ratio to OpenAI image size
+      const sizeMap: Record<string, string> = {
+        '16:9': '1536x1024',
+        '9:16': '1024x1536',
+        '1:1':  '1024x1024',
+        '4:3':  '1536x1024',
+        '3:4':  '1024x1536',
+      };
+      const outputSize = sizeMap[aspectRatio] || '1536x1024';
+
+      // Map resolution to quality
+      const qualityMap: Record<string, 'low' | 'medium' | 'high'> = {
+        '4K': 'high', '3K': 'high', '2K': 'medium', '1K': 'low',
+      };
+      const outputQuality = qualityMap[resolution] || 'medium';
+
+      console.log(`[generate-image] aspectRatio=${aspectRatio} → size=${outputSize}, resolution=${resolution} → quality=${outputQuality}`);
+
+      const resp = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-image-1',
+          prompt: enrichedPrompt,
+          n: 1,
+          size: outputSize,
+          quality: outputQuality,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error('[generate-image] OpenAI error:', resp.status, errText);
+        return res.status(500).json({ error: `OpenAI failed (${resp.status}): ${errText}` });
+      }
+
+      const data = await resp.json() as { data?: Array<{ b64_json?: string; url?: string }> };
+      const item = data.data?.[0];
+      const imageUrl = item?.url
+        ? item.url
+        : item?.b64_json
+          ? `data:image/png;base64,${item.b64_json}`
+          : null;
+
+      if (!imageUrl) {
+        return res.status(500).json({ error: 'No image returned from OpenAI' });
+      }
+
+      return res.status(200).json({ imageUrl, url: imageUrl });
+    }
+
+    // ── Fallback: Cloud Run backend ─────────────────────────────────────────
     if (backend === 'cloud-run') {
       const cloudRunUrl =
         process.env.GCP_CLOUD_RUN_URL ||

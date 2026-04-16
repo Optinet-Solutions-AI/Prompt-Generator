@@ -21,8 +21,21 @@ interface HtmlConversionModalProps {
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+   hexToRgba — safe hex→rgba for gradient overlays
+──────────────────────────────────────────────────────────────────────── */
+function hexToRgba(hex: string, alpha: number): string {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(0,0,0,${alpha})`;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
    Native preview — renders a live banner preview using plain React/CSS.
    No iframe needed, so the image always loads normally.
+   Uses the brand's actual fontFamily, colors, and gradient.
 ──────────────────────────────────────────────────────────────────────── */
 function BannerPreview({
   imageUrl, brand, formData, offerType, textPosition,
@@ -42,49 +55,81 @@ function BannerPreview({
   const ctaLabel = formData.ctaText.trim() || 'Play Now';
   const isRight = textPosition === 'right';
 
+  // Load the brand's Google Font via a <link> in the head (only once per font)
+  useEffect(() => {
+    const fontUrl = `https://fonts.googleapis.com/css2?family=${style.googleFont}&display=swap`;
+    const existingLink = document.querySelector(`link[href="${fontUrl}"]`);
+    if (!existingLink) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = fontUrl;
+      document.head.appendChild(link);
+    }
+  }, [style.googleFont]);
+
+  // Build gradient using proper rgba so it works with any panelBg format
+  const gradDir = isRight ? 'to right' : 'to left';
+  const gradient = `linear-gradient(${gradDir}, transparent 5%, ${hexToRgba(style.panelBg, 0.6)} 35%, ${hexToRgba(style.panelBg, 0.92)} 60%, ${hexToRgba(style.panelBg, 0.97)} 80%)`;
+
   return (
-    <div className="relative w-full rounded-lg overflow-hidden" style={{ aspectRatio: 'auto' }}>
-      {/* Background image */}
-      <img src={imageUrl} alt="" className="w-full h-auto block rounded-lg" draggable={false} />
+    <div className="relative w-full rounded-lg overflow-hidden" style={{ fontFamily: style.fontFamily }}>
+      {/* Background image — sets the aspect ratio naturally */}
+      <img src={imageUrl} alt="" className="w-full h-auto block" draggable={false} />
 
       {/* Gradient overlay */}
-      <div className="absolute inset-0 rounded-lg" style={{
-        background: `linear-gradient(${isRight ? 'to right' : 'to left'}, transparent 5%, ${style.panelBg}99 35%, ${style.panelBg}ee 60%, ${style.panelBg}f7 80%)`,
-      }} />
+      <div className="absolute inset-0" style={{ background: gradient }} />
 
       {/* Text layer */}
       <div className={`absolute inset-0 flex items-center ${isRight ? 'justify-end' : 'justify-start'}`}>
-        <div className="flex flex-col gap-[2px] w-[46%]" style={{ padding: '8% 7%' }}>
+        <div className="flex flex-col w-[46%]" style={{ padding: '6% 6%', gap: '3px' }}>
+
+          {/* Brand name */}
           {brand && (
-            <span style={{ fontSize: '0.45em', fontWeight: 700, color: style.accentColor, letterSpacing: '0.2em', textTransform: 'uppercase' as const }}>
+            <span style={{ fontSize: 'clamp(5px, 1.2vw, 9px)', fontWeight: 700, color: style.accentColor, letterSpacing: '0.25em', textTransform: 'uppercase' as const }}>
               {brand}
             </span>
           )}
-          <span style={{ fontSize: 'clamp(20px, 5vw, 42px)', fontWeight: 900, color: style.headlineColor, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+
+          {/* Big headline number */}
+          <span style={{ fontSize: 'clamp(24px, 6vw, 48px)', fontWeight: 900, color: style.headlineColor, lineHeight: 0.9, letterSpacing: '-0.03em', display: 'block' }}>
             {headline || '—'}
           </span>
-          <span style={{ fontSize: 'clamp(8px, 1.5vw, 14px)', fontWeight: 800, color: style.headlineColor, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginTop: 2 }}>
+
+          {/* Offer type label */}
+          <span style={{ fontSize: 'clamp(8px, 2vw, 15px)', fontWeight: 800, color: style.headlineColor, textTransform: 'uppercase' as const, letterSpacing: '0.06em', lineHeight: 1, marginTop: 2 }}>
             {cfg.typeLabel}
           </span>
+
+          {/* Descriptor */}
           {descriptor && (
-            <span style={{ fontSize: '0.4em', fontWeight: 600, color: style.bodyColor, letterSpacing: '0.18em', textTransform: 'uppercase' as const, opacity: 0.75 }}>
+            <span style={{ fontSize: 'clamp(4px, 1vw, 8px)', fontWeight: 600, color: style.bodyColor, letterSpacing: '0.2em', textTransform: 'uppercase' as const, opacity: 0.8, marginTop: 1 }}>
               {descriptor}
             </span>
           )}
+
+          {/* Cross-sell accent */}
           {formData.crossSell && (
-            <span style={{ fontSize: '0.5em', fontWeight: 700, color: style.accentColor }}>
+            <span style={{ fontSize: 'clamp(6px, 1.2vw, 10px)', fontWeight: 700, color: style.accentColor, marginTop: 1 }}>
               {formData.crossSell}
             </span>
           )}
-          <span className="mt-1 block text-center rounded" style={{
+
+          {/* CTA button */}
+          <span className="block text-center" style={{
             background: style.buttonBg, color: style.buttonText,
-            fontSize: 'clamp(6px, 1vw, 10px)', fontWeight: 800, padding: '5px 8px',
-            textTransform: 'uppercase' as const, letterSpacing: '0.1em',
+            fontSize: 'clamp(5px, 1.1vw, 9px)', fontWeight: 800,
+            padding: 'clamp(3px, 0.8vw, 8px) clamp(4px, 1vw, 12px)',
+            borderRadius: '4px', marginTop: 'clamp(3px, 0.8vw, 8px)',
+            textTransform: 'uppercase' as const, letterSpacing: '0.12em',
+            boxShadow: `0 2px 10px ${style.buttonShadow}`,
+            fontFamily: style.fontFamily,
           }}>
             {ctaLabel}
           </span>
+
+          {/* Bonus code */}
           {formData.bonusCode && (
-            <span style={{ fontSize: '0.3em', color: style.bodyColor, opacity: 0.4, textAlign: 'center' as const, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>
+            <span style={{ fontSize: 'clamp(3px, 0.7vw, 7px)', color: style.bodyColor, opacity: 0.45, textAlign: 'center' as const, letterSpacing: '0.15em', textTransform: 'uppercase' as const, marginTop: 1 }}>
               Code: {formData.bonusCode}
             </span>
           )}

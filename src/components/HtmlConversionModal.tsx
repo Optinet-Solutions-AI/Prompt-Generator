@@ -218,14 +218,23 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
   };
 
   const handlePreview = () => {
-    // Build HTML with the raw imageUrl (works in a new tab)
-    const html = buildBannerHtml({
+    // Use the generated HTML (base64 image) if available, otherwise build with raw URL
+    const html = generatedHtml || buildBannerHtml({
       imageSrc: imageUrl, brand, formData, offerType, textPosition,
       imgWidth: imgDims.w, imgHeight: imgDims.h,
     });
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    // Open in new tab — use an anchor click instead of window.open to avoid popup blockers
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Don't revoke immediately — the new tab needs time to load
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   const handleClose = () => {

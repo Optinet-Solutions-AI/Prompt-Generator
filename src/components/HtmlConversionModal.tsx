@@ -70,9 +70,10 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
   const buildHtml = (imageSrc: string): string => {
     const style = getBrandStyle(brand);
 
-    // 'right' → image LEFT, text RIGHT  → image comes first in DOM, flex-row
-    // 'left'  → text LEFT, image RIGHT  → image comes first in DOM, flex-row-reverse
-    const flexDirection = textPosition === 'right' ? 'row' : 'row-reverse';
+    // 'right' → text on RIGHT → gradient fades left-to-right (transparent → dark)
+    // 'left'  → text on LEFT  → gradient fades right-to-left (transparent → dark)
+    const gradientDirection = textPosition === 'right' ? 'to right' : 'to left';
+    const textAlign = textPosition === 'right' ? 'flex-end' : 'flex-start';
 
     const googleFontsUrl = `https://fonts.googleapis.com/css2?family=${style.googleFont}&display=swap`;
     const ctaLabel = formData.ctaText.trim() || 'Play Now';
@@ -98,45 +99,70 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       font-family: ${style.fontFamily};
     }
 
+    /* ── Banner wrapper — fixed aspect ratio, clips all layers ── */
     .banner {
-      display: flex;
-      flex-direction: ${flexDirection};
+      position: relative;
       width: 100%;
       max-width: 900px;
       overflow: hidden;
       border-radius: 10px;
       box-shadow: 0 8px 48px rgba(0,0,0,0.7);
+      /* Maintain ~16:9 aspect ratio */
+      aspect-ratio: 16 / 7;
+      min-height: 280px;
     }
 
-    /* Mobile: stack image on top, text below */
-    @media (max-width: 600px) {
-      .banner { flex-direction: column; }
-      .banner__image { min-height: 220px; flex: 0 0 auto; }
-    }
-
-    /* ── Image panel (45%) — bleeds edge to edge, no padding ── */
-    .banner__image {
-      flex: 0 0 45%;
-      min-height: 320px;
-      overflow: hidden;
-    }
-
-    .banner__image img {
+    /* ── Layer 0: full-bleed background image ── */
+    .banner__bg {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center;
       display: block;
+      z-index: 0;
     }
 
-    /* ── Text / offer panel (55%) ── */
+    /* ── Layer 1: gradient overlay for text readability ── */
+    .banner__gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        ${gradientDirection},
+        transparent 10%,
+        rgba(0,0,0,0.55) 45%,
+        rgba(0,0,0,0.92) 70%,
+        rgba(0,0,0,0.97) 100%
+      );
+      z-index: 1;
+    }
+
+    /* ── Layer 2: text block positioned over the gradient ── */
+    .banner__content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: ${textAlign};
+    }
+
+    /* ── Text / offer panel — contained width so it sits over the dark half ── */
     .banner__text {
-      flex: 0 0 55%;
-      background: ${style.panelBg};
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 40px 44px;
-      gap: 12px;
+      width: 46%;
+      padding: 32px 40px;
+      gap: 10px;
+    }
+
+    /* Mobile: full-width text panel */
+    @media (max-width: 600px) {
+      .banner { aspect-ratio: auto; min-height: 320px; }
+      .banner__text { width: 100%; padding: 28px 24px; background: rgba(0,0,0,0.6); }
     }
 
     /* Small brand label at the top */
@@ -150,12 +176,10 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       margin-bottom: 2px;
     }
 
-    /* ── Offer block: number stacked above type label ── */
-
     /* The dominant visual — huge bold number e.g. "20" or "$5" */
     .banner__number {
       font-family: ${style.fontFamily};
-      font-size: clamp(72px, 10vw, 104px);
+      font-size: clamp(64px, 9vw, 96px);
       font-weight: 900;
       color: ${style.headlineColor};
       line-height: 0.95;
@@ -166,7 +190,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
     /* "FREE SPINS" — sits directly below the number */
     .banner__type {
       font-family: ${style.fontFamily};
-      font-size: clamp(20px, 3vw, 32px);
+      font-size: clamp(18px, 2.6vw, 28px);
       font-weight: 800;
       color: ${style.headlineColor};
       text-transform: uppercase;
@@ -184,31 +208,31 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       color: ${style.bodyColor};
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      opacity: 0.65;
+      opacity: 0.75;
       margin-top: 2px;
     }
 
     /* "+ X% BONUS" accent line */
     .banner__bonus {
       font-family: ${style.fontFamily};
-      font-size: clamp(16px, 2vw, 22px);
+      font-size: clamp(14px, 1.8vw, 20px);
       font-weight: 700;
       color: ${style.accentColor};
       letter-spacing: 0.02em;
     }
 
-    /* ── CTA Button — full-width, flat rounded rect (not pill) ── */
+    /* ── CTA Button — full-width, flat rounded rect ── */
     .banner__cta {
       display: block;
       width: 100%;
       background: ${style.buttonBg};
       color: ${style.buttonText};
       font-family: ${style.fontFamily};
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       text-decoration: none;
       text-align: center;
-      padding: 16px 24px;
+      padding: 14px 20px;
       border-radius: 7px;
       text-transform: uppercase;
       letter-spacing: 0.14em;
@@ -217,9 +241,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       transition: opacity 0.15s ease;
     }
 
-    .banner__cta:hover {
-      opacity: 0.85;
-    }
+    .banner__cta:hover { opacity: 0.85; }
 
     /* Bonus code — tiny faded text below button */
     .banner__code {
@@ -229,7 +251,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
       color: ${style.bodyColor};
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      opacity: 0.4;
+      opacity: 0.45;
       margin-top: 2px;
       text-align: center;
     }
@@ -238,24 +260,26 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 <body>
   <div class="banner">
 
-    <!-- Image panel — base64-embedded so the file is fully self-contained -->
-    <div class="banner__image">
-      <img src="${imageSrc}" alt="${brand || 'Casino'} promotional banner" />
-    </div>
+    <!-- Layer 0: full-bleed background image, base64-embedded -->
+    <img class="banner__bg" src="${imageSrc}" alt="${brand || 'Casino'} promotional banner" />
 
-    <!-- Text / offer panel -->
-    <div class="banner__text">
-      ${brand ? `<p class="banner__brand">${brand}</p>` : ''}
+    <!-- Layer 1: gradient overlay — transparent on image side, dark on text side -->
+    <div class="banner__gradient"></div>
 
-      <!-- Dominant offer: huge number, then "FREE SPINS" stacked below it -->
-      <span class="banner__number">${formData.welcomeBonus}</span>
-      <span class="banner__type">Free Spins</span>
+    <!-- Layer 2: text content positioned over the gradient -->
+    <div class="banner__content">
+      <div class="banner__text">
+        ${brand ? `<p class="banner__brand">${brand}</p>` : ''}
 
-      <p class="banner__descriptor">No Deposit Bonus</p>
-      ${formData.bonusPercentage ? `<p class="banner__bonus">+ ${formData.bonusPercentage}% Bonus</p>` : ''}
+        <span class="banner__number">${formData.welcomeBonus}</span>
+        <span class="banner__type">Free Spins</span>
 
-      <a href="${formData.ctaUrl || '#'}" class="banner__cta">${ctaLabel}</a>
-      ${formData.bonusCode ? `<p class="banner__code">Code: ${formData.bonusCode}</p>` : ''}
+        <p class="banner__descriptor">No Deposit Bonus</p>
+        ${formData.bonusPercentage ? `<p class="banner__bonus">+ ${formData.bonusPercentage}% Bonus</p>` : ''}
+
+        <a href="${formData.ctaUrl || '#'}" class="banner__cta">${ctaLabel}</a>
+        ${formData.bonusCode ? `<p class="banner__code">Code: ${formData.bonusCode}</p>` : ''}
+      </div>
     </div>
 
   </div>

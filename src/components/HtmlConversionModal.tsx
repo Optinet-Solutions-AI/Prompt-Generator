@@ -132,9 +132,13 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 
   const cfg = OFFER_CONFIG[offerType];
 
-  // Preview scales: use image's actual ratio
+  // Preview: iframe renders at 900px wide, scaled down to fit ~440px container
   const previewW = 900;
   const previewH = Math.round(previewW * imgDims.h / imgDims.w);
+  const scaleFactor = 440 / previewW; // 0.489
+  const scaledH = Math.round(previewH * scaleFactor);
+  // Cap at 260px so tall images don't push form off screen
+  const containerH = Math.min(scaledH, 260);
 
   const OFFER_CARDS: Record<OfferType, { icon: string; example: string }> = {
     freespins: { icon: '🎰', example: 'e.g. 20, 50, 100' },

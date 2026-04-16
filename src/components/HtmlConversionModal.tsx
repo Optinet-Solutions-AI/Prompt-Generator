@@ -170,7 +170,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
             <div className="px-5 pt-4 pb-3">
               <div className="w-full overflow-hidden rounded-lg bg-black"
                 style={{ height: `${Math.min(Math.round((previewH / previewW) * 100), 60)}vw`, maxHeight: '240px' }}>
-                <iframe srcDoc={previewHtml} title="Banner preview"
+                <iframe src={previewBlobUrl} title="Banner preview"
                   style={{
                     width: `${previewW}px`, height: `${previewH}px`,
                     transform: `scale(${460 / previewW})`,
@@ -293,7 +293,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
             <div className="px-5 py-4">
               <div className="w-full overflow-hidden rounded-lg bg-black mb-3"
                 style={{ maxHeight: '280px' }}>
-                <iframe srcDoc={previewHtml} title="Final banner preview"
+                <iframe src={previewBlobUrl} title="Final banner preview"
                   style={{
                     width: `${previewW}px`, height: `${previewH}px`,
                     transform: `scale(${460 / previewW})`,

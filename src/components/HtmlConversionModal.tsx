@@ -68,6 +68,22 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
     [imageUrl, formData, offerType, textPosition, brand, imgDims],
   );
 
+  // Use blob URL instead of srcdoc — srcdoc iframes have null origin
+  // which blocks external image loads. Blob URL inherits page origin.
+  const prevBlobUrl = useRef<string | null>(null);
+  const previewBlobUrl = useMemo(() => {
+    if (prevBlobUrl.current) URL.revokeObjectURL(prevBlobUrl.current);
+    const blob = new Blob([previewHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    prevBlobUrl.current = url;
+    return url;
+  }, [previewHtml]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { if (prevBlobUrl.current) URL.revokeObjectURL(prevBlobUrl.current); };
+  }, []);
+
   const handleGenerate = async () => {
     setError(null);
     if (!formData.mainValue.trim()) {

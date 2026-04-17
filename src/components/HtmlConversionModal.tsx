@@ -215,7 +215,7 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 
   const handlePreview = () => {
     const html = generatedHtml || buildBannerHtml({
-      imageSrc: imageUrl, brand, formData, offerType, textPosition,
+      imageSrc: imageUrl, brand: effectiveBrand, formData, offerType, textPosition,
       imgWidth: imgDims.w, imgHeight: imgDims.h,
     });
     const blob = new Blob([html], { type: 'text/html' });

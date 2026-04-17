@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getGoogleAccessToken, uploadImageToDrive } from './_google-auth';
 
 // ------------------------------------------------------------------
 // Brand-specific mandatory style rules.

@@ -130,22 +130,71 @@ function BannerPreview({
 }
 
 /* ────────────────────────────────────────────────────────────────────────
-   toBase64DataUri
+   toBase64DataUri — converts any image URL to a self-contained data URI.
+
+   Strategy (in order):
+   1. Canvas draw — load the image into an <img> and paint onto a canvas.
+      Works for same-origin, blob:, data:, and many CDN URLs.
+   2. fetch → blob — works when CORS headers are present.
+   3. Canvas with crossOrigin — retry with crossOrigin="anonymous".
+
+   If ALL strategies fail, returns null so the caller can show an error
+   instead of producing a broken HTML file.
 ──────────────────────────────────────────────────────────────────────── */
-async function toBase64DataUri(url: string): Promise<string> {
+async function toBase64DataUri(url: string): Promise<string | null> {
+  // Already a data URI — pass through
+  if (url.startsWith('data:')) return url;
+
+  // Strategy 1: plain canvas draw (no crossOrigin — works for same-origin & blob: URLs)
+  const canvasResult = await canvasDraw(url, false);
+  if (canvasResult) return canvasResult;
+
+  // Strategy 2: fetch → blob → data URI
   try {
-    const res = await fetch(url);
-    if (!res.ok) return url;
-    const blob = await res.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => reject(url);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return url;
-  }
+    const res = await fetch(url, { mode: 'cors' });
+    if (res.ok) {
+      const blob = await res.blob();
+      const dataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      if (dataUri) return dataUri;
+    }
+  } catch { /* continue */ }
+
+  // Strategy 3: canvas with crossOrigin="anonymous"
+  const corsResult = await canvasDraw(url, true);
+  if (corsResult) return corsResult;
+
+  return null;
+}
+
+function canvasDraw(url: string, useCors: boolean): Promise<string | null> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    if (useCors) img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(null); return; }
+        ctx.drawImage(img, 0, 0);
+        // toDataURL throws if canvas is tainted (cross-origin without CORS)
+        const dataUri = canvas.toDataURL('image/png');
+        resolve(dataUri && dataUri.length > 100 ? dataUri : null);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    // Timeout — don't hang forever
+    setTimeout(() => resolve(null), 8000);
+    img.src = url;
+  });
 }
 
 /* ────────────────────────────────────────────────────────────────────────

@@ -67,17 +67,17 @@ export const BRAND_STANDARDS: Record<string, BrandStyle> = {
     buttonShadow: 'rgba(0,119,182,0.65)',
   },
 
-  // ── Warm amber/orange sunset — golden mascot ──────────────────────────────
+  // ── Dark navy/blue — tropical fresh, white text ───────────────────────────
   LuckyVibe: {
     fontFamily: "'Poppins', 'Helvetica Neue', Arial, sans-serif",
     googleFont: 'Poppins:wght@600;800',
-    panelBg: '#110600',
-    headlineColor: '#FF6B35',
-    bodyColor: '#FFF3E0',
-    accentColor: '#FF8F00',
-    buttonBg: '#FF8F00',
-    buttonText: '#1A1A1A',
-    buttonShadow: 'rgba(255,143,0,0.55)',
+    panelBg: '#001A33',
+    headlineColor: '#FFFFFF',
+    bodyColor: '#D0EEFF',
+    accentColor: '#29B6F6',
+    buttonBg: '#1565C0',
+    buttonText: '#FFFFFF',
+    buttonShadow: 'rgba(21,101,192,0.6)',
   },
 
   // ── Dark purple/neon — fantasy magical theme ──────────────────────────────

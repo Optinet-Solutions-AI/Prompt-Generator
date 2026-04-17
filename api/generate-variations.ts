@@ -211,6 +211,31 @@ function buildPromptSpectrum(mode: string, guidance: string, brand: string): str
   return [t2, t3, t3, t4];
 }
 
+/** Fetch a Google Drive file using OAuth credentials — works on private files. */
+async function fetchFromDrive(fileId: string): Promise<{ buffer: ArrayBuffer; mimeType: string }> {
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type:    'refresh_token',
+      refresh_token: process.env.CLOUD_RUN_REFRESH_TOKEN || '',
+      client_id:     process.env.CLOUD_RUN_CLIENT_ID     || '',
+      client_secret: process.env.CLOUD_RUN_CLIENT_SECRET || '',
+    }),
+  });
+  if (!tokenRes.ok) throw new Error(`Token refresh failed: ${await tokenRes.text()}`);
+  const { access_token } = await tokenRes.json();
+
+  const fileRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${access_token}` } }
+  );
+  if (!fileRes.ok) throw new Error(`Drive fetch failed (${fileRes.status}): ${await fileRes.text()}`);
+
+  const mimeType = fileRes.headers.get('content-type')?.split(';')[0].trim() || 'image/png';
+  return { buffer: await fileRes.arrayBuffer(), mimeType };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

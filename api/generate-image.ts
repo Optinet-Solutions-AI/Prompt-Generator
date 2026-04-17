@@ -23,6 +23,18 @@ async function getGoogleAccessToken(): Promise<string> {
   throw new Error('No access_token returned');
 }
 
+/** Make a Drive file readable by anyone with the link (so server-side fetches work). */
+async function makeFilePublic(fileId: string, accessToken: string): Promise<void> {
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+  });
+}
+
 async function uploadImageToDrive(params: {
   imageBuffer: Buffer; mimeType: string; filename: string;
   folderId: string; provider: string; aspectRatio: string;

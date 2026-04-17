@@ -111,11 +111,11 @@ export const BRAND_STANDARDS: Record<string, BrandStyle> = {
     fontFamily: "'Playfair Display', 'Times New Roman', Georgia, serif",
     googleFont: 'Playfair+Display:wght@700;900',
     panelBg: '#08001A',
-    headlineColor: '#FFD700',
+    headlineColor: '#FFFFFF',
     bodyColor: '#E1BEE7',
     accentColor: '#CE93D8',
     buttonBg: '#6A1B9A',
-    buttonText: '#FFD700',
+    buttonText: '#FFFFFF',
     buttonShadow: 'rgba(106,27,154,0.65)',
   },
 

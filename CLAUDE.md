@@ -6,18 +6,21 @@
 
 This is a **Multi Brand Prompt Generator** web app. Users select a brand, pick a reference prompt template, adjust settings, and generate a customized AI image prompt — which can then be sent to ChatGPT or Gemini for image generation.
 
-- **Frontend:** Next.js (React) deployed on **Vercel**
-- **Backend logic:** **n8n** (webhook-based — handles ALL business logic)
-- **Database:** **Airtable** (one table: "Web Image Analysis")
-- **AI:** **OpenAI/GPT** (called from n8n for prompt generation + dissection)
-- **Repo:** github.com/Optinet-Solutions-Automation/Prompt-Generator
-- **Live URL:** prompt-generator-eight-umber.vercel.app
+- **Frontend:** Vite + React deployed on **Vercel**
+- **Backend logic:** Direct API calls — **OpenAI**, **GCP Cloud Run**, **Airtable API** (n8n is no longer used)
+- **Database:** **Airtable** (one table: "Web Image Analysis") + **Supabase** (favorites only)
+- **Image storage:** **Google Drive** (via GCP Cloud Run); cached in browser localStorage
+- **AI:** **OpenAI/GPT** called directly from Vercel API routes
+- **Repo:** github.com/Optinet-Solutions-AI/Prompt-Generator
+- **Live URL:** (new Vercel project under optinet-solutions-ais-andbox account)
 
-### Why This Stack (Don't Change It)
-- **Airtable** = visual database, editable like a spreadsheet. No SQL.
-- **n8n** = visual automation. Drag-and-drop logic, no backend coding.
-- **Next.js on Vercel** = the frontend. AI assistants handle code changes.
-- **When to reconsider:** Only if 1,000+ records or need user auth → evaluate Supabase then.
+### Stack (Don't Change It)
+- **Airtable** = reference prompt database, editable like a spreadsheet. No SQL.
+- **Supabase** = favorites/liked images only (`liked_images` table)
+- **Google Drive** = generated image storage (via GCP Cloud Run)
+- **Vercel API routes** = thin backend (no n8n, no separate backend server)
+- **OpenAI** = prompt generation + image generation (gpt-image-1)
+- **GCP Cloud Run** = image editing + saving to Google Drive
 
 ---
 

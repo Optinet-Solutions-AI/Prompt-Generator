@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, Eye, FileCode, AlignLeft, AlignRight, Loader2 } from 'lucide-react';
-import { getBrandStyle } from '@/lib/brand-standards';
+import { getBrandStyle, BRAND_STANDARDS } from '@/lib/brand-standards';
 import {
   buildBannerHtml,
   OFFER_CONFIG,
@@ -12,6 +12,8 @@ import {
   type TextPosition,
   type BannerFormData,
 } from '@/lib/build-banner-html';
+
+const ALL_BRANDS = Object.keys(BRAND_STANDARDS);
 
 interface HtmlConversionModalProps {
   isOpen: boolean;

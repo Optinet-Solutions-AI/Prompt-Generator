@@ -269,10 +269,29 @@ export function HtmlConversionModal({ isOpen, onClose, imageUrl, brand }: HtmlCo
 
               {/* Live preview — uses CSS background-image, always loads */}
               <BannerPreview
-                imageUrl={imageUrl} brand={brand} formData={formData}
+                imageUrl={imageUrl} brand={effectiveBrand} formData={formData}
                 offerType={offerType} textPosition={textPosition}
                 aspectRatio={aspectRatio}
               />
+
+              {/* Brand selector — shown when no brand is provided via props */}
+              {!brand && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Brand</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ALL_BRANDS.map((b) => (
+                      <button key={b} type="button" onClick={() => setSelectedBrand(b)}
+                        className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${
+                          selectedBrand === b
+                            ? 'border-primary bg-primary/10 text-foreground'
+                            : 'border-border text-muted-foreground hover:text-foreground'
+                        }`}>
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Text position */}
               <div className="space-y-1.5">

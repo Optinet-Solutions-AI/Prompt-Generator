@@ -3,15 +3,11 @@
  *
  * localStorage-based store for generated images (ChatGPT, Gemini, edits, variations).
  * Only the GDrive URL + metadata is stored — no actual image files.
- * Supabase generated_images table is used as a persistent backup so images
- * survive domain changes (e.g. new Vercel deployment).
+ * Supabase is used ONLY for favorites (liked_images table), not here.
  */
 
-const STORAGE_KEY  = 'pg_generated_images';
-const MAX_IMAGES   = 500; // Prevent localStorage overflow (~500 × ~250 bytes ≈ 125 KB)
-
-const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL  as string | undefined;
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const STORAGE_KEY = 'pg_generated_images';
+const MAX_IMAGES  = 500; // Prevent localStorage overflow (~500 × ~250 bytes ≈ 125 KB)
 
 export interface StoredImage {
   id:           string;
@@ -41,31 +37,6 @@ function saveAll(images: StoredImage[]): void {
   }
 }
 
-/** Fire-and-forget: persist one image record to Supabase so it survives domain changes. */
-async function persistToSupabase(img: StoredImage): Promise<void> {
-  if (!SUPABASE_URL || !SUPABASE_ANON) return;
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/generated_images`, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        apikey:          SUPABASE_ANON,
-        Authorization:   `Bearer ${SUPABASE_ANON}`,
-        Prefer:          'resolution=ignore-duplicates', // skip if public_url already exists
-      },
-      body: JSON.stringify({
-        public_url:   img.public_url,
-        provider:     img.provider,
-        aspect_ratio: img.aspect_ratio,
-        resolution:   img.resolution,
-        filename:     img.filename,
-      }),
-    });
-  } catch {
-    // Silent fail — localStorage is the primary store, Supabase is backup
-  }
-}
-
 /** Add a new image to the front of the list. Returns the new record. */
 export function storeImage(params: {
   public_url:   string;
@@ -82,8 +53,6 @@ export function storeImage(params: {
   };
   const updated = [newImg, ...loadAll()].slice(0, MAX_IMAGES);
   saveAll(updated);
-  // Also persist to Supabase so the image survives domain/URL changes
-  persistToSupabase(newImg);
   return newImg;
 }
 

@@ -377,7 +377,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       imgArrayBuffer = await imgRes.arrayBuffer();
     }
 
-    // ── Primary: OpenAI direct edit ────────────────────────────────────
+    // ── Gemini path — used for all Gemini-generated images ────────────
+    if (useGemini) {
+      const result = await editViaGemini(imgArrayBuffer, mimeType, editInstructions, req);
+      return res.status(200).json({
+        success: true,
+        imageUrl: result.imageUrl,
+        thumbnailUrl: result.imageUrl,
+      });
+    }
+
+    // ── Primary: OpenAI direct edit (ChatGPT images only) ─────────────
     if (process.env.OPENAI_API_KEY) {
       console.log('[edit-image] Using OpenAI direct edit');
       const result = await editViaOpenAI(imgArrayBuffer, mimeType, editInstructions, resolution);

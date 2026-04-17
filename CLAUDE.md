@@ -86,40 +86,50 @@ Base ID: `appp9iLlSQTlnfytA`
 
 ```
 ┌──────────────────────────────────────┐
-│       Next.js App (Vercel)           │
-│            DUMB FRONTEND             │
+│     Vite + React App (Vercel)        │
+│            FRONTEND                  │
 │                                      │
 │  Brand Dropdown → Reference Dropdown │
-│         ↓                            │
-│  Reference Prompt Data (from Airtable)│
+│         ↓  (fetched from Airtable)   │
+│  Reference Prompt Data display       │
 │         ↓                            │
 │  Settings (position, ratio, theme)   │
 │         ↓                            │
 │  "Regenerate Prompt" button          │
 │         ↓                            │
 │  Generated Prompt + Image Gen buttons│
-│                                      │
-│  🆕 Add / Edit / Delete buttons     │
+│  Image Library (localStorage cache) │
 └──────────────┬───────────────────────┘
-               │ webhook calls
-               ▼
-       ┌───────────────┐
-       │     n8n       │
-       │  SMART BRAIN  │
-       │               │
-       │ • Fetch data  │
-       │ • Generate    │───────► Airtable
-       │   prompts     │◄──────  "Web Image Analysis"
-       │ • CRUD ops    │         (109 records)
-       │ • Call GPT    │
-       └───────────────┘
+               │ direct API calls
+       ┌───────┴────────────────────────┐
+       │                                │
+       ▼                                ▼
+┌─────────────┐               ┌─────────────────┐
+│  Vercel API │               │   Airtable API  │
+│   routes    │               │ "Web Image      │
+│             │               │  Analysis"      │
+│ • OpenAI    │               │  (109 records)  │
+│ • GCP auth  │               └─────────────────┘
+│ • Image edit│
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐     ┌──────────────┐
+│ GCP Cloud   │────►│ Google Drive │
+│ Run         │     │ (image store)│
+└─────────────┘     └──────────────┘
+       
+┌─────────────┐
+│  Supabase   │  ← favorites (liked_images) only
+└─────────────┘
 ```
 
 ### Golden Rules
-1. **Frontend is DUMB** — Display data + send actions to n8n. No logic.
-2. **n8n is the BRAIN** — All logic: CRUD, GPT calls, Airtable reads/writes.
-3. **Airtable is the MEMORY** — "Web Image Analysis" table is the single source of truth.
-4. **No hardcoded prompts** — Reference dropdown must load from Airtable.
+1. **No n8n** — n8n is no longer part of the stack. Do not add n8n webhooks.
+2. **Airtable is the MEMORY** — "Web Image Analysis" table is the single source of truth for prompts.
+3. **Google Drive is image storage** — generated images go to Drive via GCP Cloud Run, cached in localStorage.
+4. **Supabase is favorites only** — only the `liked_images` table matters.
+5. **No hardcoded prompts** — Reference dropdown loads from Airtable.
 
 ---
 

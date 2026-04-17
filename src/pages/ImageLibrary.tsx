@@ -57,43 +57,42 @@ function fetchImages(page: number, filter: string): { data: GeneratedImage[]; ha
   return getImages(page, filter) as { data: GeneratedImage[]; hasMore: boolean };
 }
 
-// ── Background sync: copy Supabase generated_images → localStorage ─────────────
-// Runs every time the library opens. Adds any Supabase rows missing from
-// localStorage (deduplicates by public_url). Single batch write — never blocks UI.
-async function syncFromSupabase(): Promise<number> {
-  if (!SUPABASE_URL || !SUPABASE_ANON) return 0;
+// ── Sync from Google Drive → localStorage ──────────────────────────────────────
+// Runs every time the library opens. Fetches all images from Google Drive
+// (the source of truth) and adds any that are missing from localStorage.
+// This means the Image Library works on ANY domain — not just the original one.
+async function syncFromDrive(): Promise<number> {
   try {
-    // Only fetch the fields we need — avoids pulling any large fields
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/generated_images?select=id,public_url,provider,aspect_ratio,resolution,filename,created_at&order=created_at.desc&limit=500`,
-      { headers: SB_HEADERS }
-    );
+    const res = await fetch('/api/list-drive-images');
     if (!res.ok) return 0;
-    const rows = await res.json() as Array<{
-      id: string; public_url: string; provider: string; aspect_ratio: string;
-      resolution: string; filename: string; created_at: string;
-    }>;
-    if (!Array.isArray(rows) || rows.length === 0) return 0;
 
-    // Build a set of all URLs already in localStorage so we don't add duplicates
+    const data = await res.json() as {
+      files: Array<{
+        id: string; public_url: string; provider: string;
+        aspect_ratio: string; resolution: string; filename: string; created_at: string;
+      }>;
+    };
+
+    const files = data.files;
+    if (!Array.isArray(files) || files.length === 0) return 0;
+
+    // Only add images not already in localStorage (deduplicate by public_url)
     const existingUrls = new Set(getAllStoredImages().map(i => i.public_url));
-
-    // Filter to genuinely new rows (skip data: URIs which can't display as images)
-    const newRows = rows.filter(
-      r => r.public_url && !r.public_url.startsWith('data:') && !existingUrls.has(r.public_url)
+    const newFiles = files.filter(
+      f => f.public_url && !existingUrls.has(f.public_url)
     );
-    if (newRows.length === 0) return 0;
+    if (newFiles.length === 0) return 0;
 
-    // Single batch write (one localStorage read + one write) — much faster than 500 individual writes
-    return batchStoreImages(newRows.map(row => ({
-      public_url:   row.public_url,
-      provider:     (row.provider || 'chatgpt').toLowerCase(),
-      aspect_ratio: row.aspect_ratio || '16:9',
-      resolution:   row.resolution   || '1K',
-      filename:     row.filename     || `image-${row.id}.png`,
+    // Single batch write — much faster than writing one at a time
+    return batchStoreImages(newFiles.map(f => ({
+      public_url:   f.public_url,
+      provider:     (f.provider || 'chatgpt').toLowerCase(),
+      aspect_ratio: f.aspect_ratio || '16:9',
+      resolution:   f.resolution   || '1K',
+      filename:     f.filename     || `image-${f.id}.png`,
     })));
   } catch {
-    return 0; // silent fail — sync is best-effort
+    return 0; // silent fail — localStorage is still shown even if Drive sync fails
   }
 }
 

@@ -394,12 +394,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
       imgArrayBuffer = arr.buffer;
     } else {
-      const imgRes = await fetch(resolvedUrl as string);
-      if (!imgRes.ok) {
-        return res.status(400).json({ error: `Failed to fetch source image (${imgRes.status})` });
+      // Drive URLs require authenticated fetch — extract file ID and use Drive API
+      const driveMatch = typeof resolvedUrl === 'string' &&
+        resolvedUrl.match(/lh3\.googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+      if (driveMatch) {
+        const { buffer, mimeType: driveMime } = await fetchFromDrive(driveMatch[1]);
+        imgArrayBuffer = buffer;
+        mimeType       = driveMime;
+      } else {
+        const imgRes = await fetch(resolvedUrl as string);
+        if (!imgRes.ok) {
+          return res.status(400).json({ error: `Failed to fetch source image (${imgRes.status})` });
+        }
+        mimeType       = imgRes.headers.get('content-type')?.split(';')[0].trim() || 'image/png';
+        imgArrayBuffer = await imgRes.arrayBuffer();
       }
-      mimeType = imgRes.headers.get('content-type')?.split(';')[0].trim() || 'image/png';
-      imgArrayBuffer = await imgRes.arrayBuffer();
     }
 
     // ── Gemini path — used for all Gemini-generated images ────────────

@@ -1,12 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// ── Edit Image via OpenAI gpt-image-1 (primary) or Cloud Run (fallback) ──────
+// ── Edit Image ─────────────────────────────────────────────────────────────────
 //
-// Primary path: Uses OpenAI's image edit API directly — same as generate-variations.ts.
-// Handles both regular URLs and base64 data URLs natively.
+// Routes to the correct engine based on the `provider` field in the request body:
 //
-// Fallback path: If OPENAI_API_KEY is not set, falls back to Cloud Run proxy
-// which requires GCP Workload Identity Federation auth.
+//   provider === 'gemini'  → Vertex AI gemini-2.5-flash-image (strict preservation)
+//   provider === 'chatgpt' → OpenAI gpt-image-1 (primary) or Cloud Run (fallback)
+//
+// Gemini images MUST be edited by Gemini — sending them to OpenAI causes a
+// visual "downgrade" because the two models have different style signatures.
+// OpenAI images likewise stay on OpenAI.
 
 export const config = { maxDuration: 300 };
 

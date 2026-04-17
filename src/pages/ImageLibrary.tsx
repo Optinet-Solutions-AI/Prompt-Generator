@@ -95,8 +95,17 @@ async function syncFromDrive(): Promise<number> {
       resolution:   f.resolution   || '1K',
       filename:     f.filename     || `image-${f.id}.png`,
     })));
-  } catch {
-    return 0; // silent fail — localStorage is still shown even if Drive sync fails
+    console.log(`[syncFromDrive] synced ${newFiles.length} new images from Drive`);
+    return batchStoreImages(newFiles.map(f => ({
+      public_url:   f.public_url,
+      provider:     (f.provider || 'chatgpt').toLowerCase(),
+      aspect_ratio: f.aspect_ratio || '16:9',
+      resolution:   f.resolution   || '1K',
+      filename:     f.filename     || `image-${f.id}.png`,
+    })));
+  } catch (err) {
+    console.error('[syncFromDrive] failed:', err);
+    return 0;
   }
 }
 

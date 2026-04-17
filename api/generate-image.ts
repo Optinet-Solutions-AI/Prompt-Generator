@@ -351,6 +351,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const data = await response.json();
           console.log('Cloud Run response:', JSON.stringify(data));
           const result = Array.isArray(data) ? data[0] : data;
+
+          // ── Save Gemini image to our Drive folder ───────────────────────
+          // Cloud Run may save to its own folder. We re-save to our designated
+          // folder so the Image Library can list ALL images from one place.
+          const geminiFolder = process.env.GOOGLE_DRIVE_FOLDER_ID;
+          if (geminiFolder) {
+            try {
+              // Get the image URL from Cloud Run response
+              const cloudRunImageUrl =
+                result.public_url || result.imageUrl || result.image_url ||
+                result.url || result.displayUrl ||
+                (result.fileId ? `https://lh3.googleusercontent.com/d/${result.fileId}` : null);
+
+              if (cloudRunImageUrl && !cloudRunImageUrl.startsWith('data:')) {
+                const geminiAccessToken = await getGoogleAccessToken();
+                const imgRes  = await fetch(cloudRunImageUrl);
+                const imgMime = imgRes.headers.get('content-type')?.split(';')[0] || 'image/png';
+                const imgBuf  = Buffer.from(await imgRes.arrayBuffer());
+                const ext     = imgMime.split('/')[1] || 'png';
+
+                const geminiFileId = await uploadImageToDrive({
+                  imageBuffer: imgBuf,
+                  mimeType:    imgMime,
+                  filename:    `gemini-${Date.now()}.${ext}`,
+                  folderId:    geminiFolder,
+                  provider:    'gemini',
+                  aspectRatio: aspectRatio || '16:9',
+                  resolution:  resolution  || '1K',
+                  accessToken: geminiAccessToken,
+                });
+
+                const driveUrl = `https://lh3.googleusercontent.com/d/${geminiFileId}`;
+                // Return Drive URL so Image Library always gets a persistent link
+                return res.status(200).json({
+                  ...result,
+                  fileId:     geminiFileId,
+                  public_url: driveUrl,
+                  imageUrl:   driveUrl,
+                  url:        driveUrl,
+                });
+              }
+            } catch (driveErr) {
+              console.error('[generate-image] Gemini Drive save failed:', driveErr);
+              // Fall through and return original Cloud Run result
+            }
+          }
+
           return res.status(200).json(result);
 
         } catch (fetchError: unknown) {

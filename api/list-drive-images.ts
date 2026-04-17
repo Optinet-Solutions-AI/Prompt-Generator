@@ -1,8 +1,12 @@
 /**
  * list-drive-images.ts
  *
- * Lists all generated images from the Google Drive folder.
- * Called by the Image Library on load to populate the gallery.
+ * Lists all generated images from Google Drive.
+ * Searches two folders:
+ *   1. GOOGLE_DRIVE_FOLDER_ID — where ChatGPT images are saved
+ *   2. Auto-discovered Gemini folder — found by looking up the parent of a
+ *      known Gemini image file ID (GOOGLE_DRIVE_GEMINI_SAMPLE_FILE_ID)
+ *
  * Self-contained — no local imports (Vercel API routes must be self-contained).
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -49,6 +53,48 @@ async function getGoogleAccessToken(): Promise<string> {
   throw new Error('No access_token returned from Google token endpoint');
 }
 
+/** List all image files in a Drive folder. Returns empty array on failure. */
+async function listFilesInFolder(folderId: string, accessToken: string): Promise<DriveFile[]> {
+  const query  = `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`;
+  const fields = 'files(id,name,createdTime,mimeType,appProperties)';
+  const url    = `https://www.googleapis.com/drive/v3/files` +
+                 `?q=${encodeURIComponent(query)}` +
+                 `&fields=${encodeURIComponent(fields)}` +
+                 `&orderBy=createdTime+desc` +
+                 `&pageSize=500`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    console.error(`[list-drive-images] folder ${folderId} failed:`, res.status, await res.text());
+    return [];
+  }
+  const data = await res.json() as { files: DriveFile[] };
+  return data.files || [];
+}
+
+/** Get the parent folder ID of a known file — used to discover the Gemini folder. */
+async function getParentFolderId(fileId: string, accessToken: string): Promise<string | null> {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) return null;
+  const data = await res.json() as { parents?: string[] };
+  return data.parents?.[0] ?? null;
+}
+
+function mapFile(f: DriveFile, defaultProvider: string) {
+  return {
+    id:           f.id,
+    filename:     f.name,
+    created_at:   f.createdTime,
+    provider:     f.appProperties?.provider    || defaultProvider,
+    aspect_ratio: f.appProperties?.aspectRatio || '16:9',
+    resolution:   f.appProperties?.resolution  || '1K',
+    public_url:   `https://lh3.googleusercontent.com/d/${f.id}`,
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -57,41 +103,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!folderId) return res.status(500).json({ error: 'GOOGLE_DRIVE_FOLDER_ID not configured' });
+  const chatgptFolderId    = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  // A known Gemini image file ID used to auto-discover the Gemini folder
+  const geminiSampleFileId = process.env.GOOGLE_DRIVE_GEMINI_SAMPLE_FILE_ID || '1w28G_akdjVs-GRN0heLiJ5Y-qc3-S4wN';
+
+  if (!chatgptFolderId) {
+    return res.status(500).json({ error: 'GOOGLE_DRIVE_FOLDER_ID not configured' });
+  }
 
   try {
     const accessToken = await getGoogleAccessToken();
 
-    const query  = `'${folderId}' in parents and trashed = false and mimeType contains 'image/'`;
-    const fields  = 'files(id,name,createdTime,mimeType,appProperties)';
-    const url     = `https://www.googleapis.com/drive/v3/files` +
-                    `?q=${encodeURIComponent(query)}` +
-                    `&fields=${encodeURIComponent(fields)}` +
-                    `&orderBy=createdTime+desc` +
-                    `&pageSize=500`;
+    // ── 1. List ChatGPT images from our main folder ──────────────────────
+    const chatgptFiles = await listFilesInFolder(chatgptFolderId, accessToken);
 
-    const driveRes = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!driveRes.ok) {
-      const err = await driveRes.text();
-      return res.status(500).json({ error: `Drive API failed (${driveRes.status}): ${err}` });
+    // ── 2. Discover Gemini folder from known sample file, then list it ───
+    let geminiFiles: DriveFile[] = [];
+    const geminiFolderId = await getParentFolderId(geminiSampleFileId, accessToken);
+    if (geminiFolderId && geminiFolderId !== chatgptFolderId) {
+      geminiFiles = await listFilesInFolder(geminiFolderId, accessToken);
+      console.log(`[list-drive-images] Gemini folder: ${geminiFolderId}, files: ${geminiFiles.length}`);
     }
 
-    const data = await driveRes.json() as { files: DriveFile[] };
-    const files = (data.files || []).map(f => ({
-      id:           f.id,
-      filename:     f.name,
-      created_at:   f.createdTime,
-      provider:     f.appProperties?.provider    || 'chatgpt',
-      aspect_ratio: f.appProperties?.aspectRatio || '16:9',
-      resolution:   f.appProperties?.resolution  || '1K',
-      public_url:   `https://lh3.googleusercontent.com/d/${f.id}`,
-    }));
+    // ── 3. Merge, deduplicate by file ID, sort newest first ─────────────
+    const seen  = new Set<string>();
+    const files = [...chatgptFiles, ...geminiFiles]
+      .filter(f => { if (seen.has(f.id)) return false; seen.add(f.id); return true; })
+      .sort((a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime())
+      .map(f => {
+        // Determine provider: prefer appProperties, fall back to filename prefix
+        const provider = f.appProperties?.provider ||
+          (f.name.startsWith('gemini-') ? 'gemini' : 'chatgpt');
+        return mapFile(f, provider);
+      });
 
-    return res.status(200).json({ files });
+    return res.status(200).json({ files, gemini_folder: geminiFolderId });
 
   } catch (error) {
     console.error('[list-drive-images] error:', error);

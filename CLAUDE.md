@@ -169,22 +169,18 @@ Examples:
 - This applies to ALL UI changes, not just bug fixes.
 
 ### Do
-- Keep frontend dumb — display + send to n8n only
 - Show loading and error states for every fetch
-- Use `NEXT_PUBLIC_N8N_*` env vars for webhook URLs
 - Write clear comments — developer is a beginner with no coding background
 - Explain decisions in plain English
 - Small changes, one at a time, test between each
 - Preserve ALL existing functionality
-- **Never auto-commit or auto-deploy** — after changes, propose a commit message and wait for user approval. Saves tokens by avoiding unnecessary git operations.
+- **Never auto-commit or auto-deploy** — after changes, propose a commit message and wait for user approval.
 
 ### Don't
+- **Don't use n8n** — it is no longer part of the stack
 - **Don't hardcode prompt data**
-- **Don't call Airtable from the frontend** — everything through n8n
-- **Don't put logic in Next.js** — n8n owns all logic
 - **Don't break existing features**
 - **Don't touch other Airtable tables** — only "Web Image Analysis"
-- **Don't modify existing n8n workflows** — only create new ones
 - Don't assume advanced knowledge — over-explain everything
 
 ---

@@ -1004,7 +1004,7 @@ function Lightbox({
                               <button
                                 type="button"
                                 onClick={async () => {
-                                  try { const res = await fetch(url); const blob = await res.blob(); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `variation-${i + 1}-${Date.now()}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+                                  try { const res = await fetch(url); const blob = await res.blob(); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = buildVariationFilename(i, variationEngines[i]); document.body.appendChild(a); a.click(); document.body.removeChild(a); }
                                   catch { window.open(url, '_blank'); }
                                 }}
                                 className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 p-1 rounded-lg bg-black/60 hover:bg-black/80 text-white transition-all"

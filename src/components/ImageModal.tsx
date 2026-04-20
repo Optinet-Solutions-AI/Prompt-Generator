@@ -6,6 +6,7 @@ import { HtmlConversionModal } from './HtmlConversionModal';
 import { FavoriteHeart } from './FavoriteHeart';
 
 import { storeImage, deleteStoredImage } from '@/lib/imageStore';
+import { extractDominantColors } from '@/utils/extractColors';
 
 export interface GalleryImage {
   displayUrl: string;

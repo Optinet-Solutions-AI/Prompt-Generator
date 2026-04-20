@@ -362,10 +362,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 2. Detect source resolution — prefer user-selected resolution over auto-detect
     // ------------------------------------------------------------------
     const sourceDims = detectImageDimensions(imgArrayBuffer);
-    const outputQuality = resolution ? qualityForResolution(resolution) : qualityForDimensions(sourceDims);
+    // Subtle mode always uses 'high' quality — more tokens = better source fidelity.
+    const outputQuality = mode === 'subtle'
+      ? 'high'
+      : (resolution ? qualityForResolution(resolution) : qualityForDimensions(sourceDims));
     const outputSize    = resolution ? sizeForResolution(resolution, sourceDims) : sizeForDimensions(sourceDims);
 
-    console.log(`[generate-variations] source dims: ${JSON.stringify(sourceDims)}, resolution=${resolution} → quality=${outputQuality}, size=${outputSize}, mode=${mode}, brand=${brand}`);
+    console.log(`[generate-variations] source dims: ${JSON.stringify(sourceDims)}, resolution=${resolution} → quality=${outputQuality}, size=${outputSize}, mode=${mode}, brand=${brand}, sourceColors=${JSON.stringify(sourceColors)}`);
 
     // ------------------------------------------------------------------
     // 3. Build spectrum prompts

@@ -104,10 +104,10 @@ Stores images the user has hearted/liked. This table is separate from reference 
        │                                │
        ▼                                ▼
 ┌─────────────┐               ┌─────────────────┐
-│  Vercel API │               │   Airtable API  │
-│   routes    │               │ "Web Image      │
-│             │               │  Analysis"      │
-│ • OpenAI    │               │  (109 records)  │
+│  Vercel API │               │    Supabase     │
+│   routes    │               │ • ref prompts   │
+│             │               │ • liked_images  │
+│ • OpenAI    │               │   (favorites)   │
 │ • GCP auth  │               └─────────────────┘
 │ • Image edit│
 └──────┬──────┘

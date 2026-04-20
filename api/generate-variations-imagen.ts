@@ -317,7 +317,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 2. Build spectrum prompts + temperatures
     // ------------------------------------------------------------------
     const numVariations = Math.min(Number(count) || 4, 4);
-    const spectrum = buildGeminiPromptSpectrum(mode, guidance, brand).slice(0, numVariations);
+    const spectrum = buildGeminiPromptSpectrum(mode, guidance, brand, sourceColors, sourceRecipe).slice(0, numVariations);
 
     console.log(`[generate-variations-gemini] mode=${mode}, brand=${brand}, resolution=${resolution}, generating ${numVariations} tiered variations`);
 

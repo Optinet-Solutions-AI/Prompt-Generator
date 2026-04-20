@@ -379,14 +379,18 @@ export function buildNarrativePrompt(data: SportsBannerData, brand: string): str
   const playerWord = data.playerCount === '1' ? '' : ' athletes';
 
   // Nationality + match country — explicitly state the relationship so the AI
-  // understands: the player IS from X, the MATCH is in Y
+  // understands: the player IS from X, the MATCH is in Y.
+  // When no nationality is given, we explicitly mark ethnicity as unspecified so
+  // the image model does not default to any particular race based on the sport.
   let contextStr = '';
   if (data.teamNationality && data.matchCountry && data.teamNationality !== data.matchCountry) {
     contextStr = ` representing ${data.teamNationality}, competing internationally in ${data.matchCountry}`;
   } else if (data.teamNationality) {
     contextStr = ` representing ${data.teamNationality}`;
   } else if (data.matchCountry) {
-    contextStr = ` at a match in ${data.matchCountry}`;
+    contextStr = ` at a match in ${data.matchCountry}, athlete of unspecified ethnicity`;
+  } else {
+    contextStr = `, athlete of unspecified ethnicity — do not default to any specific race`;
   }
 
   // ── Action — expand to rich physical description ──

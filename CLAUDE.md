@@ -7,16 +7,15 @@
 This is a **Multi Brand Prompt Generator** web app. Users select a brand, pick a reference prompt template, adjust settings, and generate a customized AI image prompt — which can then be sent to ChatGPT or Gemini for image generation.
 
 - **Frontend:** Vite + React deployed on **Vercel**
-- **Backend logic:** Direct API calls — **OpenAI**, **GCP Cloud Run**, **Airtable API** (n8n is no longer used)
-- **Database:** **Airtable** (one table: "Web Image Analysis") + **Supabase** (favorites only)
+- **Backend logic:** Direct API calls — **OpenAI**, **GCP Cloud Run**, **Supabase** (n8n is no longer used)
+- **Database:** **Supabase** — prompts/reference data AND favorites (`liked_images` table)
 - **Image storage:** **Google Drive** (via GCP Cloud Run); cached in browser localStorage
 - **AI:** **OpenAI/GPT** called directly from Vercel API routes
 - **Repo:** github.com/Optinet-Solutions-AI/Prompt-Generator
 - **Live URL:** (new Vercel project under optinet-solutions-ais-andbox account)
 
 ### Stack (Don't Change It)
-- **Airtable** = reference prompt database, editable like a spreadsheet. No SQL.
-- **Supabase** = favorites/liked images only (`liked_images` table)
+- **Supabase** = ALL database needs: reference prompts table AND favorites (`liked_images` table). Airtable is no longer used.
 - **Google Drive** = generated image storage (via GCP Cloud Run)
 - **Vercel API routes** = thin backend (no n8n, no separate backend server)
 - **OpenAI** = prompt generation + image generation (gpt-image-1)

@@ -134,7 +134,7 @@ Stores images the user has hearted/liked. This table is separate from reference 
 
 ## Known Issues / Risks
 
-- **Image Library is localStorage-only** — Drive file IDs are not persisted to a database. Changing Vercel domains wipes the image library. Fix: write file IDs to Supabase or Airtable on save.
+- **Image Library is localStorage-only** — Drive file IDs are not persisted to a database. Changing Vercel domains wipes the image library. Fix: write file IDs to Supabase on save.
 
 ---
 

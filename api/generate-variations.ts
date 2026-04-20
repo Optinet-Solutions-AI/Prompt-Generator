@@ -301,7 +301,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { imageUrl, mode = 'subtle', guidance = '', count = 4, brand = '', resolution = '' } = req.body;
+    const {
+      imageUrl,
+      mode = 'subtle',
+      guidance = '',
+      count = 4,
+      brand = '',
+      resolution = '',
+      sourceColors = [],
+      sourceRecipe = null,
+    } = req.body;
 
     if (!imageUrl) {
       return res.status(400).json({ error: 'imageUrl is required' });

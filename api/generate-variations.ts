@@ -182,60 +182,84 @@ function sizeForResolution(resolution: string, dims: { width: number; height: nu
 // ------------------------------------------------------------------
 // Build the spectrum of 4 tier prompts.
 //
-// KEY CHANGE from v2:
-//   - COLOR LOCK appears FIRST (not buried in the middle)
-//   - Tier instructions only describe STRUCTURAL changes (angle, pose, layout)
-//   - No tier instruction suggests changing colors, warmth, or light color
-//   - Lighting changes = direction/softness ONLY, never color temperature
+// v4 changes:
+//   - buildColorLock now takes extracted source colors + recipe — far more
+//     reliable than brand-palette-only (which caused the orange blowout).
+//   - A HARD NO block is appended to EVERY prompt to reinforce the lock.
+//   - Subtle mode: [T1, T1, T1, T2] — 3 angle variants + 1 pose variant.
+//     More faithful options, less creative risk.
+//   - Strong mode: [T2, T2, T3, T4] — T4 rewritten to forbid scene reinvention.
+//   - Lighting changes = direction/softness only, NEVER color temperature.
 // ------------------------------------------------------------------
-function buildPromptSpectrum(mode: string, guidance: string, brand: string): string[] {
-  const colorLock = buildColorLock(brand);
-  const qualityRule = 'Output quality must match or exceed the original.';
+function buildPromptSpectrum(
+  mode: string,
+  guidance: string,
+  brand: string,
+  sourceColors: string[] = [],
+  sourceRecipe?: SourceRecipe | null,
+): string[] {
+  const colorLock    = buildColorLock(brand, sourceColors, sourceRecipe);
+  const qualityRule  = 'Output quality must match or exceed the original.';
   const guidanceSuffix = guidance ? ` User direction: ${guidance}.` : '';
 
-  // T1 — Composition angle: vary the camera perspective
+  // This block is appended to every tier to reinforce the color lock with explicit negatives.
+  const hardNo = [
+    'HARD NO — these changes are forbidden:',
+    'Do NOT change the lighting color temperature (warm stays warm, cool stays cool, dark stays dark).',
+    'Do NOT brighten a dark/moody image or darken a bright one.',
+    'Do NOT replace the background material or setting type.',
+    'Do NOT shift warm tones cool, or cool tones warm.',
+    'Do NOT add any color that was not already dominant in the source image.',
+  ].join(' ');
+
+  // T1 — Composition angle: vary camera perspective only
   const t1 = [
     colorLock,
     'Create a variation of this image with a different camera angle or perspective.',
-    'Keep the exact same subject, lighting color, color palette, and brand aesthetic.',
-    'Only change: the viewing angle (slightly closer, further, or shifted), OR the subject framing within the shot.',
+    'Keep the exact same subject, lighting color, color palette, and atmosphere.',
+    'Only change: the viewing angle or subject framing within the shot — nothing else.',
     qualityRule,
+    hardNo,
   ].join(' ') + guidanceSuffix;
 
-  // T2 — Subject pose/expression: vary what the subject is doing
+  // T2 — Subject pose/expression: vary what the subject is doing, nothing else
   const t2 = [
     colorLock,
     'Create a variation of this image where the subject has a different pose or expression.',
-    'Keep the exact same background, lighting color, color palette, and brand aesthetic.',
-    'Only change: the subject\'s pose, stance, or facial expression — everything else stays the same.',
+    'Keep the exact same background, lighting color, color palette, and atmosphere.',
+    'Only change: the subject\'s pose, stance, or facial expression — everything else stays identical.',
     qualityRule,
+    hardNo,
   ].join(' ') + guidanceSuffix;
 
-  // T3 — Background detail: vary the background arrangement
+  // T3 — Background detail: vary background elements only
   const t3 = [
     colorLock,
-    'Create a variation of this image with a refreshed background.',
+    'Create a variation of this image with refreshed background details.',
     'Keep the same subject, subject pose, lighting color, and color palette.',
-    'Only change: background details and arrangement — same overall color palette but different background elements or depth.',
+    'Only change: background details and arrangement — same dominant colors but different background elements or depth.',
     qualityRule,
+    hardNo,
   ].join(' ') + guidanceSuffix;
 
-  // T4 — Creative: new overall scene energy
+  // T4 — Strong creative: different pose + framing, same everything else.
+  // Deliberately NOT "new composition and energy" — that causes the lighting drift.
   const t4 = [
     colorLock,
-    'Create a fresh alternate version of this image — same brand, concept, and color palette; completely new composition and energy.',
-    'Keep the exact same color palette and brand aesthetic from the source.',
-    'Change: the overall composition, subject pose, and background layout. Make it feel like a strong alternate creative for the same campaign.',
+    'Create a variation with a significantly different subject pose and camera framing.',
+    'Keep the EXACT same lighting, color palette, background material, and overall mood.',
+    'Do NOT reinvent the scene — only the pose and framing change. It should feel like the same campaign shot from a different angle with a different subject stance.',
     qualityRule,
+    hardNo,
   ].join(' ') + guidanceSuffix;
 
   // Mode → tier selection
-  // subtle: minimal changes (angle + pose)
-  // strong: bigger changes (pose + background + creative)
+  // subtle: 3 angle variants + 1 pose variant — most faithful
+  // strong: 2 pose + background + creative pose — more variety, still locked
   if (mode === 'subtle') {
-    return [t1, t1, t2, t2];
+    return [t1, t1, t1, t2];
   }
-  return [t2, t3, t3, t4];
+  return [t2, t2, t3, t4];
 }
 
 /** Fetch a Google Drive file using OAuth credentials — works on private files. */

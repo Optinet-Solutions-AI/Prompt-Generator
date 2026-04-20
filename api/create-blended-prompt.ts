@@ -84,17 +84,15 @@ ${brandColorRule}${brandSceneMandate}
 
 Each field must be written with the SAME level of detail and length as a professional image brief — multiple sentences, specific visual details, camera angles, composition notes, colors, textures. DO NOT write short summaries.
 
-For the "positive_prompt" field specifically — this is the actual text sent to an AI image generator, so it MUST use professional image generation language. Include ALL of the following:
-- Subject and character detail (species, clothing, pose, expression, accessories)
-- Composition and framing (rule of thirds, foreground/midground/background layers, camera angle: eye-level / low angle / Dutch tilt etc.)
-- Lens and camera style (e.g. "shot on 85mm f/1.4 lens", "shallow depth of field", "cinematic wide-angle")
-- Lighting setup (e.g. "dramatic rim lighting", "single key light from upper left", "volumetric fog", "neon glow reflections on wet floor")
-- Material and texture detail (e.g. "polished obsidian surface", "velvet lapels", "chrome reflections")
-- Atmosphere and depth (e.g. "subtle smoke haze", "bokeh background", "atmospheric perspective", "god rays")
-- Art direction style (e.g. "hyperrealistic 3D render", "cinematic photorealistic", "octane render", "8K ultra-detailed")
-- Quality boosters at the end: "highly detailed, sharp focus, professional color grading, cinematic composition, award-winning photography"
+For the "positive_prompt" field specifically — this is the actual text sent to an AI image generator. Write it as clear, vivid, descriptive natural language (NOT a comma-separated tag list). Include ALL of the following:
+- Character/subject description: who they are, what they wear, their pose, expression, and exact placement in frame. Be specific — "fitted black suit with a sharp red silk tie, white dress shirt, silver cufflinks" beats "wearing a suit".
+- Scene and setting: the environment, surfaces, props, and depth layers (foreground, midground, background).
+- Lighting: describe the light sources, direction, colors, and effects — e.g. "a single dramatic key light from upper-left casting deep shadows across the face, with a red neon rim light outlining the silhouette from behind".
+- Atmosphere: mood-enhancing details like smoke haze, bokeh background, reflections on wet floor, floating particles, volumetric light shafts.
+- Visual quality style: describe the LOOK of the image — e.g. "rendered in a premium casino brand character art style, polished and cinematic, with sharp fine details on every surface". Do NOT use software names like octane, blender, or unreal. Do NOT say "DSLR photography" or "award-winning photo" — this is brand mascot character art, not a photograph.
+- End with: "sharp focus, premium brand illustration quality, cinematic lighting, professional color grading, no text, no watermarks."
 
-The positive_prompt should read like a top-tier art director wrote it — specific, vivid, and technically precise. Avoid vague words like "nice", "beautiful", "good". Use concrete visual language.
+The prompt should read like a world-class casino game art director briefing an illustrator — vivid, specific, and completely visual. No vague adjectives.
 
 Return ONLY valid JSON with exactly these keys, no extra text, no markdown:
 {
@@ -104,8 +102,8 @@ Return ONLY valid JSON with exactly these keys, no extra text, no markdown:
   "lighting": "Describe all light sources, colors, direction, shadows, highlights, glow effects, and mood they create. Multiple sentences.",
   "mood": "Describe the emotional atmosphere, feeling, energy, and visual tone in detail. Multiple sentences.",
   "background": "Describe the environment, depth, textures, colors, and background elements in detail. Multiple sentences.",
-  "positive_prompt": "REQUIRED: Write a complete, technically precise image generation prompt using professional art direction language — subject, composition, lens/camera, lighting setup, materials, atmosphere, render style, and quality boosters. Must be 5–8 sentences minimum.",
-  "negative_prompt": "List everything to exclude — bad anatomy, deformed hands, extra limbs, text, watermarks, logos, blurry, overexposed, dark muddy areas, flat lighting, low resolution, jpeg artifacts, cartoon style (unless brand calls for it)."
+  "positive_prompt": "REQUIRED: Write 5–8 sentences of vivid, natural language art direction. Describe the character, scene, lighting, atmosphere, and visual quality style. No comma-tag lists. No software names. Write it so a skilled illustrator could paint exactly this scene from your words alone.",
+  "negative_prompt": "bad anatomy, deformed hands, extra limbs, malformed face, poorly rendered fur, plastic-looking skin, text, watermarks, logos, blurry, overexposed, flat lighting, muddy colors, low resolution, jpeg artifacts, amateur render quality, multiple subjects unless intentional."
 }`;
 
     const refList = references

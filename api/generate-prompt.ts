@@ -108,6 +108,9 @@ If Aspect Ratio is "default", do not add any --ar flag.
 5) THEME + DESCRIPTION (background only)
 Apply Theme and Description ONLY to background, environment, lighting, atmosphere, mood, and secondary elements. Do NOT change the main subject's identity, clothing, pose, or realism level.
 
+5b) ETHNICITY / RACE — DO NOT ASSUME
+Unless the Base prompt explicitly names a nationality, ethnicity, or skin tone for the subject, do NOT introduce or imply any specific race. If the prompt already states a nationality (e.g. "representing Brazil", "Filipino athlete"), keep it. If no ethnicity is stated, the subject remains ethnically unspecified — do not add any race-specific language.
+
 ${brandColorRule}
 ${brandSceneMandate}
 6) MIDJOURNEY FLAG

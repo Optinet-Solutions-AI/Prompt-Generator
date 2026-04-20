@@ -224,7 +224,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
         body: JSON.stringify({
           model: 'gpt-image-1',
-          prompt: enrichedPrompt,
+          prompt: finalPrompt,
           n: 1,
           size: outputSize,
           quality: outputQuality,

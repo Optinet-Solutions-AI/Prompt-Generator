@@ -187,6 +187,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Inject brand-mandatory style rules into the prompt
     const enrichedPrompt = enrichPromptWithBrandStyle(prompt, brand || '');
 
+    // Prepend photorealism instruction so gpt-image-1 renders a photograph,
+    // not a painting or digital art style.
+    const PHOTOREALISM_PREFIX = 'Photorealistic, cinematic photography, hyperrealistic render, ultra-sharp focus, professional DSLR quality. ';
+    const finalPrompt = PHOTOREALISM_PREFIX + enrichedPrompt;
+
     // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────
     // Uses gpt-image-1 via Vercel's OPENAI_API_KEY — no Cloud Run needed.
     const openaiKey = process.env.OPENAI_API_KEY;

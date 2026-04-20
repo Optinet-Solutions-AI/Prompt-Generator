@@ -116,31 +116,58 @@ function getBrandColorDescription(brand: string): string {
 
 // ------------------------------------------------------------------
 // COLOR LOCK — first and most emphatic rule in every Gemini prompt.
-// Gemini generates from scratch so this must be extremely explicit.
+// Priority: (1) actual extracted source colors, (2) recipe fields,
+// (3) brand palette hint. Gemini generates from scratch so this must
+// be extremely explicit. Source image always wins over brand average.
 // ------------------------------------------------------------------
-function buildColorLock(brand: string): string {
-  const knownColors = brand ? getBrandColorDescription(brand) : '';
+interface SourceRecipe {
+  lighting?: string;
+  mood?: string;
+  background?: string;
+}
 
-  if (knownColors) {
-    return (
-      `⚠️ COLOR LOCK — ABSOLUTE RULE #1, NEVER VIOLATE: ` +
-      `This image belongs to the ${brand} brand. ` +
-      `The required dominant color palette is: ${knownColors}. ` +
-      `You MUST use these EXACT colors for the background, lighting, atmosphere, and overall mood. ` +
-      `NEVER use cool blues, purples, dark moody/grey tones, or any color that conflicts with this palette. ` +
-      `If the source image is warm and golden, every pixel of the variation must also reflect warm golden tones. ` +
-      `Clothing and outfit colors on the subject must remain exactly as shown in the source image.`
+function buildColorLock(
+  brand: string,
+  sourceColors: string[] = [],
+  sourceRecipe?: SourceRecipe | null,
+): string {
+  const parts: string[] = ['⚠️ COLOR LOCK — ABSOLUTE RULE #1, NEVER VIOLATE:'];
+
+  if (sourceColors.length > 0) {
+    parts.push(
+      `The source image's dominant colors are: ${sourceColors.join(', ')}. ` +
+      `You MUST reproduce these EXACT colors in the variation. ` +
+      `Do NOT introduce any dominant color outside this set.`
     );
   }
 
-  return (
-    `⚠️ COLOR LOCK — ABSOLUTE RULE #1, NEVER VIOLATE: ` +
-    `Study the dominant color palette in the source image very carefully before generating. ` +
-    `Identify the key colors: the background tones, lighting color, and atmospheric palette. ` +
-    `You MUST replicate those exact dominant colors in the variation. ` +
-    `Do NOT introduce new dominant colors not prominent in the source. ` +
-    `Clothing and outfit colors on the subject must remain exactly as shown in the source image.`
-  );
+  if (sourceRecipe) {
+    const recipeParts: string[] = [];
+    if (sourceRecipe.lighting)   recipeParts.push(`lighting: ${sourceRecipe.lighting}`);
+    if (sourceRecipe.mood)       recipeParts.push(`mood: ${sourceRecipe.mood}`);
+    if (sourceRecipe.background) recipeParts.push(`background: ${sourceRecipe.background}`);
+    if (recipeParts.length > 0) {
+      parts.push(`Source image recipe — preserve exactly: ${recipeParts.join('; ')}.`);
+    }
+  }
+
+  const knownColors = brand ? getBrandColorDescription(brand) : '';
+  if (knownColors) {
+    parts.push(`Brand context (secondary reference only): ${brand} uses ${knownColors}.`);
+  }
+
+  if (sourceColors.length === 0 && !sourceRecipe) {
+    parts.push(
+      `Study the dominant color palette in the source image very carefully before generating. ` +
+      `Identify the key colors: background tones, lighting color, and atmospheric palette. ` +
+      `You MUST replicate those exact dominant colors in the variation. ` +
+      `Do NOT introduce new dominant colors not prominent in the source.`
+    );
+  }
+
+  parts.push(`Clothing and outfit colors on the subject must remain exactly as shown in the source image.`);
+
+  return parts.join(' ');
 }
 
 // ------------------------------------------------------------------

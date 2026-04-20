@@ -408,6 +408,8 @@ function Lightbox({
   const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
   const [variationError,      setVariationError]      = useState<string | null>(null);
   const [generatedVariations, setGeneratedVariations] = useState<string[]>([]);
+  // Engine label per variation URL — 'gpt' or 'gem', parallel to generatedVariations
+  const [variationEngines,    setVariationEngines]    = useState<string[]>([]);
   const [variationElapsed,    setVariationElapsed]    = useState(0);
   const variationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Engine selector: choose ChatGPT, Gemini, or Both

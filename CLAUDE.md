@@ -177,16 +177,15 @@ Examples:
 
 ### Don't
 - **Don't use n8n** — it is no longer part of the stack
+- **Don't use Airtable** — fully replaced by Supabase
 - **Don't hardcode prompt data**
 - **Don't break existing features**
-- **Don't touch other Airtable tables** — only "Web Image Analysis"
 - Don't assume advanced knowledge — over-explain everything
 
 ---
 
 ## Known Constraints
-- Airtable rate limit: 5 requests/sec
-- Airtable free plan: 1,000 records (at 109 now — plenty of room)
+- Supabase free plan: 500MB DB, 2GB bandwidth
 - Vercel hobby: 10-second timeout
 - Developer is a beginner — always explain, always keep it simple
 

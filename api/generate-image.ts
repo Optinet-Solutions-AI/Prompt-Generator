@@ -187,12 +187,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Inject brand-mandatory style rules into the prompt
     const enrichedPrompt = enrichPromptWithBrandStyle(prompt, brand || '');
 
-    // ChatGPT prefix — gpt-image-1 responds to natural language quality descriptors
-    const CHATGPT_PREFIX = 'Photorealistic, cinematic photography, hyperrealistic render, ultra-sharp focus, professional DSLR quality. ';
+    // ChatGPT (gpt-image-1) understands natural language well — keep the prefix short and neutral.
+    // Avoid "photography/DSLR" language for character/mascot art — it produces uncanny results.
+    const CHATGPT_PREFIX = 'Premium brand character art, cinematic lighting, sharp and polished. ';
     const finalPrompt = CHATGPT_PREFIX + enrichedPrompt;
 
-    // Gemini/Imagen prefix — Imagen responds well to comma-separated quality tags up front
-    const GEMINI_PREFIX = 'photorealistic, hyperrealistic, cinematic lighting, sharp focus, high detail, 8K resolution, professional color grading, dramatic composition, volumetric atmosphere, award-winning photography. ';
+    // Gemini/Imagen responds to quality tags, but avoid photography terms for character art.
+    const GEMINI_PREFIX = 'highly detailed, cinematic lighting, sharp focus, premium brand illustration quality, dramatic composition, rich colors, professional color grading, clean render. ';
     const geminiPrompt = GEMINI_PREFIX + enrichedPrompt;
 
     // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────

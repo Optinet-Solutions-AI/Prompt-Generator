@@ -202,10 +202,9 @@ Examples:
 
 **App:** Multi Brand Prompt Generator
 **Repo:** github.com/Optinet-Solutions-AI/Prompt-Generator
-**Prompt table:** "Web Image Analysis" in Airtable
+**Database:** Supabase — reference prompts table + `liked_images` (favorites). Airtable is gone.
 **Image storage:** Google Drive (via GCP Cloud Run), cached in localStorage
-**Favorites:** Supabase `liked_images` table
-**Rule:** Don't break anything that already works. n8n is gone — do not use it.
+**Rule:** Don't break anything that already works. n8n and Airtable are gone — do not use either.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

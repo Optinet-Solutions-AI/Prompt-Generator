@@ -497,7 +497,7 @@ function Lightbox({
               provider:     'variation',
               aspect_ratio: image.aspect_ratio || '',
               resolution:   image.resolution   || '1K',
-              filename:     `variation-${variationType}-${vidx + 1}-${Date.now()}.png`,
+              filename:     buildVariationFilename(vidx, variationEngines[vidx]),
             }) as GeneratedImage;
             onNewImageAdded(newImg);
             setSavedVariationIdxs(prev => new Set([...prev, vidx]));

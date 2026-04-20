@@ -1065,6 +1065,11 @@ export function ResultDisplay({
             onImageUpdated={handleImageUpdated}
             resolution={resolution}
             brand={metadata?.brand}
+            sourceRecipe={metadata ? {
+              lighting:   metadata.lighting   || undefined,
+              mood:       metadata.mood       || undefined,
+              background: metadata.background || undefined,
+            } : undefined}
             persistedVariations={persistedVariations}
             onVariationsChange={setPersistedVariations}
           />

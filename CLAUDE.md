@@ -89,7 +89,7 @@ Stores images the user has hearted/liked. This table is separate from reference 
 │            FRONTEND                  │
 │                                      │
 │  Brand Dropdown → Reference Dropdown │
-│         ↓  (fetched from Airtable)   │
+│         ↓  (fetched from Supabase)   │
 │  Reference Prompt Data display       │
 │         ↓                            │
 │  Settings (position, ratio, theme)   │

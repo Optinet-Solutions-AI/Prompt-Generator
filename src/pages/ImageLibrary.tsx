@@ -579,12 +579,20 @@ function Lightbox({
     }
   };
 
+  // Build a descriptive filename: variation-gpt-subtle-fortuneplay-1-timestamp.png
+  const buildVariationFilename = (vidx: number, engine?: string) => {
+    const brand = (image.brand_name || activeBrand || '').toLowerCase().replace(/\s+/g, '');
+    const eng   = engine || 'gpt';
+    return `variation-${eng}-${variationType}${brand ? `-${brand}` : ''}-${vidx + 1}-${Date.now()}.png`;
+  };
+
   const handleGenerateVariations = async () => {
     const srcUrl = editedImgUrl || image.public_url;
     if (!srcUrl) return;
     setIsGeneratingVariations(true);
     setVariationError(null);
     setGeneratedVariations([]);
+    setVariationEngines([]);
     setVariationElapsed(0);
     variationIntervalRef.current = setInterval(() => setVariationElapsed(p => p + 1), 1000);
 

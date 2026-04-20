@@ -55,29 +55,29 @@ This is a **Multi Brand Prompt Generator** web app. Users select a brand, pick a
 
 ---
 
-## The Only Airtable Table That Matters
+## The Supabase Tables
 
-### Table: "Web Image Analysis"
+### Reference Prompts Table (name TBC — check Supabase dashboard)
 
-This is the **only table** the prompt generator app uses. Ignore all other tables in the base.
+This is the primary table the prompt generator uses for reference prompt data.
 
-Base ID: `appp9iLlSQTlnfytA`
+| Field Name        | Example                                           |
+|-------------------|---------------------------------------------------|
+| image_name        | sj_thursday-boost_1328x784.webp                    |
+| prompt_name       | "Stormcraft Arrival", "Neon Astronaut"             |
+| brand_name        | SpinJo, Roosterbet, FortunePlay, LuckyVibe, SpinsUp |
+| format_layout     | "Wide cinematic frame (~16:9)..."                  |
+| primary_object    | "A massive circular wheel-like device..."          |
+| subject           | "A single adult human in a futuristic spacesuit..."|
+| lighting          | "Primary light is the machine's neon-purple rim..."|
+| mood              | "Futuristic and mysterious..."                     |
+| background        | "Dark spacecraft or sci-fi industrial interior..." |
+| positive_prompt   | Full positive prompt for image generation           |
+| negative_prompt   | What to exclude (no text, logos, watermarks, etc.)  |
 
-| Field Name        | Type            | Example                                           |
-|-------------------|-----------------|---------------------------------------------------|
-| image_name        | Single Line     | sj_thursday-boost_1328x784.webp                    |
-| prompt_name       | Single Line     | "Stormcraft Arrival", "Neon Astronaut"             |
-| brand_name        | Single Line     | SpinJo, Roosterbet, FortunePlay, LuckyVibe, SpinsUp |
-| format_layout     | Long Text       | "Wide cinematic frame (~16:9)..."                  |
-| primary_object    | Long Text       | "A massive circular wheel-like device..."          |
-| subject           | Long Text       | "A single adult human in a futuristic spacesuit..."|
-| lighting          | Long Text       | "Primary light is the machine's neon-purple rim..."|
-| mood              | Long Text       | "Futuristic and mysterious..."                     |
-| Background        | Long Text       | "Dark spacecraft or sci-fi industrial interior..." |
-| positive_prompt   | Long Text       | Full positive prompt for image generation           |
-| negative_prompt   | Long Text       | What to exclude (no text, logos, watermarks, etc.)  |
+### Favorites Table: `liked_images`
 
-**109 records currently.** New prompts added via the app will also go to this same table.
+Stores images the user has hearted/liked. This table is separate from reference prompts.
 
 ---
 

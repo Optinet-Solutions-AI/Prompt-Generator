@@ -187,10 +187,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Inject brand-mandatory style rules into the prompt
     const enrichedPrompt = enrichPromptWithBrandStyle(prompt, brand || '');
 
-    // Prepend photorealism instruction so gpt-image-1 renders a photograph,
-    // not a painting or digital art style.
-    const PHOTOREALISM_PREFIX = 'Photorealistic, cinematic photography, hyperrealistic render, ultra-sharp focus, professional DSLR quality. ';
-    const finalPrompt = PHOTOREALISM_PREFIX + enrichedPrompt;
+    // ChatGPT prefix — gpt-image-1 responds to natural language quality descriptors
+    const CHATGPT_PREFIX = 'Photorealistic, cinematic photography, hyperrealistic render, ultra-sharp focus, professional DSLR quality. ';
+    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt;
+
+    // Gemini/Imagen prefix — Imagen responds well to comma-separated quality tags up front
+    const GEMINI_PREFIX = 'photorealistic, hyperrealistic, cinematic lighting, sharp focus, high detail, 8K resolution, professional color grading, dramatic composition, volumetric atmosphere, award-winning photography. ';
+    const geminiPrompt = GEMINI_PREFIX + enrichedPrompt;
 
     // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────
     // Uses gpt-image-1 via Vercel's OPENAI_API_KEY — no Cloud Run needed.

@@ -89,15 +89,11 @@ For the "positive_prompt" field specifically — this is the actual text sent to
 - Scene and setting: the environment, surfaces, props, and depth layers (foreground, midground, background).
 - Lighting: describe the light sources, direction, colors, and effects — e.g. "a single dramatic key light from upper-left casting deep shadows across the face, with a red neon rim light outlining the silhouette from behind".
 - Atmosphere: mood-enhancing details like smoke haze, bokeh background, reflections on wet floor, floating particles, volumetric light shafts.
-- Visual render quality: describe the visual quality style appropriate to the content type:
-  • For anthropomorphic mascot characters (rabbit, lion, rooster, etc.): use "hyperrealistic CGI render, sharp photorealistic fur and fabric detail, like a premium animated film or high-end game cinematic"
-  • For real human characters (athletes, DJs, casino guests): use "cinematic photorealistic, sharp focus, like a high-end editorial photograph or film still"
-  • For environments, objects, or scenes (casino tables, trophies, spaceships, weapons): use "photorealistic product render, crisp fine detail, dramatic studio or environmental lighting"
-  Do NOT say "character art", "illustration", "painting", "digital art", or "artwork" — these produce a painted/illustrated look instead of a sharp cinematic render.
+- Visual render quality: always end the description with "hyperrealistic cinematic render quality, sharp photorealistic details, dramatic professional lighting, no text, no watermarks, no logos." This applies to every content type — mascot characters, real humans, objects, and scenes alike.
+  Do NOT use words like "character art", "illustration", "painting", "digital art", or "artwork" — these produce a painted look instead of a sharp cinematic render.
   Do NOT use software names like octane, blender, or unreal.
-- End with: "sharp focus, hyperrealistic render quality, cinematic lighting, professional color grading, no text, no watermarks, no logos."
 
-The prompt should read like a world-class CGI director briefing a render artist — vivid, specific, and completely visual. No vague adjectives.
+The prompt should be vivid, specific, and completely visual. No vague adjectives.
 
 IMPORTANT — ASPECT RATIO RULE:
 Never mention a specific aspect ratio, pixel dimensions, or canvas shape (e.g. do NOT write "16:9", "landscape", "portrait", "square", "wide cinematic frame", "1920x1080", etc.) anywhere in ANY field. The user controls the output dimensions separately — the prompt must work at any ratio. Describe composition using subject placement and depth only (e.g. "centered in frame", "positioned left of center", "foreground subject against a deep background").

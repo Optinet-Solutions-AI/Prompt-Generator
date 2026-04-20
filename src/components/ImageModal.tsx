@@ -420,7 +420,11 @@ export function ImageModal({
             provider:     'variation',
             aspect_ratio: 'varied',
             resolution:   resolution || '1K',
-            filename:     `variation-${variation.variationMode}-${variation.variationIndex}-${Date.now()}.png`,
+            filename:     (() => {
+              const eng  = variation.variationEngine === 'imagen' ? 'gem' : 'gpt';
+              const brandSlug = (brand || '').toLowerCase().replace(/\s+/g, '');
+              return `variation-${eng}-${variation.variationMode}${brandSlug ? `-${brandSlug}` : ''}-${variation.variationIndex}-${Date.now()}.png`;
+            })(),
           });
           varStoredIdsRef.current.set(variation.imageId, stored.id);
         } catch (err) { console.error('Auto-save variation failed:', err); }

@@ -125,10 +125,10 @@ Stores images the user has hearted/liked. This table is separate from reference 
 
 ### Golden Rules
 1. **No n8n** — n8n is no longer part of the stack. Do not add n8n webhooks.
-2. **Airtable is the MEMORY** — "Web Image Analysis" table is the single source of truth for prompts.
-3. **Google Drive is image storage** — generated images go to Drive via GCP Cloud Run, cached in localStorage.
-4. **Supabase is favorites only** — only the `liked_images` table matters.
-5. **No hardcoded prompts** — Reference dropdown loads from Airtable.
+2. **No Airtable** — Airtable has been fully replaced by Supabase. Do not add any Airtable API calls.
+3. **Supabase is the database** — reference prompts AND favorites (`liked_images`) both live in Supabase.
+4. **Google Drive is image storage** — generated images go to Drive via GCP Cloud Run, cached in localStorage.
+5. **No hardcoded prompts** — Reference dropdown loads from Supabase.
 
 ---
 

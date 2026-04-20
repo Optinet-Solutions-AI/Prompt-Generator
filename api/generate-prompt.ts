@@ -112,7 +112,7 @@ ${brandColorRule}
 ${brandSceneMandate}
 6) MIDJOURNEY FLAG
 Append exactly ONE --ar flag at the very end ONLY if Aspect Ratio is not "default":
-1:2->--ar 1:2 | 9:16->--ar 9:16 | 3:4->--ar 3:4 | 4:5->--ar 4:5 | 1:1->--ar 1:1 | 4:3->--ar 4:3 | 3:2->--ar 3:2 | 16:9->--ar 16:9 | 2:1->--ar 2:1 | 21:9->--ar 21:9
+1:2->--ar 1:2 | 6:11->--ar 6:11 | 9:16->--ar 9:16 | 2:3->--ar 2:3 | 3:4->--ar 3:4 | 4:5->--ar 4:5 | 5:6->--ar 5:6 | 1:1->--ar 1:1 | 6:5->--ar 6:5 | 5:4->--ar 5:4 | 4:3->--ar 4:3 | 3:2->--ar 3:2 | 16:9->--ar 16:9 | 2:1->--ar 2:1 | 21:9->--ar 21:9
 
 OUTPUT
 Return ONLY the final edited prompt text. No explanations, no labels, no extra text.`;

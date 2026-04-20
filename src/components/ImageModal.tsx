@@ -66,6 +66,7 @@ export function ImageModal({
   likedImages,
   resolution = '1K',
   brand,
+  sourceRecipe,
   persistedVariations = [],
   onVariationsChange,
 }: ImageModalProps) {

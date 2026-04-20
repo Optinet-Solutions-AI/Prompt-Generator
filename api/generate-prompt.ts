@@ -125,7 +125,7 @@ Return ONLY the final edited prompt text. No explanations, no labels, no extra t
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: userMessage }],
       }),
     });

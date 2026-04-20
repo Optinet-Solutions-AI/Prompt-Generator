@@ -101,7 +101,7 @@ Return ONLY valid JSON with exactly these keys, no extra text, no markdown:
         `${i + 1}. ${r.name}:\n${r.positive_prompt}`)
       .join('\n\n');
 
-    const userPrompt = `Brand: ${brand}\n\n${brandColorRule}${brandSceneMandate}\n\nReference prompts to blend:\n${refList}\n\nCreate a new unique prompt inspired by these references that is visually fresh but unmistakably ${brand} in style, colors, and atmosphere.`;
+    const userPrompt = `Brand: ${brand}\n\n${brandColorRule}${brandSceneMandate}\n\nReference prompts to blend:\n${refList}\n\nCreate a new unique prompt inspired by these references. KEEP the same subject(s), character(s), and mascot(s) from the references — only the scene, pose, composition, and setting should be new. The result must be visually fresh but unmistakably ${brand} in style, AND clearly from the same content series as these references.`;
 
     const raw = await chatCompletion({
       systemPrompt,

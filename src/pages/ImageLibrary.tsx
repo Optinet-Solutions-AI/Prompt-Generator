@@ -1136,7 +1136,7 @@ function Lightbox({
                       const blob = await res.blob();
                       const a = document.createElement('a');
                       a.href = window.URL.createObjectURL(blob);
-                      a.download = `variation-${variationViewerIdx + 1}-${Date.now()}.png`;
+                      a.download = buildVariationFilename(variationViewerIdx, variationEngines[variationViewerIdx]);
                       document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     } catch { window.open(variationViewerUrl, '_blank'); }
                   }}

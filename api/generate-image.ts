@@ -79,6 +79,35 @@ const BRAND_STYLES: Record<string, string> = {
     'Sunset lighting is required with a warm beach-like environment. ' +
     'Sand MUST be visibly integrated into the scene — even if the setting is a grass stadium, sand must be present. ' +
     'Palm trees MUST appear in the background. The atmosphere should feel tropical and vibrant.',
+  spinjo:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST have a sci-fi futuristic atmosphere: deep space blacks, electric purple and cyan lighting, ' +
+    'neon glow effects, and a cosmic energy field surrounding the subject. ' +
+    'The mood must feel high-tech, otherworldly, and electrifying.',
+  spinsup:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST have a magical showman aesthetic: neon purple and electric magenta lighting, ' +
+    'sparkling circus-bright particle effects, and a sense of theatrical spectacle. ' +
+    'The atmosphere must feel magical, mystical, and larger-than-life.',
+  playmojo:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST have a dark cinematic noir look: deep blacks, bold white highlights, sharp red accent lighting. ' +
+    'The atmosphere must feel sleek, stylish, and high-contrast — like a cinematic thriller still.',
+  lucky7even:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST exude premium luxury: deep purple and violet lighting, metallic gold accents, ' +
+    'and an atmosphere of exclusivity and high-stakes elegance. ' +
+    'Every element should feel rich, polished, and premium.',
+  novadreams:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST have a cosmic space-age feel: electric cyan and deep navy lighting, ' +
+    'cosmic starfield or nebula elements in the background, and a futuristic dreamlike quality. ' +
+    'The atmosphere should feel infinite, ethereal, and visually stunning.',
+  rollero:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST have a warrior combat aesthetic: deep crimson red and charcoal grey tones, ' +
+    'dramatic high-contrast lighting, and a powerful intense atmosphere. ' +
+    'The mood must feel fierce, bold, and battle-ready.',
 };
 
 /**

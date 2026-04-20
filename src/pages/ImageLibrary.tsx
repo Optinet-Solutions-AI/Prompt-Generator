@@ -602,6 +602,7 @@ function Lightbox({
 
     try {
       let urls: string[] = [];
+      let engines: string[] = [];
 
       if (selectedEngine === 'compare') {
         // Call both ChatGPT + Gemini in parallel
@@ -630,8 +631,8 @@ function Lightbox({
         // Interleave: chatgpt[0], gemini[0], chatgpt[1], gemini[1]
         const maxLen = Math.max(openaiUrls.length, imagenUrls.length);
         for (let i = 0; i < maxLen; i++) {
-          if (openaiUrls[i]) urls.push(openaiUrls[i]);
-          if (imagenUrls[i]) urls.push(imagenUrls[i]);
+          if (openaiUrls[i]) { urls.push(openaiUrls[i]); engines.push('gpt'); }
+          if (imagenUrls[i]) { urls.push(imagenUrls[i]); engines.push('gem'); }
         }
 
         if (urls.length === 0) throw new Error(`Both engines failed:\n${errors.join('\n')}`);
@@ -641,6 +642,7 @@ function Lightbox({
         const endpoint = selectedEngine === 'gemini'
           ? '/api/generate-variations-imagen'
           : '/api/generate-variations';
+        const engineLabel = selectedEngine === 'gemini' ? 'gem' : 'gpt';
         const resp = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -654,10 +656,12 @@ function Lightbox({
         urls = (data.variations ?? [])
           .map((v: { imageUrl?: string }) => v.imageUrl)
           .filter(Boolean) as string[];
+        engines = urls.map(() => engineLabel);
       }
 
       if (urls.length === 0) throw new Error('No variations were generated. Please try again.');
       setGeneratedVariations(urls);
+      setVariationEngines(engines);
     } catch (err) {
       setVariationError(err instanceof Error ? err.message : 'Failed to generate variations');
     } finally {

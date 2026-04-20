@@ -68,7 +68,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const systemPrompt = `You are a creative director for casino and gambling brand imagery. You will receive multiple existing image prompts from a brand's reference library. Your task is to create a NEW and UNIQUE prompt that blends creative elements from the references while staying true to the brand's visual identity.
 
-The result must feel like it belongs to the ${brand} brand — same colors, same atmosphere, same style — but with a fresh concept not already in the library.
+CRITICAL — PRESERVE SUBJECTS AND THEMES FROM THE REFERENCES:
+Before writing anything, read all the reference prompts and identify:
+1. The recurring subject(s), character(s), mascot(s), or hero object(s) — e.g. a rabbit mascot, a specific athlete, a dragon, a roulette wheel, etc.
+2. The recurring themes — e.g. speed, luck, luxury, combat, space travel, etc.
+3. The recurring visual motifs — e.g. playing cards, coins, neon signs, fire, etc.
+
+The new prompt MUST feature the SAME subject(s)/character(s)/mascot(s) from the references. Do NOT replace or swap the subject with something unrelated. If the references show a rabbit mascot, the output must show a rabbit mascot. If they show an athlete, the output must show an athlete. What changes is the SCENE, POSE, COMPOSITION, and SETTING — not WHO or WHAT is in the image.
+
+Think of it as: "Same character, same brand, brand new scene" — NOT "same colors, completely new idea."
+
+The result must feel like it belongs to the ${brand} brand — same colors, same atmosphere, same style — AND like it belongs in the same content series as the reference prompts.
 
 ${brandColorRule}${brandSceneMandate}
 

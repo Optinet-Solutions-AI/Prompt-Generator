@@ -29,9 +29,9 @@ This is a **Multi Brand Prompt Generator** web app. Users select a brand, pick a
 1. User selects a BRAND (SpinJo, Roosterbet, FortunePlay, LuckyVibe, SpinsUp, etc.)
      ↓
 2. User selects a REFERENCE prompt from dropdown
-   (loaded dynamically from Airtable)
+   (loaded dynamically from Supabase)
      ↓
-3. App fetches that reference prompt's dissected data FROM AIRTABLE:
+3. App fetches that reference prompt's dissected data FROM SUPABASE:
    (Format Layout, Primary Object, Subject, Lighting, Mood, Background, etc.)
    Shown in the expandable "Reference Prompt Data" section
      ↓

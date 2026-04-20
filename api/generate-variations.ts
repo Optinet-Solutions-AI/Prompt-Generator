@@ -374,7 +374,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 3. Build spectrum prompts
     // ------------------------------------------------------------------
     const numVariations = Math.min(Number(count) || 4, 4);
-    const prompts = buildPromptSpectrum(mode, guidance, brand);
+    const prompts = buildPromptSpectrum(mode, guidance, brand, sourceColors, sourceRecipe);
     const activePrompts = prompts.slice(0, numVariations);
 
     console.log(`[generate-variations] generating ${numVariations} variations`);

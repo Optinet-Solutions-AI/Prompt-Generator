@@ -94,15 +94,18 @@ For the "positive_prompt" field specifically — this is the actual text sent to
 
 The prompt should read like a world-class casino game art director briefing an illustrator — vivid, specific, and completely visual. No vague adjectives.
 
+IMPORTANT — ASPECT RATIO RULE:
+Never mention a specific aspect ratio, pixel dimensions, or canvas shape (e.g. do NOT write "16:9", "landscape", "portrait", "square", "wide cinematic frame", "1920x1080", etc.) anywhere in ANY field. The user controls the output dimensions separately — the prompt must work at any ratio. Describe composition using subject placement and depth only (e.g. "centered in frame", "positioned left of center", "foreground subject against a deep background").
+
 Return ONLY valid JSON with exactly these keys, no extra text, no markdown:
 {
-  "format_layout": "Describe the frame, aspect ratio, composition layout, and how elements are positioned in detail. Multiple sentences.",
+  "format_layout": "Describe the composition layout and how elements are positioned — subject placement, foreground/midground/background layers, camera angle, depth. Do NOT mention any specific aspect ratio or canvas size.",
   "primary_object": "Describe the hero/main object in rich visual detail — material, size, style, decorative elements, proportions. Multiple sentences.",
   "subject": "Describe the subject/character in full detail — pose, clothing, accessories, expression, placement in frame. Multiple sentences.",
   "lighting": "Describe all light sources, colors, direction, shadows, highlights, glow effects, and mood they create. Multiple sentences.",
   "mood": "Describe the emotional atmosphere, feeling, energy, and visual tone in detail. Multiple sentences.",
   "background": "Describe the environment, depth, textures, colors, and background elements in detail. Multiple sentences.",
-  "positive_prompt": "REQUIRED: Write 5–8 sentences of vivid, natural language art direction. Describe the character, scene, lighting, atmosphere, and visual quality style. No comma-tag lists. No software names. Write it so a skilled illustrator could paint exactly this scene from your words alone.",
+  "positive_prompt": "REQUIRED: Write 5–8 sentences of vivid, natural language art direction. Describe the character, scene, lighting, atmosphere, and visual quality style. No comma-tag lists. No software names. Do NOT mention any aspect ratio, canvas size, or orientation. Write it so a skilled illustrator could paint exactly this scene at any canvas size from your words alone.",
   "negative_prompt": "bad anatomy, deformed hands, extra limbs, malformed face, poorly rendered fur, plastic-looking skin, text, watermarks, logos, blurry, overexposed, flat lighting, muddy colors, low resolution, jpeg artifacts, amateur render quality, multiple subjects unless intentional."
 }`;
 

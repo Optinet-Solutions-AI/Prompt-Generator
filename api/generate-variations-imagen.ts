@@ -173,23 +173,36 @@ function buildColorLock(
 // ------------------------------------------------------------------
 // Build the spectrum of 4 prompts + temperatures for Gemini.
 //
-// KEY CHANGES from v2:
-//   - COLOR LOCK is the very first line of every prompt
-//   - Max temperature is 0.75 (was 1.0) — Gemini drifts much more at high temps
-//   - Tier prompts only allow structural changes, never color changes
-//   - T2 no longer suggests "cooler studio light" — only direction/softness
+// v4 changes:
+//   - buildColorLock now takes extracted source colors + recipe.
+//   - HARD NO block appended to every prompt.
+//   - Subtle mode: [T1, T1, T1, T2] — more faithful angle options.
+//     Temperatures lowered further (0.15 / 0.25) for subtle.
+//   - Strong mode: T4 rewritten — no "new composition and energy".
+//   - Temperatures remain capped at 0.6 (was 0.75) to reduce drift.
 // ------------------------------------------------------------------
 function buildGeminiPromptSpectrum(
   mode: string,
   guidance: string,
-  brand: string
+  brand: string,
+  sourceColors: string[] = [],
+  sourceRecipe?: SourceRecipe | null,
 ): Array<{ prompt: string; temperature: number }> {
-  const colorLock    = buildColorLock(brand);
+  const colorLock    = buildColorLock(brand, sourceColors, sourceRecipe);
   const criticalRule = 'CRITICAL: Generate a FULL NEW IMAGE at the same dimensions and aspect ratio as the source. Do NOT crop, zoom, or filter the input — create a genuinely new image.';
   const qualityRule  = 'Photorealistic, high detail, no text, no logos. Match or exceed original quality.';
   const guidanceSuffix = guidance ? ` User direction: ${guidance}.` : '';
 
-  // T1 — Camera angle / perspective (temp 0.25)
+  const hardNo = [
+    'HARD NO — these changes are forbidden:',
+    'Do NOT change the lighting color temperature (warm stays warm, cool stays cool, dark stays dark).',
+    'Do NOT brighten a dark/moody image or darken a bright one.',
+    'Do NOT replace the background material or setting type.',
+    'Do NOT shift warm tones cool, or cool tones warm.',
+    'Do NOT add any color that was not already dominant in the source image.',
+  ].join(' ');
+
+  // T1 — Camera angle / perspective
   const t1 = {
     prompt: [
       colorLock,
@@ -198,24 +211,26 @@ function buildGeminiPromptSpectrum(
       'Keep the exact same subject, lighting color, color palette, and all visual elements.',
       'Only change: the viewing angle or how the subject is framed in the shot.',
       qualityRule,
+      hardNo,
     ].join(' ') + guidanceSuffix,
-    temperature: 0.25,
+    temperature: 0.15,
   };
 
-  // T2 — Subject pose / expression (temp 0.4)
+  // T2 — Subject pose / expression
   const t2 = {
     prompt: [
       colorLock,
       criticalRule,
       'Generate a NEW image that is a variation of the reference, where the subject has a different pose or expression.',
-      'Keep the exact same background, lighting color, color palette, and brand aesthetic.',
-      'Only change: the subject\'s pose, stance, or facial expression.',
+      'Keep the exact same background, lighting color, color palette, and atmosphere.',
+      'Only change: the subject\'s pose, stance, or facial expression — everything else stays identical.',
       qualityRule,
+      hardNo,
     ].join(' ') + guidanceSuffix,
-    temperature: 0.4,
+    temperature: 0.25,
   };
 
-  // T3 — Background detail variation (temp 0.6)
+  // T3 — Background detail variation
   const t3 = {
     prompt: [
       colorLock,
@@ -224,28 +239,31 @@ function buildGeminiPromptSpectrum(
       'Keep the same subject, subject pose, lighting color, and color palette.',
       'Only change: background elements and arrangement — same dominant colors but different background details.',
       qualityRule,
+      hardNo,
     ].join(' ') + guidanceSuffix,
-    temperature: 0.6,
+    temperature: 0.4,
   };
 
-  // T4 — Creative alternate (temp 0.75)
+  // T4 — Strong creative: pose + framing change, scene stays the same.
+  // Deliberately NOT "new composition and energy" — that was causing drift.
   const t4 = {
     prompt: [
       colorLock,
       criticalRule,
-      'Generate a NEW image that is a fresh creative alternate version of the reference — same brand concept, different composition.',
-      'The color palette and brand aesthetic MUST match the source exactly.',
-      'Change: the overall layout, subject pose, and background composition. Keep brand colors absolute.',
+      'Generate a variation with a significantly different subject pose and camera framing.',
+      'Keep the EXACT same lighting, color palette, background material, and overall mood.',
+      'Do NOT reinvent the scene — only the pose and framing change. It should feel like the same campaign shot from a different angle with a different subject stance.',
       qualityRule,
+      hardNo,
     ].join(' ') + guidanceSuffix,
-    temperature: 0.75,
+    temperature: 0.6,
   };
 
   // Mode → tier selection
   if (mode === 'subtle') {
-    return [t1, t1, t2, t2];
+    return [t1, t1, t1, t2];
   }
-  return [t2, t3, t3, t4];
+  return [t2, t2, t3, t4];
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────

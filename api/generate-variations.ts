@@ -49,32 +49,59 @@ function getBrandColorDescription(brand: string): string {
 
 // ------------------------------------------------------------------
 // COLOR LOCK — the single most important rule in every prompt.
-// This always comes FIRST so the model cannot miss it.
+// Priority: (1) actual extracted source colors, (2) recipe fields,
+// (3) brand palette hint. Source image always wins over brand average.
 // ------------------------------------------------------------------
-function buildColorLock(brand: string): string {
-  const knownColors = brand ? getBrandColorDescription(brand) : '';
+interface SourceRecipe {
+  lighting?: string;
+  mood?: string;
+  background?: string;
+}
 
-  if (knownColors) {
-    return (
-      `⚠️ COLOR LOCK — ABSOLUTE RULE, NEVER VIOLATE: ` +
-      `This image belongs to the ${brand} brand whose signature palette is: ${knownColors}. ` +
-      `You MUST replicate these EXACT dominant colors in the variation. ` +
-      `The background, lighting, and atmosphere MUST stay within this palette. ` +
-      `NEVER switch to cool blues, purples, dark moody tones, or any color NOT present in the source image. ` +
-      `If the source image is warm and golden, the variation MUST also be warm and golden. ` +
-      `Clothing and outfit colors on the subject must remain exactly as in the source.`
+function buildColorLock(
+  brand: string,
+  sourceColors: string[] = [],
+  sourceRecipe?: SourceRecipe | null,
+): string {
+  const parts: string[] = ['⚠️ COLOR LOCK — ABSOLUTE RULE, NEVER VIOLATE:'];
+
+  if (sourceColors.length > 0) {
+    // Primary: lock to the actual pixel colors of the source image
+    parts.push(
+      `The source image's dominant colors are: ${sourceColors.join(', ')}. ` +
+      `You MUST reproduce these EXACT colors in the variation. ` +
+      `Do NOT introduce any dominant color outside this set.`
     );
   }
 
-  // Fallback: no known brand — instruct model to derive palette from source image
-  return (
-    `⚠️ COLOR LOCK — ABSOLUTE RULE, NEVER VIOLATE: ` +
-    `Study the dominant color palette in the source image very carefully. ` +
-    `Whatever those dominant colors are (the background tones, lighting color, atmosphere), ` +
-    `you MUST preserve them exactly in the variation. ` +
-    `Do NOT introduce dominant colors that were not prominent in the source image. ` +
-    `Clothing and outfit colors on the subject must remain exactly as in the source.`
-  );
+  if (sourceRecipe) {
+    const recipeParts: string[] = [];
+    if (sourceRecipe.lighting)   recipeParts.push(`lighting: ${sourceRecipe.lighting}`);
+    if (sourceRecipe.mood)       recipeParts.push(`mood: ${sourceRecipe.mood}`);
+    if (sourceRecipe.background) recipeParts.push(`background: ${sourceRecipe.background}`);
+    if (recipeParts.length > 0) {
+      parts.push(`Source image recipe — preserve exactly: ${recipeParts.join('; ')}.`);
+    }
+  }
+
+  const knownColors = brand ? getBrandColorDescription(brand) : '';
+  if (knownColors) {
+    // Demoted to a secondary hint — the source image takes priority
+    parts.push(`Brand context (secondary reference only): ${brand} uses ${knownColors}.`);
+  }
+
+  if (sourceColors.length === 0 && !sourceRecipe) {
+    // Fallback: no extracted data — ask the model to infer from source
+    parts.push(
+      `Study the dominant colors, lighting, and atmosphere in the source image. ` +
+      `Preserve ALL of them exactly. Do NOT introduce colors, lighting tones, or mood not present in the source.`
+    );
+  }
+
+  // Outfit lock always applies
+  parts.push(`Clothing and outfit colors on the subject must remain exactly as in the source.`);
+
+  return parts.join(' ');
 }
 
 // ------------------------------------------------------------------

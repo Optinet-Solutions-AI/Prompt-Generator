@@ -202,15 +202,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (provider === 'chatgpt' && openaiKey) {
       console.log('[generate-image] Using OpenAI direct generation');
 
-      // Map aspect ratio to OpenAI image size
-      const sizeMap: Record<string, string> = {
-        '16:9': '1536x1024',
-        '9:16': '1024x1536',
-        '1:1':  '1024x1024',
-        '4:3':  '1536x1024',
-        '3:4':  '1024x1536',
-      };
-      const outputSize = sizeMap[aspectRatio] || '1536x1024';
+      // OpenAI gpt-image-1 only supports 3 pixel sizes:
+      //   1024x1024 (square), 1536x1024 (landscape), 1024x1536 (portrait)
+      // Map ANY user-selected ratio to the closest supported size by orientation.
+      function resolveOpenAISize(ratio: string): string {
+        // Exact matches first
+        const exact: Record<string, string> = {
+          '1:1': '1024x1024',
+        };
+        if (exact[ratio]) return exact[ratio];
+
+        // Parse "W:H" and decide by orientation
+        const parts = ratio.split(':');
+        if (parts.length === 2) {
+          const w = parseFloat(parts[0]);
+          const h = parseFloat(parts[1]);
+          if (!isNaN(w) && !isNaN(h) && h !== 0) {
+            const r = w / h;
+            if (r > 1) return '1536x1024'; // landscape
+            if (r < 1) return '1024x1536'; // portrait
+            return '1024x1024';            // square
+          }
+        }
+        return '1536x1024'; // safe fallback
+      }
+      const outputSize = resolveOpenAISize(aspectRatio);
 
       // Map resolution to quality
       const qualityMap: Record<string, 'low' | 'medium' | 'high'> = {

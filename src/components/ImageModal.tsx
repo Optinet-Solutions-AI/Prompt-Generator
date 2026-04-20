@@ -20,6 +20,12 @@ export interface GalleryImage {
   variationEngine?: 'openai' | 'imagen';
 }
 
+export interface SourceRecipe {
+  lighting?: string;
+  mood?: string;
+  background?: string;
+}
+
 interface ImageModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,6 +43,9 @@ interface ImageModalProps {
   likedImages?: Set<string>;
   resolution?: string;
   brand?: string;
+  // Structured prompt fields from the reference that created the source image.
+  // Passed to the variation endpoint so the AI knows exactly what to preserve.
+  sourceRecipe?: SourceRecipe;
   // Variations generated in a previous open session — restored when modal reopens
   persistedVariations?: GalleryImage[];
   onVariationsChange?: (variations: GalleryImage[]) => void;

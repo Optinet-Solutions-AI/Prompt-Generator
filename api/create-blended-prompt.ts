@@ -110,7 +110,7 @@ Return ONLY valid JSON with exactly these keys, no extra text, no markdown:
   "lighting": "Describe all light sources, colors, direction, shadows, highlights, glow effects, and mood they create. Multiple sentences.",
   "mood": "Describe the emotional atmosphere, feeling, energy, and visual tone in detail. Multiple sentences.",
   "background": "Describe the environment, depth, textures, colors, and background elements in detail. Multiple sentences.",
-  "positive_prompt": "REQUIRED: Write 5–8 sentences of vivid, natural language art direction. Describe the character, scene, lighting, atmosphere, and visual quality style. No comma-tag lists. No software names. Do NOT mention any aspect ratio, canvas size, or orientation. Write it so a skilled illustrator could paint exactly this scene at any canvas size from your words alone.",
+  "positive_prompt": "REQUIRED: Write 5–8 sentences of vivid, natural language art direction. Describe the character, scene, lighting, atmosphere, and visual render quality. No comma-tag lists. No software names. Do NOT mention any aspect ratio, canvas size, or orientation. Do NOT use words like illustration, painting, artwork, or digital art — the target output is a cinematic hyperrealistic render, not a painting.",
   "negative_prompt": "bad anatomy, deformed hands, extra limbs, malformed face, poorly rendered fur, plastic-looking skin, text, watermarks, logos, blurry, overexposed, flat lighting, muddy colors, low resolution, jpeg artifacts, amateur render quality, multiple subjects unless intentional."
 }`;
 

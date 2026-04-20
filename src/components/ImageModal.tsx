@@ -287,6 +287,11 @@ export function ImageModal({
     // In single-engine mode request 4 → gives a full spectrum of variation tiers.
     const variationCount = selectedEngine === 'compare' ? 2 : 4;
 
+    // Extract the actual dominant colors from the source image so the API can
+    // lock to THIS image's palette instead of the generic brand palette.
+    const sourceColors = await extractDominantColors(srcUrl).catch(() => []);
+    console.log('[variations] source colors extracted:', sourceColors);
+
     const body = JSON.stringify({
       imageUrl: srcUrl,
       mode: variationType,
@@ -294,6 +299,8 @@ export function ImageModal({
       count: variationCount,
       resolution,
       brand: brand || '',
+      sourceColors,
+      sourceRecipe: sourceRecipe ?? null,
     });
 
     try {

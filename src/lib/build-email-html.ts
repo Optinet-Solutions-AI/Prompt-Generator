@@ -379,8 +379,12 @@ export function buildEmailText(formData: EmailFormData, brand?: string, staticCo
   if (attrTxt) {
     lines.push(attrTxt);
   }
-  if (formData.unsubscribeUrl.trim()) {
-    lines.push(`To unsubscribe: ${safeUrl(formData.unsubscribeUrl)}`);
+  if (cfg.legal_text) {
+    lines.push(cfg.legal_text);
+  }
+  const unsubRaw = formData.unsubscribeUrl.trim() || (cfg.unsubscribe_url || '');
+  if (unsubRaw) {
+    lines.push(`To unsubscribe: ${safeUrl(unsubRaw)}`);
   }
 
   return lines.join('\n');

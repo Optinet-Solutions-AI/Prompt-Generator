@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Download, FileCode, Images, RefreshCw, Trash2, X,
+  ArrowLeft, Download, FileCode, Mail, Images, RefreshCw, Trash2, X,
   ChevronLeft, ChevronRight, Sparkles, Wand2, Bot, Cpu, Loader2, Plus, Save, Heart, Shuffle, Expand,
   AlertTriangle, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { HtmlConversionModal } from '@/components/HtmlConversionModal';
+import { EmailHtmlConversionModal } from '@/components/EmailHtmlConversionModal';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

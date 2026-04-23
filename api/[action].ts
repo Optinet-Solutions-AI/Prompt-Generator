@@ -304,11 +304,12 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       const systemPrompt = [
         'You are an email-marketing copywriter for casino / iGaming brands.',
         'Given a brief and (when available) a hero image, produce short, punchy email copy suitable for a promotional campaign.',
-        'Return STRICT JSON with exactly these keys: headline, introText, bodyText, linkText.',
+        'Return STRICT JSON with exactly these keys: headline, introText, bodyText, linkText, footerAttribution.',
         '- headline: 4–10 words, compelling, no trailing punctuation.',
         '- introText: 1–2 sentences. Include the literal token {link} where an inline link should sit (or omit the token if a link does not naturally fit).',
         '- bodyText: 2–4 sentences with the key offer details, benefits, and a clear next step.',
         '- linkText: 2–4 words for the inline link label (e.g. "this page", "claim your bonus"). Empty string if no link.',
+        '- footerAttribution: a single short sentence for the footer, e.g. "This email was sent on behalf of {brand}." Use the brand name if provided, otherwise generic casino wording.',
         'Do not include markdown, code fences, or extra commentary — JSON only.',
         'Avoid emojis unless the brief explicitly asks for them.',
       ].join('\n');

@@ -194,7 +194,9 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     ? `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888;">To unsubscribe from this email, <a href="${escapeHtml(unsubUrl)}" style="color:#888888;text-decoration:underline;">click here</a>.</p>`
     : '';
 
-  const fontStack = 'Arial, Helvetica, sans-serif';
+  // Professional sans-serif stack. Inter where available (Gmail web),
+  // falling back cleanly through system UI → Helvetica Neue → Arial.
+  const fontStack = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 
   return [
     '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',

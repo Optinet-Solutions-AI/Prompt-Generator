@@ -101,6 +101,10 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
   const [selectedBrand, setSelectedBrand] = useState<string>(brand || '');
   const [copiedHtml, setCopiedHtml] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
+  // AI copy generation
+  const [brief, setBrief] = useState('');
+  const [isAIGenerating, setIsAIGenerating] = useState(false);
+  const [aiError, setAIError] = useState<string | null>(null);
 
   useEffect(() => { setSelectedBrand(brand || ''); }, [brand]);
   const effectiveBrand = selectedBrand || undefined;

@@ -527,10 +527,17 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                   Logo block <span className="text-muted-foreground font-normal normal-case">(optional — auto-uses brand name if wordmark blank)</span>
                 </p>
                 <div>
-                  <Label htmlFor="secondaryLogoUrl" className="text-[11px] mb-0.5 block">Secondary logo image URL</Label>
+                  <Label htmlFor="secondaryLogoUrl" className="text-[11px] mb-0.5 block">
+                    Secondary logo image URL
+                    {staticConfig?.logo_url && !formData.secondaryLogoUrl.trim() && (
+                      <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                        (default from brand config)
+                      </span>
+                    )}
+                  </Label>
                   <Input
                     id="secondaryLogoUrl"
-                    placeholder="https://example.com/logo.png"
+                    placeholder={staticConfig?.logo_url || 'https://example.com/logo.png'}
                     value={formData.secondaryLogoUrl}
                     onChange={(e) => handleField('secondaryLogoUrl', e.target.value)}
                     className="h-8 text-sm"

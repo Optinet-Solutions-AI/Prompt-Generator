@@ -107,6 +107,9 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
   const [brief, setBrief] = useState('');
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiError, setAIError] = useState<string | null>(null);
+  // Template variant + static brand config
+  const [variant, setVariant] = useState<EmailTemplateVariant>('image-hero');
+  const [staticConfig, setStaticConfig] = useState<StaticBrandConfig | null>(null);
 
   useEffect(() => { setSelectedBrand(brand || ''); }, [brand]);
   const effectiveBrand = selectedBrand || undefined;

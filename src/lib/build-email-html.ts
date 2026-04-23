@@ -229,7 +229,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     `          ${headerBarHtml}`,
     `          ${heroHtml}`,
     '          <tr>',
-    `            <td class="mobile-pad" style="padding:28px 36px 20px 36px;font-family:${fontStack};color:#333333;">`,
+    `            <td class="mobile-pad" style="padding:32px 40px 24px 40px;font-family:${fontStack};color:#2c2c2c;">`,
     `              ${headlineHtml}`,
     `              ${intro}`,
     `              ${bodyHtml}`,

@@ -362,17 +362,20 @@ export function buildEmailText(formData: EmailFormData, brand?: string, staticCo
     lines.push(wordmarkTxt, '');
   }
 
+  const websiteUrl = formData.websiteUrl.trim() || (cfg.website_url || '');
   const social = [
     formData.facebookUrl.trim()  && `Facebook: ${safeUrl(formData.facebookUrl)}`,
     formData.twitterUrl.trim()   && `Twitter: ${safeUrl(formData.twitterUrl)}`,
     formData.instagramUrl.trim() && `Instagram: ${safeUrl(formData.instagramUrl)}`,
-    formData.websiteUrl.trim()   && `Website: ${safeUrl(formData.websiteUrl)}`,
+    websiteUrl                    && `Website: ${safeUrl(websiteUrl)}`,
   ].filter(Boolean) as string[];
   if (social.length) {
     lines.push('--', ...social, '');
   }
 
-  const attrTxt = formData.footerAttribution.trim() || (brand ? `This email was sent on behalf of ${brand}.` : '');
+  const attrTxt = formData.footerAttribution.trim()
+    || (cfg.footer_attribution || '')
+    || (brand ? `This email was sent on behalf of ${brand}.` : '');
   if (attrTxt) {
     lines.push(attrTxt);
   }

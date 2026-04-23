@@ -104,14 +104,19 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     ? `<tr><td align="center" style="padding:28px 24px 8px 24px;"><img src="${escapeHtml(formData.secondaryLogoUrl.trim())}" alt="${escapeHtml(brand || 'Logo')}" width="240" style="display:block;max-width:240px;height:auto;border:0;outline:none;" /></td></tr>`
     : '';
 
-  const wordmarkHtml = formData.brandWordmark.trim()
-    ? `<tr><td align="center" style="padding:8px 24px 24px 24px;font-size:24px;font-weight:800;letter-spacing:0.02em;color:${style.accentColor};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(formData.brandWordmark)}</td></tr>`
+  // Fallback: when wordmark is blank but a brand is known, render the brand name as a large, centered wordmark
+  const wordmarkText = formData.brandWordmark.trim() || (brand ? brand.toUpperCase() : '');
+  const wordmarkHtml = wordmarkText
+    ? `<tr><td align="center" style="padding:${formData.secondaryLogoUrl.trim() ? '8px' : '28px'} 24px 22px 24px;font-size:28px;font-weight:800;letter-spacing:0.04em;color:${style.accentColor};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(wordmarkText)}</td></tr>`
     : '';
 
   const socialHtml = buildSocialRow(formData, style);
 
-  const footerAttr = formData.footerAttribution.trim()
-    ? `<p style="margin:0 0 6px 0;font-size:12px;line-height:1.5;color:#888888;">${escapeHtml(formData.footerAttribution)}</p>`
+  // Fallback: when attribution is blank but a brand is known, render a reasonable default
+  const attribution = formData.footerAttribution.trim()
+    || (brand ? `This email was sent on behalf of ${brand}.` : '');
+  const footerAttr = attribution
+    ? `<p style="margin:0 0 6px 0;font-size:12px;line-height:1.5;color:#888888;">${escapeHtml(attribution)}</p>`
     : '';
 
   const unsubUrl = safeUrl(formData.unsubscribeUrl);

@@ -31,6 +31,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
   const [error, setError] = useState<string | null>(null);
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [showHtmlModal, setShowHtmlModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   // Edit image state
   const [editInstructions, setEditInstructions] = useState('');

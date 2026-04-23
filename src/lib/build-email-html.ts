@@ -331,7 +331,8 @@ function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
  * Generate the plain-text version of the email — strips HTML and
  * renders links as "text (url)".
  */
-export function buildEmailText(formData: EmailFormData, brand?: string): string {
+export function buildEmailText(formData: EmailFormData, brand?: string, staticConfig?: StaticBrandConfig): string {
+  const cfg = staticConfig || {};
   const lines: string[] = [];
   if (brand) lines.push(brand.toUpperCase(), '');
   if (formData.headline.trim()) {

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Heart, Loader2, AlertTriangle, Download, FileCode, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
+import { X, Heart, Loader2, AlertTriangle, Download, FileCode, Mail, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { LikedImageCard } from './LikedImageCard';
 import { HtmlConversionModal } from './HtmlConversionModal';
+import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
 import { supabaseThumbnail } from '@/lib/imageUtils';
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string;

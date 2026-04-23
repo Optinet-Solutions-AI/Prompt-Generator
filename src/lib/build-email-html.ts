@@ -111,10 +111,25 @@ function safeUrl(url: string): string {
 
 export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   const { imageSrc, brand, formData, imgWidth, imgHeight } = params;
+  const variant: EmailTemplateVariant = params.variant || 'image-hero';
+  const cfg: StaticBrandConfig = params.staticConfig || {};
   const style: BrandStyle = getBrandStyle(brand);
 
   const containerWidth = 600;
-  const heroHeight = Math.round((imgHeight / imgWidth) * containerWidth);
+
+  // Hero resolution — image-hero uses imageSrc; brand-only uses cfg.banner_url
+  // or a CSS-rendered brand hero as last-resort fallback.
+  const heroHtml = buildHeroRow({
+    variant, imageSrc, brand, style, containerWidth,
+    imgWidth, imgHeight,
+    bannerUrl: cfg.banner_url || undefined,
+  });
+
+  // Logo slot — user input > static config > omit
+  const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
+  const secondaryLogoHtml = logoUrl
+    ? `<tr><td align="center" style="padding:28px 24px 8px 24px;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" width="240" style="display:block;max-width:240px;height:auto;border:0;outline:none;" /></td></tr>`
+    : '';
 
   const intro = buildIntroParagraph(formData);
   const bodyHtml = formData.bodyText.trim()
@@ -125,27 +140,35 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     ? `<h1 style="margin:0 0 14px 0;font-size:22px;line-height:1.25;font-weight:700;color:${style.panelBg};">${escapeHtml(formData.headline)}</h1>`
     : '';
 
-  const secondaryLogoHtml = formData.secondaryLogoUrl.trim()
-    ? `<tr><td align="center" style="padding:28px 24px 8px 24px;"><img src="${escapeHtml(formData.secondaryLogoUrl.trim())}" alt="${escapeHtml(brand || 'Logo')}" width="240" style="display:block;max-width:240px;height:auto;border:0;outline:none;" /></td></tr>`
-    : '';
-
   // Fallback: when wordmark is blank but a brand is known, render the brand name as a large, centered wordmark
   const wordmarkText = formData.brandWordmark.trim() || (brand ? brand.toUpperCase() : '');
   const wordmarkHtml = wordmarkText
-    ? `<tr><td align="center" style="padding:${formData.secondaryLogoUrl.trim() ? '8px' : '28px'} 24px 22px 24px;font-size:28px;font-weight:800;letter-spacing:0.04em;color:${style.accentColor};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(wordmarkText)}</td></tr>`
+    ? `<tr><td align="center" style="padding:${logoUrl ? '8px' : '28px'} 24px 22px 24px;font-size:28px;font-weight:800;letter-spacing:0.04em;color:${style.accentColor};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(wordmarkText)}</td></tr>`
     : '';
 
-  const socialHtml = buildSocialRow(formData, style);
+  // Socials: merge user input with website_url fallback from static config
+  const mergedSocials = {
+    ...formData,
+    websiteUrl: formData.websiteUrl.trim() || (cfg.website_url || ''),
+  };
+  const socialHtml = buildSocialRow(mergedSocials, style);
 
-  // Fallback: when attribution is blank but a brand is known, render a reasonable default
+  // Fallback chain: user input → static config → brand-derived default
   const attribution = formData.footerAttribution.trim()
+    || (cfg.footer_attribution || '')
     || (brand ? `This email was sent on behalf of ${brand}.` : '');
   const footerAttr = attribution
     ? `<p style="margin:0 0 6px 0;font-size:12px;line-height:1.5;color:#888888;">${escapeHtml(attribution)}</p>`
     : '';
 
-  const unsubUrl = safeUrl(formData.unsubscribeUrl);
-  const unsubHtml = formData.unsubscribeUrl.trim()
+  const legalText = cfg.legal_text || '';
+  const legalHtml = legalText
+    ? `<p style="margin:0 0 6px 0;font-size:11px;line-height:1.5;color:#aaaaaa;">${escapeHtml(legalText)}</p>`
+    : '';
+
+  const unsubRaw = formData.unsubscribeUrl.trim() || (cfg.unsubscribe_url || '');
+  const unsubUrl = safeUrl(unsubRaw);
+  const unsubHtml = unsubRaw
     ? `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888;">To unsubscribe from this email, <a href="${escapeHtml(unsubUrl)}" style="color:#888888;text-decoration:underline;">click here</a>.</p>`
     : '';
 

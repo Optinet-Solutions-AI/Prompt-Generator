@@ -589,10 +589,17 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                   />
                 </div>
                 <div>
-                  <Label htmlFor="unsubscribeUrl" className="text-[11px] mb-0.5 block">Unsubscribe URL</Label>
+                  <Label htmlFor="unsubscribeUrl" className="text-[11px] mb-0.5 block">
+                    Unsubscribe URL
+                    {staticConfig?.unsubscribe_url && !formData.unsubscribeUrl.trim() && (
+                      <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                        (default from brand config)
+                      </span>
+                    )}
+                  </Label>
                   <Input
                     id="unsubscribeUrl"
-                    placeholder="https://example.com/unsubscribe"
+                    placeholder={staticConfig?.unsubscribe_url || 'https://example.com/unsubscribe'}
                     value={formData.unsubscribeUrl}
                     onChange={(e) => handleField('unsubscribeUrl', e.target.value)}
                     className="h-8 text-sm"

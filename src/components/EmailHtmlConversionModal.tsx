@@ -278,6 +278,35 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                 />
               </div>
 
+              {/* AI copy generation */}
+              <div className="space-y-1.5 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">Generate with AI</p>
+                </div>
+                <Textarea
+                  placeholder="Describe the email — e.g. 'Welcome bonus: 100 free spins, no deposit, ends Friday' or 'Watch Party announcement for the USMNT match'…"
+                  value={brief}
+                  onChange={(e) => setBrief(e.target.value)}
+                  className="min-h-[56px] text-sm"
+                  disabled={isAIGenerating}
+                />
+                <Button
+                  type="button"
+                  onClick={handleGenerateWithAI}
+                  disabled={isAIGenerating || !brief.trim()}
+                  variant="outline"
+                  className="w-full gap-2 h-8 text-xs"
+                >
+                  {isAIGenerating
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating copy…</>
+                    : <><Sparkles className="w-3.5 h-3.5" /> Draft headline + intro + body</>}
+                </Button>
+                {aiError && (
+                  <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{aiError}</p>
+                )}
+              </div>
+
               {/* Brand selector */}
               {!brand && (
                 <div className="space-y-1.5">

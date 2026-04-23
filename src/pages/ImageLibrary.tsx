@@ -1204,6 +1204,14 @@ function Lightbox({
         brand={image.brand_name || activeBrand}
       />
 
+      {/* Email HTML Conversion Modal */}
+      <EmailHtmlConversionModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        imageUrl={displayUrl}
+        brand={image.brand_name || activeBrand}
+      />
+
       {/* Save Edited Modal */}
       {showSaveModal && editedImgUrl && (
         <SaveEditedModal

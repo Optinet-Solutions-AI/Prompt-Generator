@@ -125,10 +125,33 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     bannerUrl: cfg.banner_url || undefined,
   });
 
-  // Logo slot — user input > static config > omit
+  // Logo slot — user input > static config > omit.
+  // Rendered at the TOP of the email as a compact header (above the hero),
+  // matching the Atlanta Insiders reference where the logo is part of the header.
   const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
-  const secondaryLogoHtml = logoUrl
-    ? `<tr><td align="center" style="padding:28px 24px 8px 24px;"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" width="240" style="display:block;max-width:240px;height:auto;border:0;outline:none;" /></td></tr>`
+  const headerLogoHtml = logoUrl
+    ? [
+        '<tr>',
+        `  <td align="center" style="padding:20px 24px 16px 24px;background-color:#ffffff;">`,
+        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="48" style="display:inline-block;height:48px;width:auto;border:0;outline:none;" />`,
+        '  </td>',
+        '</tr>',
+      ].join('\n')
+    : '';
+
+  // Middle banner slot — a secondary brand banner after the body copy.
+  // For the 'image-hero' variant, this shows the static brand banner between
+  // the body text and the wordmark (matches the Atlanta Insiders shield
+  // position below the body). For 'brand-only' the banner is already the
+  // hero so we skip this slot to avoid showing it twice.
+  const middleBannerHtml = (variant === 'image-hero' && cfg.banner_url)
+    ? [
+        '<tr>',
+        `  <td align="center" style="padding:8px 24px 20px 24px;line-height:0;font-size:0;">`,
+        `    <img src="${escapeHtml(cfg.banner_url)}" alt="${escapeHtml(brand || 'Brand banner')}" width="520" style="display:block;width:100%;max-width:520px;height:auto;border:0;outline:none;border-radius:4px;" />`,
+        '  </td>',
+        '</tr>',
+      ].join('\n')
     : '';
 
   const intro = buildIntroParagraph(formData);

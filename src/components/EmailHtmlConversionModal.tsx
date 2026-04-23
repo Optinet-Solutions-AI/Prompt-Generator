@@ -240,6 +240,8 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     setGeneratedText(null);
     setSelectedBrand(brand || '');
     setError(null);
+    setBrief('');
+    setAIError(null);
     onClose();
   };
 

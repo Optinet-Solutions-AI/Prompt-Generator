@@ -155,11 +155,11 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
 
   const intro = buildIntroParagraph(formData);
   const bodyHtml = formData.bodyText.trim()
-    ? `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.55;color:#333333;">${escapeHtml(formData.bodyText)}</p>`
+    ? `<p style="margin:0 0 18px 0;font-size:15px;line-height:1.65;color:#2c2c2c;">${escapeHtml(formData.bodyText)}</p>`
     : '';
 
   const headlineHtml = formData.headline.trim()
-    ? `<h1 style="margin:0 0 14px 0;font-size:22px;line-height:1.25;font-weight:700;color:${style.panelBg};">${escapeHtml(formData.headline)}</h1>`
+    ? `<h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.3;font-weight:700;color:#1a1a1a;letter-spacing:-0.01em;">${escapeHtml(formData.headline)}</h1>`
     : '';
 
   // Fallback: when wordmark is blank but a brand is known, render the brand name as a large, centered wordmark

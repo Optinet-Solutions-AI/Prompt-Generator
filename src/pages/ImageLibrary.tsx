@@ -517,7 +517,7 @@ function Lightbox({
   // Keyboard nav
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showHtmlModal || confirmDelete || showSaveModal || showUnsavedDialog) return;
+      if (showHtmlModal || showEmailModal || confirmDelete || showSaveModal || showUnsavedDialog) return;
       if (e.key === 'Escape') {
         // Close variation viewer first if open, then close main lightbox
         if (variationViewerUrl) { setVariationViewerUrl(null); setVariationViewerIdx(-1); return; }

@@ -273,8 +273,9 @@ export function buildEmailText(formData: EmailFormData, brand?: string): string 
     lines.push('--', ...social, '');
   }
 
-  if (formData.footerAttribution.trim()) {
-    lines.push(formData.footerAttribution.trim());
+  const attrTxt = formData.footerAttribution.trim() || (brand ? `This email was sent on behalf of ${brand}.` : '');
+  if (attrTxt) {
+    lines.push(attrTxt);
   }
   if (formData.unsubscribeUrl.trim()) {
     lines.push(`To unsubscribe: ${safeUrl(formData.unsubscribeUrl)}`);

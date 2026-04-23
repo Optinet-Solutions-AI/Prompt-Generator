@@ -290,6 +290,65 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       return res.status(200).json({ field, value });
     }
 
+    // ── GENERATE EMAIL COPY — AI drafts headline + intro + body from a brief ─
+    if (action === 'generate-email-copy') {
+      const data = req.body || {};
+      const brief    = (data.brief    || '').toString().trim();
+      const brand    = (data.brand    || '').toString().trim();
+      const imageUrl = (data.imageUrl || '').toString().trim();
+
+      if (!brief) {
+        return res.status(400).json({ error: 'A short brief is required.' });
+      }
+
+      const systemPrompt = [
+        'You are an email-marketing copywriter for casino / iGaming brands.',
+        'Given a brief and (when available) a hero image, produce short, punchy email copy suitable for a promotional campaign.',
+        'Return STRICT JSON with exactly these keys: headline, introText, bodyText, linkText.',
+        '- headline: 4–10 words, compelling, no trailing punctuation.',
+        '- introText: 1–2 sentences. Include the literal token {link} where an inline link should sit (or omit the token if a link does not naturally fit).',
+        '- bodyText: 2–4 sentences with the key offer details, benefits, and a clear next step.',
+        '- linkText: 2–4 words for the inline link label (e.g. "this page", "claim your bonus"). Empty string if no link.',
+        'Do not include markdown, code fences, or extra commentary — JSON only.',
+        'Avoid emojis unless the brief explicitly asks for them.',
+      ].join('\n');
+
+      const userPrompt = [
+        brand ? `Brand: ${brand}` : null,
+        `Brief: ${brief}`,
+        imageUrl ? 'The attached image is the email hero — tailor tone to what you see.' : null,
+      ].filter(Boolean).join('\n');
+
+      try {
+        const raw = await chatCompletion({
+          systemPrompt,
+          userPrompt,
+          temperature: 0.8,
+          model: 'gpt-4o-mini',
+          maxTokens: 500,
+          imageUrl: imageUrl || undefined,
+        });
+
+        // Strip code fences if the model added them despite instructions
+        const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+        let parsed: { headline?: string; introText?: string; bodyText?: string; linkText?: string };
+        try {
+          parsed = JSON.parse(cleaned);
+        } catch {
+          return res.status(502).json({ error: 'AI returned malformed JSON. Try again.' });
+        }
+        return res.status(200).json({
+          headline:  (parsed.headline  || '').toString(),
+          introText: (parsed.introText || '').toString(),
+          bodyText:  (parsed.bodyText  || '').toString(),
+          linkText:  (parsed.linkText  || '').toString(),
+        });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'AI generation failed';
+        return res.status(500).json({ error: msg });
+      }
+    }
+
     // ── CONVERT TO HTML — direct OpenAI with vision (was n8n) ──────────────
     if (action === 'convert-to-html') {
       const data = req.body;

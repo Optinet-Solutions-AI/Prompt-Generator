@@ -414,6 +414,9 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
                 <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setShowHtmlModal(true)}>
                   <FileCode className="w-3.5 h-3.5" />HTML
                 </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setShowEmailModal(true)}>
+                  <Mail className="w-3.5 h-3.5" />Email
+                </Button>
                 <Button variant="outline" size="sm"
                   className="gap-1.5 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
                   onClick={() => activeRecordId && activeImgUrl && handleUnlike(activeRecordId, activeImgUrl)}>

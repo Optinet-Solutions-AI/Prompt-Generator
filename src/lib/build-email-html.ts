@@ -54,14 +54,39 @@ export const EMPTY_EMAIL_FORM: EmailFormData = {
   unsubscribeUrl: '',
 };
 
+/**
+ * Two template variants per brand:
+ *   - 'image-hero' : AI-generated image is the hero (default).
+ *   - 'brand-only' : Static brand banner is the hero (AI image ignored).
+ */
+export type EmailTemplateVariant = 'image-hero' | 'brand-only';
+
+/**
+ * Per-brand static header/footer config loaded from Supabase
+ * (brand_email_config table) at modal open. Missing fields fall
+ * through to brand-derived defaults or are omitted.
+ */
+export interface StaticBrandConfig {
+  logo_url?: string | null;
+  banner_url?: string | null;
+  website_url?: string | null;
+  unsubscribe_url?: string | null;
+  footer_attribution?: string | null;
+  legal_text?: string | null;
+}
+
 export interface BuildEmailHtmlParams {
-  /** Base64 data URI or public URL for the hero image */
+  /** Base64 data URI or public URL for the AI-generated image */
   imageSrc: string;
   /** Brand name — picks up colors from BRAND_STANDARDS when available */
   brand?: string;
   formData: EmailFormData;
   imgWidth: number;
   imgHeight: number;
+  /** Template variant (default: 'image-hero') */
+  variant?: EmailTemplateVariant;
+  /** Static brand config loaded from Supabase — fills in blank form fields */
+  staticConfig?: StaticBrandConfig;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

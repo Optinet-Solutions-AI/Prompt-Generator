@@ -518,6 +518,14 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
           brand={activeRecord?.brand_name || brand}
         />
       )}
+      {showEmailModal && activeImgUrl && (
+        <EmailHtmlConversionModal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          imageUrl={activeImgUrl}
+          brand={activeRecord?.brand_name || brand}
+        />
+      )}
     </>
   );
 }

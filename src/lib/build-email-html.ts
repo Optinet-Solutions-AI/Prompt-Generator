@@ -109,6 +109,8 @@ function safeUrl(url: string): string {
 
 // ── HTML builder ────────────────────────────────────────────────────
 
+const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
+
 export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   const { imageSrc, brand, formData, imgWidth, imgHeight } = params;
   const variant: EmailTemplateVariant = params.variant || 'image-hero';
@@ -117,87 +119,97 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
 
   const containerWidth = 600;
 
-  // Hero resolution — image-hero uses imageSrc; brand-only uses cfg.banner_url
-  // or a CSS-rendered brand hero as last-resort fallback.
+  // ── Hero ────────────────────────────────────────────────────────────
   const heroHtml = buildHeroRow({
     variant, imageSrc, brand, style, containerWidth,
     imgWidth, imgHeight,
     bannerUrl: cfg.banner_url || undefined,
   });
 
-  // Branded header bar — full-width strip in brand's panel color with the
-  // logo centered in it. Replaces the previous "tiny disconnected logo on
-  // white" treatment. The logo sits inside a cohesive dark band that
-  // visually anchors the email and leads into the hero.
+  // ── Branded header bar (logo or wordmark fallback) ──────────────────
   const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
   const headerBarHtml = logoUrl
     ? [
         '<tr>',
-        `  <td align="center" style="background-color:${style.panelBg};padding:22px 24px;line-height:0;font-size:0;">`,
-        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="44" style="display:inline-block;height:44px;width:auto;border:0;outline:none;" />`,
+        `  <td align="center" style="background-color:${style.panelBg};padding:18px 24px;line-height:0;font-size:0;">`,
+        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="40" style="display:inline-block;height:40px;width:auto;border:0;outline:none;" />`,
         '  </td>',
         '</tr>',
       ].join('\n')
-    : (brand ? [
-        // No logo URL but we know the brand → render a brand-colored header
-        // with the wordmark centered in it.
-        '<tr>',
-        `  <td align="center" style="background-color:${style.panelBg};padding:24px 24px;font-family:${style.fontFamily.replace(/"/g, "&quot;")};font-size:22px;font-weight:800;letter-spacing:0.08em;color:${style.accentColor};text-transform:uppercase;">`,
-        `    ${escapeHtml(brand)}`,
-        '  </td>',
-        '</tr>',
-      ].join('\n') : '');
+    : (brand
+        ? [
+            '<tr>',
+            `  <td align="center" style="background-color:${style.panelBg};padding:20px 24px;font-family:${FONT_STACK};font-size:20px;font-weight:800;letter-spacing:0.08em;color:${style.accentColor};text-transform:uppercase;">`,
+            `    ${escapeHtml(brand)}`,
+            '  </td>',
+            '</tr>',
+          ].join('\n')
+        : '');
 
-  // No middle banner — the hero slot already carries the branded visual
-  // (AI image for image-hero, brand banner for brand-only). Adding a second
-  // brand image between body and wordmark was redundant.
-  const middleBannerHtml = '';
-
-  const intro = buildIntroParagraph(formData);
-  const bodyHtml = formData.bodyText.trim()
-    ? `<p style="margin:0 0 18px 0;font-size:15px;line-height:1.65;color:#2c2c2c;">${escapeHtml(formData.bodyText)}</p>`
+  // ── Overlapping card ────────────────────────────────────────────────
+  // White card with margin-top:-64px overlaps the bottom of the hero.
+  // Gmail, Apple Mail, Yahoo Mail, iOS Mail all honour negative div margins.
+  // Outlook (Word engine) ignores margin-top on divs — the MSO conditional
+  // resets it to 0 so Outlook users see the card flush below the hero.
+  const brandLabel = brand
+    ? `<p style="margin:0 0 10px 0;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${style.accentColor};font-family:${FONT_STACK};">${escapeHtml(brand)}</p>`
     : '';
 
   const headlineHtml = formData.headline.trim()
-    ? `<h1 style="margin:0 0 16px 0;font-size:24px;line-height:1.3;font-weight:700;color:#1a1a1a;letter-spacing:-0.01em;">${escapeHtml(formData.headline)}</h1>`
+    ? `<h1 style="margin:0 0 14px 0;font-size:26px;line-height:1.25;font-weight:800;color:#111111;letter-spacing:-0.02em;font-family:${FONT_STACK};">${escapeHtml(formData.headline)}</h1>`
     : '';
 
-  // Fallback: when wordmark is blank but a brand is known, render the brand name as a large, centered wordmark
-  const wordmarkText = formData.brandWordmark.trim() || (brand ? brand.toUpperCase() : '');
-  // Smaller, more refined — the header bar already carries the brand weight
-  const wordmarkHtml = wordmarkText
-    ? `<tr><td align="center" style="padding:12px 24px 10px 24px;font-size:20px;font-weight:700;letter-spacing:0.08em;color:${style.accentColor};font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif;text-transform:uppercase;">${escapeHtml(wordmarkText)}</td></tr>`
+  const introHtml = buildIntroParagraph(formData);
+  const bodyHtml = formData.bodyText.trim()
+    ? `<p style="margin:0 0 20px 0;font-size:15px;line-height:1.65;color:#444444;font-family:${FONT_STACK};">${escapeHtml(formData.bodyText)}</p>`
     : '';
 
-  // Socials: merge user input with website_url fallback from static config
+  const ctaText = formData.linkText.trim();
+  const ctaUrl  = safeUrl(formData.linkUrl);
+  const ctaHtml = ctaText ? buildCtaButton(ctaText, ctaUrl, style) : '';
+
+  const hasCardContent = brandLabel || headlineHtml || introHtml || bodyHtml || ctaHtml;
+  const cardHtml = hasCardContent
+    ? [
+        '<tr>',
+        '  <td style="padding:0 32px 36px 32px;">',
+        '    <!--[if mso]><div style="margin-top:0;"><![endif]-->',
+        `    <div style="background:#ffffff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);margin-top:-64px;padding:32px 32px 28px 32px;position:relative;">`,
+        `      ${brandLabel}`,
+        `      ${headlineHtml}`,
+        `      ${introHtml}`,
+        `      ${bodyHtml}`,
+        `      ${ctaHtml}`,
+        '    </div>',
+        '    <!--[if mso]></div><![endif]-->',
+        '  </td>',
+        '</tr>',
+      ].join('\n')
+    : '';
+
+  // ── Footer ──────────────────────────────────────────────────────────
   const mergedSocials = {
     ...formData,
     websiteUrl: formData.websiteUrl.trim() || (cfg.website_url || ''),
   };
   const socialHtml = buildSocialRow(mergedSocials, style);
 
-  // Muted, centered footer styles matching the Atlanta reference
   const attribution = formData.footerAttribution.trim()
     || (cfg.footer_attribution || '')
     || (brand ? `This email was sent on behalf of ${brand}.` : '');
   const footerAttr = attribution
-    ? `<p style="margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#999999;">${escapeHtml(attribution)}</p>`
+    ? `<p style="margin:0 0 6px 0;font-size:12px;line-height:1.6;color:#999999;">${escapeHtml(attribution)}</p>`
     : '';
 
   const legalText = cfg.legal_text || '';
   const legalHtml = legalText
-    ? `<p style="margin:0 0 8px 0;font-size:11px;line-height:1.6;color:#b0b0b0;">${escapeHtml(legalText)}</p>`
+    ? `<p style="margin:0 0 6px 0;font-size:11px;line-height:1.6;color:#b0b0b0;">${escapeHtml(legalText)}</p>`
     : '';
 
   const unsubRaw = formData.unsubscribeUrl.trim() || (cfg.unsubscribe_url || '');
-  const unsubUrl = safeUrl(unsubRaw);
   const unsubHtml = unsubRaw
-    ? `<p style="margin:0;font-size:11px;line-height:1.6;color:#b0b0b0;">To unsubscribe, <a href="${escapeHtml(unsubUrl)}" style="color:#999999;text-decoration:underline;">click here</a>.</p>`
+    ? `<p style="margin:0;font-size:11px;color:#b0b0b0;">To unsubscribe, <a href="${escapeHtml(safeUrl(unsubRaw))}" style="color:#999999;text-decoration:underline;">click here</a>.</p>`
     : '';
-
-  // Professional sans-serif stack. Inter where available (Gmail web),
-  // falling back cleanly through system UI → Helvetica Neue → Arial.
-  const fontStack = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 
   return [
     '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
@@ -208,50 +220,72 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     '  <meta http-equiv="X-UA-Compatible" content="IE=edge" />',
     `  <title>${escapeHtml(formData.headline || brand || 'Email')}</title>`,
     '  <style type="text/css">',
-    '    body { margin:0; padding:0; width:100% !important; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }',
+    '    body { margin:0; padding:0; width:100% !important; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; -webkit-font-smoothing:antialiased; }',
     '    table { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }',
     '    img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }',
-    '    /* Kill default link chrome (blue border on images, focus outlines) */',
     '    a, a img { border:0 !important; outline:none !important; text-decoration:none; }',
-    '    /* Only paragraph links get underlined — cleaner body flow */',
     '    p a { text-decoration:underline; }',
     '    @media only screen and (max-width:620px) {',
     '      .email-container { width:100% !important; }',
     '      .hero-img { width:100% !important; height:auto !important; }',
-    '      .mobile-pad { padding-left:22px !important; padding-right:22px !important; }',
+    '      .card-wrap { padding-left:16px !important; padding-right:16px !important; }',
     '    }',
     '  </style>',
     '</head>',
-    `<body style="margin:0;padding:0;background-color:#f2f2f2;font-family:${fontStack};">`,
-    `  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f2f2f2;">`,
+    `<body style="margin:0;padding:0;background-color:#f0f0f0;font-family:${FONT_STACK};">`,
+    `  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0f0f0;">`,
     '    <tr>',
-    '      <td align="center" style="padding:24px 12px;">',
-    `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;background-color:#ffffff;border-radius:6px;overflow:hidden;">`,
-    `          ${headerBarHtml}`,
-    `          ${heroHtml}`,
-    '          <tr>',
-    `            <td class="mobile-pad" style="padding:32px 40px 24px 40px;font-family:${fontStack};color:#2c2c2c;">`,
-    `              ${headlineHtml}`,
-    `              ${intro}`,
-    `              ${bodyHtml}`,
-    '            </td>',
-    '          </tr>',
-    `          ${middleBannerHtml}`,
-    `          ${wordmarkHtml}`,
-    `          ${socialHtml}`,
-    '          <tr>',
-    `            <td class="mobile-pad" align="center" style="padding:22px 36px 30px 36px;border-top:1px solid #eeeeee;font-family:${fontStack};text-align:center;">`,
-    `              ${footerAttr}`,
-    `              ${legalHtml}`,
-    `              ${unsubHtml}`,
-    '            </td>',
-    '          </tr>',
+    '      <td align="center" style="padding:24px 12px 40px 12px;">',
+    `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;">`,
+    // header bar sits on a white card that's the container
+    `          <tr><td style="border-radius:8px 8px 0 0;overflow:hidden;padding:0;">`,
+    `            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff;border-radius:8px 8px 0 0;">`,
+    `              ${headerBarHtml}`,
+    `              ${heroHtml}`,
+    '            </table>',
+    '          </td></tr>',
+    // overlapping card row — overhangs the hero above
+    `          ${cardHtml}`,
+    // footer sits below the card in the same outer container
+    `          <tr><td style="background-color:#ffffff;border-radius:0 0 8px 8px;overflow:hidden;padding:0;">`,
+    `            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff;border-radius:0 0 8px 8px;">`,
+    `              ${socialHtml}`,
+    '              <tr>',
+    `                <td align="center" style="padding:18px 36px 28px 36px;border-top:1px solid #eeeeee;font-family:${FONT_STACK};text-align:center;">`,
+    `                  ${footerAttr}`,
+    `                  ${legalHtml}`,
+    `                  ${unsubHtml}`,
+    '                </td>',
+    '              </tr>',
+    '            </table>',
+    '          </td></tr>',
     '        </table>',
     '      </td>',
     '    </tr>',
     '  </table>',
     '</body>',
     '</html>',
+  ].join('\n');
+}
+
+/**
+ * Branded CTA button — table-based for Outlook, regular anchor for everyone else.
+ * VML shape wraps the anchor for Outlook so it gets a proper pill button.
+ */
+function buildCtaButton(text: string, url: string, style: BrandStyle): string {
+  const bg   = style.buttonBg   || style.accentColor;
+  const fg   = style.buttonText || '#ffffff';
+  const safe = escapeHtml(url);
+  const label = escapeHtml(text);
+  return [
+    `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:8px;">`,
+    '  <tr>',
+    `    <td style="border-radius:6px;background-color:${bg};">`,
+    `      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${safe}" style="height:46px;v-text-anchor:middle;width:200px;" arcsize="13%" strokecolor="${bg}" fillcolor="${bg}"><w:anchorlock/><center style="color:${fg};font-family:sans-serif;font-size:15px;font-weight:700;">${label}</center></v:roundrect><![endif]-->`,
+    `      <!--[if !mso]><!--><a href="${safe}" style="display:inline-block;padding:13px 32px;font-family:${FONT_STACK};font-size:15px;font-weight:700;color:${fg};text-decoration:none;border-radius:6px;background-color:${bg};">${label}</a><!--<![endif]-->`,
+    '    </td>',
+    '  </tr>',
+    '</table>',
   ].join('\n');
 }
 

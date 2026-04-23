@@ -166,7 +166,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   // Fallback: when wordmark is blank but a brand is known, render the brand name as a large, centered wordmark
   const wordmarkText = formData.brandWordmark.trim() || (brand ? brand.toUpperCase() : '');
   const wordmarkHtml = wordmarkText
-    ? `<tr><td align="center" style="padding:${logoUrl ? '8px' : '28px'} 24px 22px 24px;font-size:28px;font-weight:800;letter-spacing:0.04em;color:${style.accentColor};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(wordmarkText)}</td></tr>`
+    ? `<tr><td align="center" style="padding:4px 24px 18px 24px;font-size:28px;font-weight:800;letter-spacing:0.04em;color:${style.accentColor};font-family:Arial,Helvetica,sans-serif;">${escapeHtml(wordmarkText)}</td></tr>`
     : '';
 
   // Socials: merge user input with website_url fallback from static config

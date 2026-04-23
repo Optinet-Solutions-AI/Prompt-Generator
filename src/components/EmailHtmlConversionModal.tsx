@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Download, Eye, Mail, Loader2, Copy, Check, Sparkles } from 'lucide-react';
+import { Download, Eye, Mail, Loader2, Copy, Check, Sparkles, Image as ImageIcon, LayoutTemplate } from 'lucide-react';
 import { BRAND_STANDARDS } from '@/lib/brand-standards';
 import {
   buildEmailHtml,
   buildEmailText,
   EMPTY_EMAIL_FORM,
   type EmailFormData,
+  type EmailTemplateVariant,
+  type StaticBrandConfig,
 } from '@/lib/build-email-html';
 
 const ALL_BRANDS = Object.keys(BRAND_STANDARDS);

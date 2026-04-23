@@ -258,8 +258,9 @@ export function buildEmailText(formData: EmailFormData, brand?: string): string 
     lines.push(formData.bodyText.trim(), '');
   }
 
-  if (formData.brandWordmark.trim()) {
-    lines.push(formData.brandWordmark.trim(), '');
+  const wordmarkTxt = formData.brandWordmark.trim() || (brand ? brand.toUpperCase() : '');
+  if (wordmarkTxt) {
+    lines.push(wordmarkTxt, '');
   }
 
   const social = [

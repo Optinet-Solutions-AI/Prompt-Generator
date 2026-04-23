@@ -530,7 +530,7 @@ function Lightbox({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, confirmDelete, showSaveModal, showUnsavedDialog, variationViewerUrl, hasUnsavedWork]);
+  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, showEmailModal, confirmDelete, showSaveModal, showUnsavedDialog, variationViewerUrl, hasUnsavedWork]);
 
   const displayUrl = editedImgUrl || image.public_url;
 

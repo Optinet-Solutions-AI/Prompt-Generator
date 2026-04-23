@@ -866,6 +866,7 @@ export function ImageModal({
       </div>{/* end outer centering wrapper */}
 
       <HtmlConversionModal isOpen={showHtmlModal} onClose={() => setShowHtmlModal(false)} imageUrl={current.displayUrl || current.editUrl} brand={brand} />
+      <EmailHtmlConversionModal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} imageUrl={current.displayUrl || current.editUrl} brand={brand} />
 
       {/* Unsaved Changes Dialog */}
       {showUnsavedDialog && (

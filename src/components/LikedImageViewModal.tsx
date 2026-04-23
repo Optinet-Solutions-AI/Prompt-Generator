@@ -95,6 +95,14 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: Liked
             Convert to HTML
           </Button>
           <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowEmailModal(true)}
+          >
+            <Mail className="w-4 h-4" />
+            Convert to Email
+          </Button>
+          <Button
             className="gap-2 gradient-primary"
             onClick={handleDownload}
           >

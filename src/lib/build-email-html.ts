@@ -139,20 +139,10 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
       ].join('\n')
     : '';
 
-  // Middle banner slot — a secondary brand banner after the body copy.
-  // For the 'image-hero' variant, this shows the static brand banner between
-  // the body text and the wordmark (matches the Atlanta Insiders shield
-  // position below the body). For 'brand-only' the banner is already the
-  // hero so we skip this slot to avoid showing it twice.
-  const middleBannerHtml = (variant === 'image-hero' && cfg.banner_url)
-    ? [
-        '<tr>',
-        `  <td align="center" style="padding:8px 24px 20px 24px;line-height:0;font-size:0;">`,
-        `    <img src="${escapeHtml(cfg.banner_url)}" alt="${escapeHtml(brand || 'Brand banner')}" width="520" style="display:block;width:100%;max-width:520px;height:auto;border:0;outline:none;border-radius:4px;" />`,
-        '  </td>',
-        '</tr>',
-      ].join('\n')
-    : '';
+  // No middle banner — the hero slot already carries the branded visual
+  // (AI image for image-hero, brand banner for brand-only). Adding a second
+  // brand image between body and wordmark was redundant.
+  const middleBannerHtml = '';
 
   const intro = buildIntroParagraph(formData);
   const bodyHtml = formData.bodyText.trim()

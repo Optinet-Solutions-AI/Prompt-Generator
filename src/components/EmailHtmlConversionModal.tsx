@@ -396,7 +396,7 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
               {/* Secondary logo + wordmark */}
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Logo block <span className="text-muted-foreground font-normal normal-case">(optional)</span>
+                  Logo block <span className="text-muted-foreground font-normal normal-case">(optional — auto-uses brand name if wordmark blank)</span>
                 </p>
                 <div>
                   <Label htmlFor="secondaryLogoUrl" className="text-[11px] mb-0.5 block">Secondary logo image URL</Label>
@@ -409,10 +409,17 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                   />
                 </div>
                 <div>
-                  <Label htmlFor="brandWordmark" className="text-[11px] mb-0.5 block">Brand wordmark text</Label>
+                  <Label htmlFor="brandWordmark" className="text-[11px] mb-0.5 block">
+                    Brand wordmark text
+                    {effectiveBrand && !formData.brandWordmark.trim() && (
+                      <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                        (default: {effectiveBrand.toUpperCase()})
+                      </span>
+                    )}
+                  </Label>
                   <Input
                     id="brandWordmark"
-                    placeholder="GEORGIA SOCCER"
+                    placeholder={effectiveBrand ? effectiveBrand.toUpperCase() : 'e.g. GEORGIA SOCCER'}
                     value={formData.brandWordmark}
                     onChange={(e) => handleField('brandWordmark', e.target.value)}
                     className="h-8 text-sm"

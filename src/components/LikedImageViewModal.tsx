@@ -1,7 +1,8 @@
 import { useEffect, useCallback } from 'react';
-import { X, Download, FileCode } from 'lucide-react';
+import { X, Download, FileCode, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HtmlConversionModal } from './HtmlConversionModal';
+import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
 import { useState } from 'react';
 
 interface LikedImageViewModalProps {

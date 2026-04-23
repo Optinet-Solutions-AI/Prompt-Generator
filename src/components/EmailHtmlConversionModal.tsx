@@ -150,10 +150,11 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
       const data = await res.json();
       setFormData(prev => ({
         ...prev,
-        headline:  data.headline  || prev.headline,
-        introText: data.introText || prev.introText,
-        bodyText:  data.bodyText  || prev.bodyText,
-        linkText:  data.linkText  || prev.linkText,
+        headline:          data.headline          || prev.headline,
+        introText:         data.introText         || prev.introText,
+        bodyText:          data.bodyText          || prev.bodyText,
+        linkText:          data.linkText          || prev.linkText,
+        footerAttribution: data.footerAttribution || prev.footerAttribution,
       }));
     } catch {
       setAIError('Could not reach the AI service. Try again.');

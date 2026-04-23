@@ -213,6 +213,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     '          <tr>',
     `            <td class="mobile-pad" align="center" style="padding:20px 36px 28px 36px;border-top:1px solid #eeeeee;font-family:${fontStack};">`,
     `              ${footerAttr}`,
+    `              ${legalHtml}`,
     `              ${unsubHtml}`,
     '            </td>',
     '          </tr>',

@@ -390,6 +390,7 @@ function Lightbox({
   // Standard lightbox state
   const [isDownloading, setIsDownloading] = useState(false);
   const [showHtmlModal,  setShowHtmlModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [confirmDelete,  setConfirmDelete] = useState(false);
   const [isDeleting,     setIsDeleting]    = useState(false);
 

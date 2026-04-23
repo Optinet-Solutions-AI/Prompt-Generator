@@ -219,11 +219,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // gpt-image-1: short natural language quality signal — no "art/illustration" words (causes painting style).
     // "Hyperrealistic cinematic render" works for both CGI characters and photographic scenes.
     const CHATGPT_PREFIX = 'Hyperrealistic cinematic render, sharp photorealistic quality, dramatic professional lighting. ';
-    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt;
+
+    // Hard constraint appended at the END — gpt-image-1 and Imagen both learned from
+    // stock photos with corner watermarks, so they hallucinate garbled pseudo-logos
+    // (e.g. "PILGCATHE") in the lower-right. Placed last because later tokens are
+    // weighted as stronger constraints. Covers text, watermarks, logos, signatures.
+    const NO_WATERMARKS =
+      ' Absolutely no text, no letters, no numbers, no words, no typography of any kind. ' +
+      'No watermarks, no logos, no brand marks, no signatures, no captions, no stamps, no overlays. ' +
+      'All corners must be completely clean and empty — no marks in the bottom-right, bottom-left, top-right, or top-left. ' +
+      'The final image must be fully unbranded and free of any written characters or symbols.';
+
+    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt + NO_WATERMARKS;
 
     // Gemini/Imagen responds to quality tags — avoid "illustration" (painting signal).
     const GEMINI_PREFIX = 'photorealistic, hyperrealistic, cinematic lighting, sharp focus, highly detailed, dramatic composition, rich deep colors, professional color grading, clean sharp render. ';
-    const geminiPrompt = GEMINI_PREFIX + enrichedPrompt;
+    const geminiPrompt = GEMINI_PREFIX + enrichedPrompt + NO_WATERMARKS;
 
     // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────
     // Uses gpt-image-1 via Vercel's OPENAI_API_KEY — no Cloud Run needed.

@@ -306,6 +306,8 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     setError(null);
     setBrief('');
     setAIError(null);
+    setVariant('image-hero');
+    setStaticConfig(null);
     onClose();
   };
 

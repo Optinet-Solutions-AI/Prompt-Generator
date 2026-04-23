@@ -221,7 +221,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     '    <tr>',
     '      <td align="center" style="padding:24px 12px;">',
     `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;background-color:#ffffff;border-radius:6px;overflow:hidden;">`,
-    `          ${headerLogoHtml}`,
+    `          ${headerBarHtml}`,
     `          ${heroHtml}`,
     '          <tr>',
     `            <td class="mobile-pad" style="padding:28px 36px 20px 36px;font-family:${fontStack};color:#333333;">`,

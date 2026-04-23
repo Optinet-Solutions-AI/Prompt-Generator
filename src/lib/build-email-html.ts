@@ -175,23 +175,23 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   };
   const socialHtml = buildSocialRow(mergedSocials, style);
 
-  // Fallback chain: user input → static config → brand-derived default
+  // Muted, centered footer styles matching the Atlanta reference
   const attribution = formData.footerAttribution.trim()
     || (cfg.footer_attribution || '')
     || (brand ? `This email was sent on behalf of ${brand}.` : '');
   const footerAttr = attribution
-    ? `<p style="margin:0 0 6px 0;font-size:12px;line-height:1.5;color:#888888;">${escapeHtml(attribution)}</p>`
+    ? `<p style="margin:0 0 8px 0;font-size:12px;line-height:1.6;color:#999999;">${escapeHtml(attribution)}</p>`
     : '';
 
   const legalText = cfg.legal_text || '';
   const legalHtml = legalText
-    ? `<p style="margin:0 0 6px 0;font-size:11px;line-height:1.5;color:#aaaaaa;">${escapeHtml(legalText)}</p>`
+    ? `<p style="margin:0 0 8px 0;font-size:11px;line-height:1.6;color:#b0b0b0;">${escapeHtml(legalText)}</p>`
     : '';
 
   const unsubRaw = formData.unsubscribeUrl.trim() || (cfg.unsubscribe_url || '');
   const unsubUrl = safeUrl(unsubRaw);
   const unsubHtml = unsubRaw
-    ? `<p style="margin:0;font-size:12px;line-height:1.5;color:#888888;">To unsubscribe from this email, <a href="${escapeHtml(unsubUrl)}" style="color:#888888;text-decoration:underline;">click here</a>.</p>`
+    ? `<p style="margin:0;font-size:11px;line-height:1.6;color:#b0b0b0;">To unsubscribe, <a href="${escapeHtml(unsubUrl)}" style="color:#999999;text-decoration:underline;">click here</a>.</p>`
     : '';
 
   // Professional sans-serif stack. Inter where available (Gmail web),

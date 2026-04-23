@@ -444,10 +444,17 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Footer</p>
                 <div>
-                  <Label htmlFor="footerAttribution" className="text-[11px] mb-0.5 block">Attribution line</Label>
+                  <Label htmlFor="footerAttribution" className="text-[11px] mb-0.5 block">
+                    Attribution line
+                    {effectiveBrand && !formData.footerAttribution.trim() && (
+                      <span className="ml-1 text-[10px] text-muted-foreground font-normal">
+                        (default: "This email was sent on behalf of {effectiveBrand}.")
+                      </span>
+                    )}
+                  </Label>
                   <Input
                     id="footerAttribution"
-                    placeholder="This email was sent by Sports Connect on behalf of Georgia Soccer."
+                    placeholder={effectiveBrand ? `This email was sent on behalf of ${effectiveBrand}.` : 'This email was sent on behalf of …'}
                     value={formData.footerAttribution}
                     onChange={(e) => handleField('footerAttribution', e.target.value)}
                     className="h-8 text-sm"

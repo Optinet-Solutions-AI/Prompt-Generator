@@ -361,7 +361,7 @@ function buildIntroParagraph(data: EmailFormData): string {
   } else {
     body = escapeHtml(intro);
   }
-  return `<p style="margin:0 0 18px 0;font-size:15px;line-height:1.65;color:#2c2c2c;">${body}</p>`;
+  return `<p style="margin:0 0 18px 0;font-size:15px;line-height:1.65;color:#444444;font-family:${FONT_STACK};">${body}</p>`;
 }
 
 function buildSocialRow(data: EmailFormData, style: BrandStyle): string {

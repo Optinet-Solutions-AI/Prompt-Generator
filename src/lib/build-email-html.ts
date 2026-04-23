@@ -239,7 +239,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     `          ${wordmarkHtml}`,
     `          ${socialHtml}`,
     '          <tr>',
-    `            <td class="mobile-pad" align="center" style="padding:20px 36px 28px 36px;border-top:1px solid #eeeeee;font-family:${fontStack};">`,
+    `            <td class="mobile-pad" align="center" style="padding:22px 36px 30px 36px;border-top:1px solid #eeeeee;font-family:${fontStack};text-align:center;">`,
     `              ${footerAttr}`,
     `              ${legalHtml}`,
     `              ${unsubHtml}`,

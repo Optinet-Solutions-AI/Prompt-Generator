@@ -226,6 +226,59 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   ].join('\n');
 }
 
+/**
+ * Build the <tr> that holds the email hero. Three paths:
+ *   1. variant === 'image-hero'   → AI image <img>
+ *   2. variant === 'brand-only' with banner URL → static banner <img>
+ *   3. variant === 'brand-only' without banner → CSS-rendered brand hero (solid brand color + wordmark)
+ */
+function buildHeroRow(opts: {
+  variant: EmailTemplateVariant;
+  imageSrc: string;
+  brand?: string;
+  style: BrandStyle;
+  containerWidth: number;
+  imgWidth: number;
+  imgHeight: number;
+  bannerUrl?: string;
+}): string {
+  const { variant, imageSrc, brand, style, containerWidth, imgWidth, imgHeight, bannerUrl } = opts;
+  const BRAND_BANNER_RATIO = 1656 / 500; // aspect ratio of scraped platform banners
+
+  if (variant === 'image-hero') {
+    const heroHeight = Math.round((imgHeight / imgWidth) * containerWidth);
+    return [
+      '<tr>',
+      '  <td align="center" style="padding:0;line-height:0;font-size:0;">',
+      `    <img class="hero-img" src="${escapeHtml(imageSrc)}" alt="${escapeHtml(brand || 'Email hero')}" width="${containerWidth}" height="${heroHeight}" style="display:block;width:100%;max-width:${containerWidth}px;height:auto;border:0;outline:none;" />`,
+      '  </td>',
+      '</tr>',
+    ].join('\n');
+  }
+
+  // brand-only variant
+  if (bannerUrl) {
+    const bannerHeight = Math.round(containerWidth / BRAND_BANNER_RATIO);
+    return [
+      '<tr>',
+      '  <td align="center" style="padding:0;line-height:0;font-size:0;">',
+      `    <img class="hero-img" src="${escapeHtml(bannerUrl)}" alt="${escapeHtml(brand || 'Brand banner')}" width="${containerWidth}" height="${bannerHeight}" style="display:block;width:100%;max-width:${containerWidth}px;height:auto;border:0;outline:none;" />`,
+      '  </td>',
+      '</tr>',
+    ].join('\n');
+  }
+
+  // Last-resort CSS-rendered brand hero — no image needed, works even with no assets.
+  const wordmark = (brand || 'BRAND').toUpperCase();
+  return [
+    '<tr>',
+    `  <td align="center" style="background-color:${style.panelBg};padding:64px 24px;line-height:1;font-family:${style.fontFamily.replace(/"/g, "&quot;")};">`,
+    `    <span style="font-size:44px;font-weight:900;color:${style.accentColor};letter-spacing:0.06em;display:inline-block;">${escapeHtml(wordmark)}</span>`,
+    '  </td>',
+    '</tr>',
+  ].join('\n');
+}
+
 function buildIntroParagraph(data: EmailFormData): string {
   const intro = data.introText.trim();
   if (!intro) return '';

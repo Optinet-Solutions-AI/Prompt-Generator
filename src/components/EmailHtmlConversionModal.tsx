@@ -213,10 +213,16 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     }
     setIsGenerating(true);
     try {
-      const imageSrc = await toBase64DataUri(imageUrl);
-      if (!imageSrc) {
-        setError('Could not embed the hero image. Try downloading it locally and re-opening.');
-        return;
+      // For image-hero variant we embed the AI image as data URI.
+      // For brand-only, the static banner is referenced by URL — no embed needed.
+      let imageSrc = '';
+      if (variant === 'image-hero') {
+        const embedded = await toBase64DataUri(imageUrl);
+        if (!embedded) {
+          setError('Could not embed the hero image. Try downloading it locally and re-opening.');
+          return;
+        }
+        imageSrc = embedded;
       }
       const html = buildEmailHtml({
         imageSrc,
@@ -224,8 +230,23 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
         formData,
         imgWidth: imgDims.w,
         imgHeight: imgDims.h,
+        variant,
+        staticConfig: staticConfig || undefined,
       });
-      const text = buildEmailText(formData, effectiveBrand);
+      const text = buildEmailText(formData, effectiveBrand, staticConfig || undefined);
+
+      // Persist socials + unsubscribe for this brand so the user doesn't retype next time
+      if (effectiveBrand) {
+        try {
+          localStorage.setItem(`emailSocials:${effectiveBrand}`, JSON.stringify({
+            facebookUrl:    formData.facebookUrl,
+            twitterUrl:     formData.twitterUrl,
+            instagramUrl:   formData.instagramUrl,
+            websiteUrl:     formData.websiteUrl,
+            unsubscribeUrl: formData.unsubscribeUrl,
+          }));
+        } catch { /* storage full or blocked — ignore */ }
+      }
       setGeneratedHtml(html);
       setGeneratedText(text);
     } catch {

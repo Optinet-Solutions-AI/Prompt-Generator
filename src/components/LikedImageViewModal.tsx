@@ -118,6 +118,11 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: Liked
         onClose={() => setShowHtmlModal(false)}
         imageUrl={imgUrl}
       />
+      <EmailHtmlConversionModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        imageUrl={imgUrl}
+      />
     </>
   );
 }

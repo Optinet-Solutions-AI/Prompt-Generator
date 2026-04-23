@@ -14,6 +14,7 @@ interface LikedImageViewModalProps {
 
 export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: LikedImageViewModalProps) {
   const [showHtmlModal, setShowHtmlModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
 
   const handleEsc = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();

@@ -25,3 +25,7 @@ dist-ssr
 .vercel
 .env*.local
 .gitnexus
+
+# Scraped brand assets — kept local only, never pushed
+public/brand-references/*/scraped/
+public/brand-references/_scrape-report*.json

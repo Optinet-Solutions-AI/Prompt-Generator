@@ -1,0 +1,65 @@
+[
+  {
+    "slug": "fortuneplay",
+    "brand_name": "FortunePlay",
+    "website_url": "https://www.fortuneplay.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/fortuneplay/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/fortuneplay/banner.webp"
+  },
+  {
+    "slug": "luckyvibe",
+    "brand_name": "LuckyVibe",
+    "website_url": "https://www.luckyvibe.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/luckyvibe/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/luckyvibe/banner.webp"
+  },
+  {
+    "slug": "lucky7even",
+    "brand_name": "Lucky7even",
+    "website_url": "https://www.lucky7even.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/lucky7even/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/lucky7even/banner.webp"
+  },
+  {
+    "slug": "playmojo",
+    "brand_name": "PlayMojo",
+    "website_url": "https://www.playmojo.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/playmojo/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/playmojo/banner.webp"
+  },
+  {
+    "slug": "roosterbet",
+    "brand_name": "Roosterbet",
+    "website_url": "https://www.rooster.bet/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/roosterbet/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/roosterbet/banner.webp"
+  },
+  {
+    "slug": "spinjo",
+    "brand_name": "SpinJo",
+    "website_url": "https://www.spinjo.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinjo/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinjo/banner.webp"
+  },
+  {
+    "slug": "spinsup",
+    "brand_name": "SpinsUp",
+    "website_url": "https://www.spinsup.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinsup/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinsup/banner.jpg"
+  },
+  {
+    "slug": "novadreams",
+    "brand_name": "NovaDreams",
+    "website_url": "https://www.novadreams.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/novadreams/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/novadreams/banner.jpg"
+  },
+  {
+    "slug": "rollero",
+    "brand_name": "Rollero",
+    "website_url": "https://www.rollero.com/",
+    "logo_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/rollero/logo.svg",
+    "banner_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/rollero/banner.webp"
+  }
+]

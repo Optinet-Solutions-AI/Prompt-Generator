@@ -125,19 +125,28 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     bannerUrl: cfg.banner_url || undefined,
   });
 
-  // Logo slot — user input > static config > omit.
-  // Rendered at the TOP of the email as a compact header (above the hero),
-  // matching the Atlanta Insiders reference where the logo is part of the header.
+  // Branded header bar — full-width strip in brand's panel color with the
+  // logo centered in it. Replaces the previous "tiny disconnected logo on
+  // white" treatment. The logo sits inside a cohesive dark band that
+  // visually anchors the email and leads into the hero.
   const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
-  const headerLogoHtml = logoUrl
+  const headerBarHtml = logoUrl
     ? [
         '<tr>',
-        `  <td align="center" style="padding:20px 24px 16px 24px;background-color:#ffffff;">`,
-        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="48" style="display:inline-block;height:48px;width:auto;border:0;outline:none;" />`,
+        `  <td align="center" style="background-color:${style.panelBg};padding:22px 24px;line-height:0;font-size:0;">`,
+        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="44" style="display:inline-block;height:44px;width:auto;border:0;outline:none;" />`,
         '  </td>',
         '</tr>',
       ].join('\n')
-    : '';
+    : (brand ? [
+        // No logo URL but we know the brand → render a brand-colored header
+        // with the wordmark centered in it.
+        '<tr>',
+        `  <td align="center" style="background-color:${style.panelBg};padding:24px 24px;font-family:${style.fontFamily.replace(/"/g, "&quot;")};font-size:22px;font-weight:800;letter-spacing:0.08em;color:${style.accentColor};text-transform:uppercase;">`,
+        `    ${escapeHtml(brand)}`,
+        '  </td>',
+        '</tr>',
+      ].join('\n') : '');
 
   // No middle banner — the hero slot already carries the branded visual
   // (AI image for image-hero, brand banner for brand-only). Adding a second

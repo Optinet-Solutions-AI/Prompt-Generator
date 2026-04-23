@@ -339,8 +339,9 @@ function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
 
   if (entries.length === 0) return '';
 
-  const linkStyle = `color:${style.accentColor};text-decoration:none;font-weight:600;font-size:13px;`;
-  const sepStyle = 'color:#cccccc;padding:0 8px;';
+  // Clean muted style — medium gray pipes, brand accent links without underline
+  const linkStyle = `color:${style.accentColor};text-decoration:none;font-weight:600;font-size:13px;letter-spacing:0.01em;`;
+  const sepStyle = 'color:#d4d4d4;padding:0 10px;font-size:13px;';
   const parts = entries.map((e, i) => {
     const link = `<a href="${escapeHtml(safeUrl(e.url))}" style="${linkStyle}">${escapeHtml(e.label)}</a>`;
     return i === 0 ? link : `<span style="${sepStyle}">|</span>${link}`;
@@ -348,7 +349,7 @@ function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
 
   return [
     '<tr>',
-    `  <td align="center" style="padding:12px 24px 20px 24px;font-family:Arial,Helvetica,sans-serif;">`,
+    `  <td align="center" style="padding:14px 24px 24px 24px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif;">`,
     `    ${parts}`,
     '  </td>',
     '</tr>',

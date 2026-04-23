@@ -210,6 +210,9 @@ function buildPromptSpectrum(
     'Do NOT replace the background material or setting type.',
     'Do NOT shift warm tones cool, or cool tones warm.',
     'Do NOT add any color that was not already dominant in the source image.',
+    'Do NOT add any text, letters, numbers, words, typography, watermarks, logos, brand marks, signatures, captions, stamps, or overlays.',
+    'Do NOT place any marks in the corners — bottom-right, bottom-left, top-right, and top-left must remain completely clean.',
+    'If the source image already contains a watermark or stray text, REMOVE it in the output — the final image must be fully unbranded.',
   ].join(' ');
 
   // T1 — Composition angle: vary camera perspective only

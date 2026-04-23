@@ -125,6 +125,43 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleGenerateWithAI = async () => {
+    setAIError(null);
+    if (!brief.trim()) {
+      setAIError('Describe what the email is about first.');
+      return;
+    }
+    setIsAIGenerating(true);
+    try {
+      const res = await fetch('/api/generate-email-copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brief: brief.trim(),
+          brand: effectiveBrand || '',
+          imageUrl,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Request failed' }));
+        setAIError(err.error || `Request failed (${res.status})`);
+        return;
+      }
+      const data = await res.json();
+      setFormData(prev => ({
+        ...prev,
+        headline:  data.headline  || prev.headline,
+        introText: data.introText || prev.introText,
+        bodyText:  data.bodyText  || prev.bodyText,
+        linkText:  data.linkText  || prev.linkText,
+      }));
+    } catch {
+      setAIError('Could not reach the AI service. Try again.');
+    } finally {
+      setIsAIGenerating(false);
+    }
+  };
+
   const handleGenerate = async () => {
     setError(null);
     if (!formData.headline.trim() && !formData.bodyText.trim()) {

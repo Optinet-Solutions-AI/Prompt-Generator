@@ -309,17 +309,19 @@ function buildIntroParagraph(data: EmailFormData): string {
   const linkText = data.linkText.trim();
   const linkUrl = safeUrl(data.linkUrl);
 
+  // Inline link style: muted brand-neutral blue, single underline, no border/outline
+  const linkStyle = 'color:#2563eb;text-decoration:underline;text-underline-offset:2px;font-weight:600;';
   let body: string;
   if (linkText && intro.includes('{link}')) {
-    const anchor = `<a href="${escapeHtml(linkUrl)}" style="color:#1a73e8;text-decoration:underline;font-weight:600;">${escapeHtml(linkText)}</a>`;
+    const anchor = `<a href="${escapeHtml(linkUrl)}" style="${linkStyle}">${escapeHtml(linkText)}</a>`;
     body = escapeHtml(intro).replace('{link}', anchor);
   } else if (linkText) {
-    const anchor = ` <a href="${escapeHtml(linkUrl)}" style="color:#1a73e8;text-decoration:underline;font-weight:600;">${escapeHtml(linkText)}</a>`;
+    const anchor = ` <a href="${escapeHtml(linkUrl)}" style="${linkStyle}">${escapeHtml(linkText)}</a>`;
     body = `${escapeHtml(intro)}${anchor}`;
   } else {
     body = escapeHtml(intro);
   }
-  return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.55;color:#333333;">${body}</p>`;
+  return `<p style="margin:0 0 18px 0;font-size:15px;line-height:1.65;color:#2c2c2c;">${body}</p>`;
 }
 
 function buildSocialRow(data: EmailFormData, style: BrandStyle): string {

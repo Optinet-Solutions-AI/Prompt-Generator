@@ -333,17 +333,80 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
           <div className="overflow-y-auto flex-1 min-h-0">
             <div className="p-4 space-y-3.5">
 
-              {/* Hero preview */}
+              {/* Template variant tiles */}
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Template</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setVariant('image-hero')}
+                    className={`flex items-start gap-2 px-2.5 py-2 rounded-md border text-left transition-colors ${
+                      variant === 'image-hero'
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold leading-tight">Hero Image</p>
+                      <p className="text-[10px] opacity-70 truncate">Uses the generated image</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVariant('brand-only')}
+                    className={`flex items-start gap-2 px-2.5 py-2 rounded-md border text-left transition-colors ${
+                      variant === 'brand-only'
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <LayoutTemplate className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold leading-tight">Brand Only</p>
+                      <p className="text-[10px] opacity-70 truncate">Static brand banner</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Hero preview — swap source based on variant */}
               <div className="w-full rounded-lg overflow-hidden border border-border bg-muted/30">
-                <div
-                  style={{
-                    width: '100%',
-                    aspectRatio: `${imgDims.w} / ${imgDims.h}`,
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                />
+                {variant === 'brand-only' && staticConfig?.banner_url ? (
+                  <img
+                    src={staticConfig.banner_url}
+                    alt="Brand banner"
+                    className="w-full block"
+                    style={{ display: 'block', width: '100%', height: 'auto' }}
+                  />
+                ) : variant === 'brand-only' ? (
+                  // No banner URL — show CSS wordmark preview matching what the email will render
+                  <div
+                    className="flex items-center justify-center"
+                    style={{
+                      width: '100%',
+                      aspectRatio: '1656 / 500',
+                      background: BRAND_STANDARDS[effectiveBrand || '']?.panelBg || '#111',
+                      color: BRAND_STANDARDS[effectiveBrand || '']?.accentColor || '#fff',
+                      fontFamily: BRAND_STANDARDS[effectiveBrand || '']?.fontFamily,
+                      fontSize: 'clamp(18px, 4vw, 44px)',
+                      fontWeight: 900,
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    {(effectiveBrand || 'BRAND').toUpperCase()}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      aspectRatio: `${imgDims.w} / ${imgDims.h}`,
+                      backgroundImage: `url(${imageUrl})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  />
+                )}
               </div>
 
               {/* AI copy generation */}

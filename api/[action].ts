@@ -332,17 +332,18 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
 
         // Strip code fences if the model added them despite instructions
         const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-        let parsed: { headline?: string; introText?: string; bodyText?: string; linkText?: string };
+        let parsed: { headline?: string; introText?: string; bodyText?: string; linkText?: string; footerAttribution?: string };
         try {
           parsed = JSON.parse(cleaned);
         } catch {
           return res.status(502).json({ error: 'AI returned malformed JSON. Try again.' });
         }
         return res.status(200).json({
-          headline:  (parsed.headline  || '').toString(),
-          introText: (parsed.introText || '').toString(),
-          bodyText:  (parsed.bodyText  || '').toString(),
-          linkText:  (parsed.linkText  || '').toString(),
+          headline:          (parsed.headline          || '').toString(),
+          introText:         (parsed.introText         || '').toString(),
+          bodyText:          (parsed.bodyText          || '').toString(),
+          linkText:          (parsed.linkText          || '').toString(),
+          footerAttribution: (parsed.footerAttribution || '').toString(),
         });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'AI generation failed';

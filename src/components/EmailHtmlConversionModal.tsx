@@ -126,6 +126,43 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     img.src = imageUrl;
   }, [imageUrl]);
 
+  // Fetch per-brand static config (logo, banner, unsubscribe, footer, legal)
+  // from Supabase when the modal opens on a brand. Null-out on brand change
+  // so a stale config doesn't leak into a different brand.
+  useEffect(() => {
+    setStaticConfig(null);
+    if (!isOpen || !effectiveBrand) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/get-brand-email-config?brand=${encodeURIComponent(effectiveBrand)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setStaticConfig(data);
+      } catch { /* non-fatal — fallbacks handle it */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, effectiveBrand]);
+
+  // Social URLs are per-brand and remembered via localStorage so the user
+  // doesn't retype them across campaigns. Key: emailSocials:<brand>.
+  useEffect(() => {
+    if (!isOpen || !effectiveBrand) return;
+    try {
+      const raw = localStorage.getItem(`emailSocials:${effectiveBrand}`);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<EmailFormData>;
+      setFormData(prev => ({
+        ...prev,
+        facebookUrl:    saved.facebookUrl    ?? prev.facebookUrl,
+        twitterUrl:     saved.twitterUrl     ?? prev.twitterUrl,
+        instagramUrl:   saved.instagramUrl   ?? prev.instagramUrl,
+        websiteUrl:     saved.websiteUrl     ?? prev.websiteUrl,
+        unsubscribeUrl: saved.unsubscribeUrl ?? prev.unsubscribeUrl,
+      }));
+    } catch { /* ignore malformed cache */ }
+  }, [isOpen, effectiveBrand]);
+
   const handleField = (field: keyof EmailFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };

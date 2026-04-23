@@ -752,6 +752,9 @@ export function ImageModal({
               <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => setShowHtmlModal(true)} disabled={isEditing}>
                 <FileCode className="w-3.5 h-3.5" />Convert to HTML
               </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => setShowEmailModal(true)} disabled={isEditing}>
+                <Mail className="w-3.5 h-3.5" />Convert to Email
+              </Button>
               <Button size="sm" className="gap-1.5 gradient-primary shrink-0" onClick={handleDownload} disabled={isEditing}>
                 <Download className="w-3.5 h-3.5" />Download
               </Button>

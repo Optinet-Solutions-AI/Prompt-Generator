@@ -384,7 +384,7 @@ function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
 
   return [
     '<tr>',
-    `  <td align="center" style="padding:14px 24px 24px 24px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif;">`,
+    `  <td align="center" style="padding:14px 24px 20px 24px;font-family:${FONT_STACK};">`,
     `    ${parts}`,
     '  </td>',
     '</tr>',

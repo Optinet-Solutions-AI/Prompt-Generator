@@ -1069,6 +1069,14 @@ function Lightbox({
             </button>
 
             <button
+              onClick={() => setShowEmailModal(true)}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              Convert to Email
+            </button>
+
+            <button
               onClick={handleDownload}
               disabled={isDownloading}
               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors disabled:opacity-60"

@@ -449,6 +449,36 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       return res.status(200).json(Array.isArray(data) ? data : []);
     }
 
+    // GET BRAND EMAIL CONFIG — static per-brand header/footer data for email templates
+    if (action === 'get-brand-email-config') {
+      const brand = (req.query.brand as string) || '';
+      if (!brand) return res.status(400).json({ error: 'brand query param required' });
+      try {
+        const rows = await sbGet(
+          `brand_email_config?brand_name=eq.${encodeURIComponent(brand)}&select=*`
+        );
+        const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+        // Always return a well-shaped object so the client doesn't need null-checks
+        return res.status(200).json({
+          brand_name:          brand,
+          logo_url:            row?.logo_url            ?? null,
+          banner_url:          row?.banner_url          ?? null,
+          website_url:         row?.website_url         ?? null,
+          unsubscribe_url:     row?.unsubscribe_url     ?? null,
+          footer_attribution:  row?.footer_attribution  ?? null,
+          legal_text:          row?.legal_text          ?? null,
+        });
+      } catch (e: unknown) {
+        // Table might not exist yet — return empty shape instead of failing
+        return res.status(200).json({
+          brand_name: brand,
+          logo_url: null, banner_url: null, website_url: null,
+          unsubscribe_url: null, footer_attribution: null, legal_text: null,
+          _note: e instanceof Error ? e.message : 'brand_email_config unavailable',
+        });
+      }
+    }
+
     // SAVE AS REFERENCE — save a blended/generated prompt as a new reference
     // Also handles 'save-prompt' (same operation — insert a new record)
     if (action === 'save-as-reference' || action === 'save-prompt') {

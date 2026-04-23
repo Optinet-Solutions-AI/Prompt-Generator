@@ -79,6 +79,7 @@ export function ImageModal({
   const [isEditing, setIsEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [showHtmlModal, setShowHtmlModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const updatedUrlsRef = useRef<Map<string, { displayUrl: string; editUrl: string }>>(new Map());

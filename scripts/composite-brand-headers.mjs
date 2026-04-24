@@ -84,29 +84,41 @@ async function compositeOne(brand) {
   try { await fs.access(bgPath); }
   catch { return { ok: false, error: `texture missing: run generate-brand-headers.mjs first` }; }
 
-  // Resize texture to email header dimensions.
-  // We squish (no aspect-ratio lock) so both torn paper edges are preserved
-  // top + bottom while the dark centre shrinks to banner proportions.
-  const bgBuf = await sharp(bgPath)
-    .resize(OUT_W, OUT_H, { fit: 'fill' })  // fill = squish, no crop
+  // 1. Resize texture to TEXTURE_H — squish fills both torn edges top+bottom.
+  const texBuf = await sharp(bgPath)
+    .resize(OUT_W, TEXTURE_H, { fit: 'fill' })
     .toBuffer();
 
-  // Load + resize logo
+  // 2. Build full canvas: texture on top, white on the bottom overflow zone.
+  //    White zone gives the logo a clean surface to spill onto.
+  const whitePad = await sharp({
+    create: { width: OUT_W, height: LOGO_OVERFLOW, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
+  }).png().toBuffer();
+
+  const canvasBuf = await sharp({
+    create: { width: OUT_W, height: OUT_H, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } },
+  })
+    .composite([
+      { input: texBuf,   top: 0,          left: 0 },
+      { input: whitePad, top: TEXTURE_H,  left: 0 },
+    ])
+    .png()
+    .toBuffer();
+
+  // 3. Load + resize logo
   const logoBuf = await loadLogo(brand);
   if (!logoBuf) {
-    // No logo — save texture-only as header (user can add logo later)
-    await fs.writeFile(outPath, bgBuf);
+    await fs.writeFile(outPath, canvasBuf);
     return { ok: true, path: outPath, note: 'no logo found — texture only' };
   }
 
-  // Get actual logo dimensions after resize
+  // 4. Position logo: centred horizontally, bottom-anchored so LOGO_OVERFLOW
+  //    px of the logo hang below the texture edge into the white zone.
   const { width: lw, height: lh } = await sharp(logoBuf).metadata();
-
-  // Centre the logo on the banner
   const left = Math.round((OUT_W - lw) / 2);
-  const top  = Math.round((OUT_H - lh) / 2);
+  const top  = TEXTURE_H - (lh - LOGO_OVERFLOW); // logo bottom = TEXTURE_H + LOGO_OVERFLOW
 
-  const final = await sharp(bgBuf)
+  const final = await sharp(canvasBuf)
     .composite([{ input: logoBuf, left, top, blend: 'over' }])
     .png({ compressionLevel: 8 })
     .toBuffer();

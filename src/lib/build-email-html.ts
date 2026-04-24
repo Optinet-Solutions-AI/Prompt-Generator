@@ -107,7 +107,34 @@ function safeUrl(url: string): string {
   return `https://${trimmed}`;
 }
 
+/**
+ * Hidden inbox-preview text that shows next to the subject line in Gmail,
+ * Apple Mail, Outlook etc. Keeps recipients from seeing "View in browser"
+ * or CSS bleed as the preview. Takes the first ~90 chars of the intro,
+ * falling back to "<brand> — <headline>" then brand alone.
+ */
+function buildPreheader(form: EmailFormData, brand?: string): string {
+  const raw = form.introText.trim()
+    || (brand && form.headline.trim() ? `${brand} — ${form.headline.trim()}` : '')
+    || form.headline.trim()
+    || brand
+    || '';
+  if (!raw) return '';
+  const trimmed = raw.length > 110 ? `${raw.slice(0, 107)}…` : raw;
+  return `<div style="display:none;font-size:1px;color:#f4f5f7;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(trimmed)}</div>`;
+}
+
 // ── HTML builder ────────────────────────────────────────────────────
+
+// Atlassian-style palette — neutral navy ink, cool greys, soft off-white bg.
+// Brand accent still comes from BRAND_STANDARDS.accentColor.
+const INK_HEADLINE = '#172b4d';  // Atlassian navy — strong headline
+const INK_BODY     = '#42526e';  // body copy — high-contrast but soft
+const INK_MUTED    = '#5e6c84';  // secondary info (socials, footer attr)
+const INK_LIGHT    = '#97a0af';  // legal / fine print
+const LINE_COLOR   = '#ebecf0';  // dividers
+const PAGE_BG      = '#f4f5f7';  // page canvas
+const FOOTER_BG    = '#fafbfc';  // subtle footer tint
 
 const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
 

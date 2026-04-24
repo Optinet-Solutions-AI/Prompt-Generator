@@ -489,7 +489,9 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     `          ${headerBarHtml}`,
     // Bottom torn-paper edge separating the header from the white content
     `          ${tornEdgeHtml}`,
-    // Content block — eyebrow + headline + intro + body
+    // Brand wordmark centered below header (Atlassian-style)
+    `          ${wordmarkHtml}`,
+    // Content block — headline + intro + body
     `          ${contentHtml}`,
     // Hero banner — sits after the body text, full-bleed inside the container
     `          ${heroHtml}`,

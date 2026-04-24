@@ -398,10 +398,6 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     ? `<p style="margin:0 0 28px 0;font-size:16px;line-height:1.6;color:${INK_BODY};font-family:${FONT_STACK};">${escapeHtml(formData.bodyText)}</p>`
     : '';
 
-  const ctaText = formData.linkText.trim();
-  const ctaUrl  = safeUrl(formData.linkUrl);
-  const ctaHtml = ctaText ? buildCtaButton(ctaText, ctaUrl, style) : '';
-
   const hasCopy = !!(headlineHtml || introHtml || bodyHtml);
   const contentHtml = hasCopy
     ? [
@@ -410,16 +406,6 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
         `    ${headlineHtml}`,
         `    ${introHtml}`,
         `    ${bodyHtml}`,
-        '  </td>',
-        '</tr>',
-      ].join('\n')
-    : '';
-
-  const ctaRowHtml = ctaHtml
-    ? [
-        '<tr>',
-        `  <td class="card-wrap" align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;">`,
-        `    ${ctaHtml}`,
         '  </td>',
         '</tr>',
       ].join('\n')

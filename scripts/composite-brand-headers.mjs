@@ -37,10 +37,14 @@ const BRANDS = [
 ];
 
 // ── Dimensions ──────────────────────────────────────────────────────
-const OUT_W = 1200;   // 2× retina — displays at 600px wide in email
-const OUT_H = 400;    // 2× retina — displays at 200px tall in email
-const LOGO_MAX_H = 160; // max logo height on composite (80px at 1× display)
-const LOGO_MAX_W = 600; // max logo width (half panel width)
+const OUT_W        = 1200; // 2× retina — displays at 600px wide in email
+const TEXTURE_H    = 400;  // height of the dark texture band (200px at 1×)
+const LOGO_MAX_H   = 200;  // max logo height (100px at 1× display)
+const LOGO_MAX_W   = 500;  // max logo width
+const LOGO_OVERFLOW = 100; // px of logo that spill BELOW the texture into white
+// Final canvas is TEXTURE_H + LOGO_OVERFLOW tall so the logo badge visually
+// floats half-in-header / half-in-body (Atlassian overflow badge style).
+const OUT_H = TEXTURE_H + LOGO_OVERFLOW;
 
 async function loadLogo(brand) {
   const refDir = path.join(ROOT, 'public', 'brand-references', brand.slug);

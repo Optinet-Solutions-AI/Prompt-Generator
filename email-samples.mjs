@@ -79,7 +79,7 @@ async function buildSections() {
       return `
         <div>
           <p style="font-family:system-ui;font-size:12px;color:#666;margin:0 0 6px 0;">${v.label}</p>
-          <iframe srcdoc='${html.replace(/'/g, "&apos;")}' style="width:620px;height:1050px;border:1px solid #333;background:#fff;border-radius:4px;"></iframe>
+          <iframe srcdoc='${html.replace(/'/g, "&apos;")}' style="width:602px;height:1050px;border:1px solid #ddd;background:#fff;border-radius:4px;"></iframe>
         </div>`;
     }).join('');
 

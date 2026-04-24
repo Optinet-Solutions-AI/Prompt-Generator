@@ -27,7 +27,46 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const ROOT       = path.resolve(__dirname, '..');
 
-const TEMPLATE = path.join(ROOT, 'public', 'brand-references', '_template', 'header-template.png');
+const TEMPLATE_RAW   = path.join(ROOT, 'public', 'brand-references', '_template', 'header-template.png');
+const TEMPLATE_CLEAN = path.join(ROOT, 'public', 'brand-references', '_template', 'header-template-clean.png');
+
+/**
+ * Build a shield-free version of the template by cloning the right-side
+ * stroke pattern over the centered Georgia Soccer shield. Run once per
+ * recolour; the cleaned image is cached so subsequent runs skip this step.
+ */
+async function ensureCleanTemplate() {
+  try {
+    const rawStat = await fs.stat(TEMPLATE_RAW);
+    let cleanNeedsRebuild = true;
+    try {
+      const cleanStat = await fs.stat(TEMPLATE_CLEAN);
+      if (cleanStat.mtimeMs >= rawStat.mtimeMs) cleanNeedsRebuild = false;
+    } catch { /* clean doesn't exist yet */ }
+    if (!cleanNeedsRebuild) return;
+  } catch {
+    throw new Error(`template missing at ${TEMPLATE_RAW}`);
+  }
+
+  const meta = await sharp(TEMPLATE_RAW).metadata();
+  const W = meta.width, H = meta.height;
+  // Shield bounding box (eyeballed from the 600×124 reference):
+  const SHIELD_X = 220;
+  const SHIELD_W = 160;
+  // Donor strip: take the right-hand stroke pattern (x 420..580), mirror it so
+  // the diagonal direction still points top-right → bottom-left, then paste
+  // it over the shield area.
+  const donor = await sharp(TEMPLATE_RAW)
+    .extract({ left: 420, top: 0, width: SHIELD_W, height: H })
+    .flop() // horizontal mirror to keep stroke direction consistent
+    .toBuffer();
+  const cleaned = await sharp(TEMPLATE_RAW)
+    .composite([{ input: donor, left: SHIELD_X, top: 0, blend: 'over' }])
+    .png()
+    .toBuffer();
+  await fs.writeFile(TEMPLATE_CLEAN, cleaned);
+  console.log(`  ✓ wrote ${path.relative(ROOT, TEMPLATE_CLEAN)} (shield removed)`);
+}
 
 // Brand palette (panelBg = template navy replacement, accent = template red replacement).
 const BRANDS = [

@@ -388,28 +388,16 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   //     coloured pill (only as wide as the logo needs) so light-coloured
   //     logos (gold, cyan) stay legible.
   const wmPanel = style.panelBg || '#0F0800';
+  // Dark-bg brands: the halo is already baked into the wordmark PNG by the
+  // upstream loader, so both branches render the same flat <img> — no box.
   const wordmarkHtml = cfg.wordmark_url
-    ? (cfg.wordmark_dark_bg
-        ? [
-            '<tr>',
-            '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;">',
-            '    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">',
-            '      <tr>',
-            `        <td align="center" style="background-color:${wmPanel};border-radius:6px;padding:6px 14px;line-height:0;font-size:0;">`,
-            `          <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:200px;height:auto;border:0;outline:none;" />`,
-            '        </td>',
-            '      </tr>',
-            '    </table>',
-            '  </td>',
-            '</tr>',
-          ].join('\n')
-        : [
-            '<tr>',
-            '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;line-height:0;font-size:0;">',
-            `    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:240px;height:auto;border:0;outline:none;" />`,
-            '  </td>',
-            '</tr>',
-          ].join('\n'))
+    ? [
+        '<tr>',
+        '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;line-height:0;font-size:0;">',
+        `    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:240px;height:auto;border:0;outline:none;" />`,
+        '  </td>',
+        '</tr>',
+      ].join('\n')
     : (brand
         ? [
             '<tr>',

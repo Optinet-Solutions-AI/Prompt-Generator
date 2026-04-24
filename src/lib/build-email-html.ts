@@ -79,6 +79,10 @@ export interface StaticBrandConfig {
   /** Full brand wordmark (icon + name text). Displayed centered below the
    *  header banner, Atlassian-style, before body content. */
   wordmark_url?: string | null;
+  /** When true, the wordmark is wrapped in a dark brand-colored pill for
+   *  contrast — needed for brands whose logo colours are too light to read
+   *  on a white email body (e.g. all-gold Rollero, cyan NovaDreams). */
+  wordmark_dark_bg?: boolean | null;
   website_url?: string | null;
   unsubscribe_url?: string | null;
   footer_attribution?: string | null;

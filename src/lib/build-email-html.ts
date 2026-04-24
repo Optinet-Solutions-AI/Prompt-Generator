@@ -260,9 +260,10 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   // torn white edges top AND bottom so the header reads as a ragged ribbon
   // painted onto torn paper. Gmail/Apple Mail/iOS render the strokes; Outlook
   // falls back to the solid panelBg with the logo centred — acceptable.
-  const headerBg   = style.panelBg     || '#172b4d';
-  const headerText = style.accentColor || '#ffffff';
-  const grungeBgUrl = buildGrungeHeaderBgSvg(headerText);
+  const headerBg   = style.panelBg       || '#172b4d';
+  const strokeColor = style.accentColor   || '#ffffff';
+  const headerText  = style.headlineColor || '#ffffff';
+  const grungeBgUrl = buildGrungeHeaderBgSvg(strokeColor);
   const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
 
   // Top torn edge — white paper tears open to reveal the dark header below.

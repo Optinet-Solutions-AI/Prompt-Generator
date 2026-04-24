@@ -381,22 +381,40 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
       : '';
   }
 
-  // wordmarkHtml — brand wordmark image (logo-1.svg) on plain white.
-  // White text pixels in the wordmark were already recoloured to black by the
-  // upstream loader so no dark pill is needed behind the full wordmark.
+  // wordmarkHtml — brand wordmark image below the hero.
+  //   • wordmark_dark_bg=false → plain white background, white text pixels
+  //     were already recoloured to black upstream, no pill.
+  //   • wordmark_dark_bg=true  → wordmark sits in a compact dark brand-
+  //     coloured pill (only as wide as the logo needs) so light-coloured
+  //     logos (gold, cyan) stay legible.
+  const wmPanel = style.panelBg || '#0F0800';
   const wordmarkHtml = cfg.wordmark_url
-    ? [
-        '<tr>',
-        '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;line-height:0;font-size:0;">',
-        `    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:280px;height:auto;border:0;outline:none;" />`,
-        '  </td>',
-        '</tr>',
-      ].join('\n')
+    ? (cfg.wordmark_dark_bg
+        ? [
+            '<tr>',
+            '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;">',
+            '    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">',
+            '      <tr>',
+            `        <td align="center" style="background-color:${wmPanel};border-radius:8px;padding:12px 24px;line-height:0;font-size:0;">`,
+            `          <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:220px;height:auto;border:0;outline:none;" />`,
+            '        </td>',
+            '      </tr>',
+            '    </table>',
+            '  </td>',
+            '</tr>',
+          ].join('\n')
+        : [
+            '<tr>',
+            '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;line-height:0;font-size:0;">',
+            `    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:240px;height:auto;border:0;outline:none;" />`,
+            '  </td>',
+            '</tr>',
+          ].join('\n'))
     : (brand
         ? [
             '<tr>',
             `  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;font-family:${style.fontFamily};">`,
-            `    <span style="display:inline-block;font-size:30px;font-weight:800;color:${style.panelBg || '#000000'};letter-spacing:0.06em;font-family:${style.fontFamily};">${escapeHtml(brand)}</span>`,
+            `    <span style="display:inline-block;font-size:26px;font-weight:800;color:${style.panelBg || '#000000'};letter-spacing:0.06em;font-family:${style.fontFamily};">${escapeHtml(brand)}</span>`,
             '  </td>',
             '</tr>',
           ].join('\n')

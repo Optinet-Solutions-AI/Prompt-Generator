@@ -402,7 +402,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   const contentHtml = hasCopy
     ? [
         '<tr>',
-        `  <td class="card-wrap" style="background-color:#ffffff;padding:36px 40px 24px 40px;font-family:${FONT_STACK};">`,
+        `  <td class="card-wrap" style="background-color:#ffffff;padding:20px 40px 24px 40px;font-family:${FONT_STACK};">`,
         `    ${brandLabel}`,
         `    ${headlineHtml}`,
         `    ${introHtml}`,

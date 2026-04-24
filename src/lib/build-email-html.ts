@@ -398,7 +398,7 @@ function buildIntroParagraph(data: EmailFormData): string {
   return `<p style="margin:0 0 20px 0;font-size:16px;line-height:1.6;color:${INK_BODY};font-family:${FONT_STACK};">${body}</p>`;
 }
 
-function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
+function buildSocialRow(data: EmailFormData, _style: BrandStyle): string {
   const entries = [
     { label: 'Facebook',  url: data.facebookUrl },
     { label: 'Twitter',   url: data.twitterUrl },
@@ -408,9 +408,9 @@ function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
 
   if (entries.length === 0) return '';
 
-  // Clean muted style — medium gray pipes, brand accent links without underline
-  const linkStyle = `color:${style.accentColor};text-decoration:none;font-weight:600;font-size:13px;letter-spacing:0.01em;`;
-  const sepStyle = 'color:#d4d4d4;padding:0 10px;font-size:13px;';
+  // Muted row — readable on white, doesn't steal attention from the CTA above.
+  const linkStyle = `color:${INK_MUTED};text-decoration:none;font-weight:600;font-size:13px;letter-spacing:0.02em;`;
+  const sepStyle  = `color:${LINE_COLOR};padding:0 12px;font-size:13px;`;
   const parts = entries.map((e, i) => {
     const link = `<a href="${escapeHtml(safeUrl(e.url))}" style="${linkStyle}">${escapeHtml(e.label)}</a>`;
     return i === 0 ? link : `<span style="${sepStyle}">|</span>${link}`;
@@ -418,7 +418,7 @@ function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
 
   return [
     '<tr>',
-    `  <td align="center" style="padding:14px 24px 20px 24px;font-family:${FONT_STACK};">`,
+    `  <td align="center" style="padding:24px 40px;background-color:#ffffff;font-family:${FONT_STACK};">`,
     `    ${parts}`,
     '  </td>',
     '</tr>',

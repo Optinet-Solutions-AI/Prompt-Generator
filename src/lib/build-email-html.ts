@@ -550,7 +550,7 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
       ].join('\n')
     : [
         '    <tr>',
-        `      <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:52px 24px 44px 24px;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:800;letter-spacing:0.16em;color:${primary};text-transform:uppercase;">`,
+        `      <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:52px 24px 44px 24px;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:800;letter-spacing:0.16em;color:${headerText};text-transform:uppercase;">`,
         `        ${escapeHtml(brandName)}`,
         '      </td>',
         '    </tr>',

@@ -122,18 +122,21 @@ function buildPrompt(brand) {
   // than to structured keyword lists. Heavy emphasis on "NO text/logos/symbols"
   // because gpt-image-1 loves to invent wordmarks unless explicitly blocked.
   return (
-    `Horizontal email header banner, wide panoramic format. ` +
-    `Deep dark ${brand.panelBg} background filling the entire image flush from top edge to bottom edge — ` +
-    `no white at the top, the dark color starts immediately at the top. ` +
-    `2 to 3 bold parallel diagonal brush strokes in vivid saturated ${brand.accent} paint, ` +
-    `each stroke sweeping from the upper-right corner diagonally down toward the lower-left corner, ` +
-    `like thick slashing paint bands across the composition, ${brand.mood}. ` +
-    `The strokes are wide, heavy, impasto — like the gold bands in Atlanta Insiders-style casino banners. ` +
-    `No white torn paper edge anywhere — the image is purely dark background with bold color strokes from edge to edge. ` +
-    `The center area is slightly calmer to allow a logo to sit on top. ` +
-    `Ink spatter and paint droplets for grunge texture. ` +
-    `Absolutely NO text, NO letters, NO numbers, NO logos, NO badges, NO symbols, NO watermarks. ` +
-    `Pure abstract painted background only.`
+    `Horizontal email header banner in the style of a Georgia Soccer sports banner — wide panoramic sports banner format. ` +
+    `Deep dark ${brand.panelBg} background filling the entire image flush from the top edge downward — ` +
+    `the dark color starts immediately at the very top of the frame, no white at the top. ` +
+    `3 to 4 BOLD THICK parallel diagonal brush strokes in vivid saturated ${brand.accent} paint, ` +
+    `each stroke sweeping confidently from the upper-right corner diagonally down toward the lower-left corner, ` +
+    `like powerful slashing paint bands across the entire width, ${brand.mood}. ` +
+    `The strokes are wide, heavy, impasto, dominant — matching the bold red/blue banners on sports team ` +
+    `headers (Georgia Soccer style): rough distressed textured paint with grunge feel, clearly visible against the dark background. ` +
+    `Along the very bottom edge of the banner: a rough irregular TORN CREAM-WHITE PAPER edge, ` +
+    `with ragged uneven paper fragments tearing downward — the torn paper is pale cream/off-white with visible paper texture, ` +
+    `occupying roughly the bottom 15% of the banner. ` +
+    `The center area is slightly calmer so a logo can sit on top. ` +
+    `Ink spatter and paint droplets around the strokes for texture. ` +
+    `Absolutely NO text, NO letters, NO numbers, NO logos, NO badges, NO symbols, NO watermarks, NO typography. ` +
+    `Pure abstract painted sports-banner background only.`
   );
 }
 

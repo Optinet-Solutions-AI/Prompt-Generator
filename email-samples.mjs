@@ -69,13 +69,15 @@ const WORDMARK_FILES = {
   rollero:     { file: 'scraped/logo-long.svg',  darkBg: true  }, // gold on white is unreadable
 };
 
-// Convert wordmark SVG → PNG → base64 data URI. Walks the raw pixels and
-// recolours near-white (text) pixels to black so the wordmark is visible on
-// a white email body without needing an ugly dark pill behind it.
+// Convert wordmark SVG → PNG → base64 data URI.
+// When `darkBg` is false: recolours near-white text pixels to black so the
+//   wordmark is legible on a white email body without a pill.
+// When `darkBg` is true: leaves pixels untouched — the wordmark will be
+//   wrapped in a dark brand-colored pill by the email builder.
 async function wordmarkDataUri(slug) {
-  const file = WORDMARK_FILES[slug];
-  if (!file) return null;
-  const p = path.join(ROOT, 'public', 'brand-references', slug, file);
+  const cfg = WORDMARK_FILES[slug];
+  if (!cfg) return null;
+  const p = path.join(ROOT, 'public', 'brand-references', slug, cfg.file);
   try {
     await fs.access(p);
     const rendered = await sharp(p, { density: 256 })
@@ -84,12 +86,13 @@ async function wordmarkDataUri(slug) {
       .raw()
       .toBuffer({ resolveWithObject: true });
     const { data, info } = rendered;
-    // Recolour near-white pixels → black (white text becomes black text).
-    // Leaves mid-tones and coloured pixels untouched.
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-      if (a > 40 && r > 235 && g > 235 && b > 235) {
-        data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
+    if (!cfg.darkBg) {
+      // White text → black so it's visible on white body.
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+        if (a > 40 && r > 235 && g > 235 && b > 235) {
+          data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
+        }
       }
     }
     const buf = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })

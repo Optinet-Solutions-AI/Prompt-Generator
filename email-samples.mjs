@@ -110,9 +110,11 @@ async function buildSections() {
     const slug = slugMap[brand];
     const header_url = await headerDataUri(slug);
     const wordmark_url = await wordmarkDataUri(slug);
+    const wordmark_dark_bg = !!(WORDMARK_FILES[slug] && WORDMARK_FILES[slug].darkBg);
     const staticConfig = {
       header_url,
       wordmark_url,
+      wordmark_dark_bg,
       legal_text: '21+ only. Please play responsibly.',
       footer_attribution: `Sent on behalf of ${brand}.`,
       unsubscribe_url: 'https://example.com/unsub',

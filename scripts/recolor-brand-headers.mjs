@@ -135,7 +135,7 @@ async function recolorOne(brand) {
   await fs.mkdir(outDir, { recursive: true });
   const outPath = path.join(outDir, 'email-header-bg.png');
 
-  const { data, info } = await sharp(TEMPLATE)
+  const { data, info } = await sharp(TEMPLATE_CLEAN)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });

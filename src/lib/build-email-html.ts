@@ -145,11 +145,22 @@ const FOOTER_BG    = '#fafbfc';  // subtle footer tint
  * Fill colour matches the header's brand panel colour so the tear looks
  * like the branded header paper ending in a rough edge before white content.
  *
+ * `side`:
+ *   - 'bottom' (default) → fill at TOP of the rect, teeth point DOWN.
+ *     Use BELOW the header panel (header above, white below).
+ *   - 'top' → fill at BOTTOM of the rect, teeth point UP.
+ *     Use ABOVE the header panel (white above, header below).
+ *
  * Base64-encoded for max email-client compatibility (Gmail, Outlook web,
  * Apple Mail all honour base64 SVG data URIs in <img src>).
  */
-function buildTornEdgeDataUri(fillColor: string): string {
-  const path = 'M0,0 H1200 V6 L1185,20 L1170,4 L1155,22 L1140,8 L1125,20 L1110,2 L1095,18 L1080,8 L1065,22 L1050,4 L1035,20 L1020,6 L1005,22 L990,4 L975,18 L960,8 L945,22 L930,2 L915,16 L900,8 L885,20 L870,4 L855,22 L840,8 L825,18 L810,2 L795,22 L780,6 L765,20 L750,4 L735,16 L720,8 L705,22 L690,2 L675,18 L660,8 L645,20 L630,4 L615,22 L600,6 L585,18 L570,8 L555,22 L540,4 L525,20 L510,2 L495,16 L480,8 L465,22 L450,4 L435,18 L420,8 L405,22 L390,2 L375,20 L360,8 L345,16 L330,4 L315,22 L300,6 L285,18 L270,8 L255,22 L240,2 L225,20 L210,4 L195,16 L180,8 L165,22 L150,4 L135,18 L120,8 L105,22 L90,2 L75,20 L60,4 L45,16 L30,8 L15,22 L0,6 Z';
+function buildTornEdgeDataUri(fillColor: string, side: 'top' | 'bottom' = 'bottom'): string {
+  // Jagged teeth path. For 'bottom', fill sits along y=0 with the ragged edge
+  // dipping down into transparency (y≈2..22). For 'top', the same pattern is
+  // reflected so the fill sits along y=24 and the teeth climb up.
+  const bottomPath = 'M0,0 H1200 V6 L1185,20 L1170,4 L1155,22 L1140,8 L1125,20 L1110,2 L1095,18 L1080,8 L1065,22 L1050,4 L1035,20 L1020,6 L1005,22 L990,4 L975,18 L960,8 L945,22 L930,2 L915,16 L900,8 L885,20 L870,4 L855,22 L840,8 L825,18 L810,2 L795,22 L780,6 L765,20 L750,4 L735,16 L720,8 L705,22 L690,2 L675,18 L660,8 L645,20 L630,4 L615,22 L600,6 L585,18 L570,8 L555,22 L540,4 L525,20 L510,2 L495,16 L480,8 L465,22 L450,4 L435,18 L420,8 L405,22 L390,2 L375,20 L360,8 L345,16 L330,4 L315,22 L300,6 L285,18 L270,8 L255,22 L240,2 L225,20 L210,4 L195,16 L180,8 L165,22 L150,4 L135,18 L120,8 L105,22 L90,2 L75,20 L60,4 L45,16 L30,8 L15,22 L0,6 Z';
+  const topPath    = 'M0,24 H1200 V18 L1185,4 L1170,20 L1155,2 L1140,16 L1125,4 L1110,22 L1095,6 L1080,16 L1065,2 L1050,20 L1035,4 L1020,18 L1005,2 L990,20 L975,6 L960,16 L945,2 L930,22 L915,8 L900,16 L885,4 L870,20 L855,2 L840,16 L825,6 L810,22 L795,2 L780,18 L765,4 L750,20 L735,8 L720,16 L705,2 L690,22 L675,6 L660,16 L645,4 L630,20 L615,2 L600,18 L585,6 L570,16 L555,2 L540,20 L525,4 L510,22 L495,8 L480,16 L465,2 L450,20 L435,6 L420,16 L405,2 L390,22 L375,4 L360,16 L345,8 L330,20 L315,2 L300,18 L285,6 L270,16 L255,2 L240,22 L225,4 L210,20 L195,8 L180,16 L165,2 L150,20 L135,6 L120,16 L105,2 L90,22 L75,4 L60,20 L45,8 L30,16 L15,2 L0,18 Z';
+  const path = side === 'top' ? topPath : bottomPath;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="24" viewBox="0 0 1200 24" preserveAspectRatio="none"><path d="${path}" fill="${fillColor}"/></svg>`;
   // btoa exists in modern browsers and Node 16+. Fallback only triggers in
   // exotic environments — shouldn't fire in production.
@@ -160,6 +171,51 @@ function buildTornEdgeDataUri(fillColor: string): string {
     return `data:image/svg+xml;base64,${b64}`;
   } catch {
     // Last-resort: percent-encoded utf-8 — still works in most clients.
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+}
+
+/**
+ * Grunge brush-stroke overlay for the branded header. Renders 5 diagonal
+ * parallelogram "slashes" plus subtle noise dots in the brand's accent colour
+ * on a transparent background — designed to sit on top of the TD's dark
+ * panelBg so the accent pops like spray-painted gold on a black ribbon.
+ *
+ * Used as a CSS background-image on the header TD. Gmail, Apple Mail, iOS
+ * Mail, Yahoo honour it. Outlook ignores it and shows the solid panelBg
+ * colour with the logo centred on top — acceptable graceful fallback.
+ */
+function buildGrungeHeaderBgSvg(accentColor: string): string {
+  // Diagonal brush-stroke parallelograms, slightly varied angles + opacities
+  // so they read as hand-painted rather than geometric.
+  const strokes: Array<{ pts: string; op: number }> = [
+    { pts: '30,18 200,4 234,60 54,78',     op: 0.95 },
+    { pts: '250,12 400,6 436,62 276,78',   op: 0.88 },
+    { pts: '450,22 580,6 614,64 474,82',   op: 0.92 },
+    { pts: '70,102 270,88 308,144 96,158', op: 0.82 },
+    { pts: '340,110 530,96 574,156 368,170', op: 0.9  },
+  ];
+  const strokesSvg = strokes.map(s =>
+    `<polygon points="${s.pts}" fill="${accentColor}" opacity="${s.op}"/>`
+  ).join('');
+
+  // Subtle speckle / noise dots so the slashes don't look too clean.
+  const dots: Array<[number, number, number]> = [
+    [90, 40, 1.6], [250, 52, 1.3], [440, 34, 1.5], [120, 112, 1.4], [380, 130, 1.2],
+    [520, 120, 1.5], [180, 148, 1.3], [360, 70, 1.1], [500, 160, 1.6], [60, 60, 1.2],
+    [230, 30, 1.2], [330, 90, 1.4], [470, 140, 1.1], [150, 80, 1.1], [420, 50, 1.4],
+  ];
+  const dotsSvg = dots.map(([x, y, r]) =>
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="${accentColor}" opacity="0.38"/>`
+  ).join('');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid slice">${strokesSvg}${dotsSvg}</svg>`;
+  try {
+    const b64 = typeof btoa !== 'undefined'
+      ? btoa(svg)
+      : (typeof Buffer !== 'undefined' ? Buffer.from(svg, 'utf-8').toString('base64') : '');
+    return `data:image/svg+xml;base64,${b64}`;
+  } catch {
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }
 }

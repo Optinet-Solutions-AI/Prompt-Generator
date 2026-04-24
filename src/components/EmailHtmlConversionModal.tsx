@@ -425,21 +425,6 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                       <p className="text-[10px] opacity-70 truncate">Static brand banner</p>
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setVariant('atlanta-newsletter')}
-                    className={`flex items-start gap-2 px-2.5 py-2 rounded-md border text-left transition-colors ${
-                      variant === 'atlanta-newsletter'
-                        ? 'border-primary bg-primary/10 text-foreground'
-                        : 'border-border text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <Newspaper className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold leading-tight">Newsletter</p>
-                      <p className="text-[10px] opacity-70 truncate">Atlanta Insiders style</p>
-                    </div>
-                  </button>
                 </div>
               </div>
 

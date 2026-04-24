@@ -377,14 +377,20 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
       : '';
   }
 
-  // ── Content block ───────────────────────────────────────────────────
-  // Flush white block immediately under the hero. No overlapping card — the
-  // hero sits tight against the body so the email reads as one continuous
-  // surface rather than stacked panels. CTA is centered for prominence.
-  const brandLabel = brand
-    ? `<p style="margin:0 0 16px 0;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${style.accentColor};font-family:${FONT_STACK};">${escapeHtml(brand)}</p>`
+  // ── Wordmark row (Atlassian-style) ─────────────────────────────────
+  // Full brand wordmark (icon + name) centered below the header banner.
+  // Only rendered when wordmark_url is provided via staticConfig.
+  const wordmarkHtml = cfg.wordmark_url
+    ? [
+        '<tr>',
+        '  <td align="center" style="background-color:#ffffff;padding:28px 24px 8px 24px;line-height:0;font-size:0;">',
+        `    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:260px;height:auto;border:0;outline:none;" />`,
+        '  </td>',
+        '</tr>',
+      ].join('\n')
     : '';
 
+  // ── Content block ───────────────────────────────────────────────────
   const headlineHtml = formData.headline.trim()
     ? `<h1 style="margin:0 0 16px 0;font-size:28px;line-height:1.3;font-weight:700;color:${INK_HEADLINE};letter-spacing:-0.01em;font-family:${FONT_STACK};">${escapeHtml(formData.headline)}</h1>`
     : '';
@@ -398,15 +404,11 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   const ctaUrl  = safeUrl(formData.linkUrl);
   const ctaHtml = ctaText ? buildCtaButton(ctaText, ctaUrl, style) : '';
 
-  // Content block — eyebrow + headline + intro + body. CTA is rendered in
-  // its own row AFTER the hero image so the flow is:
-  //   copy → visual payoff → call-to-action.
-  const hasCopy = !!(brandLabel || headlineHtml || introHtml || bodyHtml);
+  const hasCopy = !!(headlineHtml || introHtml || bodyHtml);
   const contentHtml = hasCopy
     ? [
         '<tr>',
         `  <td class="card-wrap" style="background-color:#ffffff;padding:20px 40px 24px 40px;font-family:${FONT_STACK};">`,
-        `    ${brandLabel}`,
         `    ${headlineHtml}`,
         `    ${introHtml}`,
         `    ${bodyHtml}`,

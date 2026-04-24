@@ -673,42 +673,48 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     '    }',
     '  </style>',
     '</head>',
-    `<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#000000;">`,
-    `  <table role="presentation" class="email-container" width="${containerWidth}" align="center" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;margin:0 auto;background-color:#ffffff;">`,
+    `<body style="margin:0;padding:0;background-color:${PAGE_BG};font-family:Arial,Helvetica,sans-serif;color:#000000;">`,
+    `  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:${PAGE_BG};">`,
+    '    <tr>',
+    `      <td align="center" style="padding:0 0 40px 0;">`,
+    `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;background-color:#ffffff;border-radius:0 0 12px 12px;overflow:hidden;box-shadow:0 2px 8px rgba(9,30,66,0.12);">`,
     // 1. Top torn-paper edge — white paper tears to reveal the dark header
     topTornEdge,
     // 2. Branded header (dark panel + accent brush-strokes + logo)
     brandedHeader,
     // 3. Bottom torn-paper edge
     tornEdge,
-    // 3. Body copy
+    // 4. Body copy
     textRow,
-    // 4. AI-generated image — user's converted image, after the body text
+    // 5. AI-generated image — user's converted image, after the body text
     generatedImage
       ? [
-          '    <tr>',
-          '      <td align="center" style="padding:10px 20px 30px 20px;">',
-          `        <img src="${escapeHtml(generatedImage)}" alt="${escapeHtml(brandName)}" style="max-width:100%;height:auto;display:block;margin:0 auto;border:0;outline:none;" />`,
-          '      </td>',
-          '    </tr>',
+          '          <tr>',
+          '            <td align="center" style="padding:10px 20px 30px 20px;">',
+          `              <img src="${escapeHtml(generatedImage)}" alt="${escapeHtml(brandName)}" style="max-width:100%;height:auto;display:block;margin:0 auto;border:0;outline:none;" />`,
+          '            </td>',
+          '          </tr>',
         ].join('\n')
       : '',
-    // 5. Socials
+    // 6. Socials
     socialHtml
-      ? `    <tr><td align="center" style="padding:0 20px 15px 20px;font-size:11px;font-family:Arial,Helvetica,sans-serif;">${socialHtml}</td></tr>`
+      ? `          <tr><td align="center" style="padding:0 20px 15px 20px;font-size:11px;font-family:Arial,Helvetica,sans-serif;">${socialHtml}</td></tr>`
       : '',
-    // 6. Divider
-    '    <tr><td style="padding:0 20px 10px 20px;"><div style="border-top:1px solid #000000;font-size:0;line-height:0;height:1px;">&nbsp;</div></td></tr>',
-    // 7. Footer: unsubscribe (left) + sponsor slot (right)
-    '    <tr>',
-    '      <td style="padding:0 20px 20px 20px;">',
-    '        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">',
+    // 7. Divider
+    '          <tr><td style="padding:0 20px 10px 20px;"><div style="border-top:1px solid #000000;font-size:0;line-height:0;height:1px;">&nbsp;</div></td></tr>',
+    // 8. Footer: unsubscribe (left) + sponsor slot (right)
     '          <tr>',
-    '            <td align="left" valign="top" style="font-size:10px;color:#000000;line-height:1.4;font-family:Arial,Helvetica,sans-serif;">',
-    `              This email was sent on behalf of <strong>${escapeHtml(brandName)}</strong>.${unsubRow ? '<br />' : ''}`,
-    unsubRow ? `              ${unsubRow}` : '',
+    '            <td style="padding:0 20px 20px 20px;">',
+    '              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">',
+    '                <tr>',
+    '                  <td align="left" valign="top" style="font-size:10px;color:#000000;line-height:1.4;font-family:Arial,Helvetica,sans-serif;">',
+    `                    This email was sent on behalf of <strong>${escapeHtml(brandName)}</strong>.${unsubRow ? '<br />' : ''}`,
+    unsubRow ? `                    ${unsubRow}` : '',
+    '                  </td>',
+    '                  <td align="right" valign="top" width="120" style="font-size:0;line-height:0;"></td>',
+    '                </tr>',
+    '              </table>',
     '            </td>',
-    '            <td align="right" valign="top" width="120" style="font-size:0;line-height:0;"></td>',
     '          </tr>',
     '        </table>',
     '      </td>',

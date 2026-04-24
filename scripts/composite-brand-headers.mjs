@@ -84,24 +84,9 @@ async function compositeOne(brand) {
   try { await fs.access(bgPath); }
   catch { return { ok: false, error: `texture missing: run generate-brand-headers.mjs first` }; }
 
-  // 1. Resize texture to TEXTURE_H.
-  const rawTexBuf = await sharp(bgPath)
+  // 1. Load the pre-recoloured template texture at its native dimensions.
+  const texBuf = await sharp(bgPath)
     .resize(OUT_W, TEXTURE_H, { fit: 'fill' })
-    .toBuffer();
-
-  // 1b. Fade the bottom 60px of the texture to white so any torn-paper remnants
-  //     in the AI image blend seamlessly into the white canvas below.
-  const FADE_H = 60;
-  const fadeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${OUT_W}" height="${FADE_H}">` +
-    `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">` +
-    `<stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>` +
-    `<stop offset="100%" stop-color="#ffffff" stop-opacity="1"/>` +
-    `</linearGradient></defs>` +
-    `<rect width="${OUT_W}" height="${FADE_H}" fill="url(#g)"/>` +
-    `</svg>`;
-  const fadeBuf = await sharp(Buffer.from(fadeSvg)).png().toBuffer();
-  const texBuf = await sharp(rawTexBuf)
-    .composite([{ input: fadeBuf, top: TEXTURE_H - FADE_H, left: 0, blend: 'over' }])
     .toBuffer();
 
   // 2. Build full canvas: texture on top, white on the bottom overflow zone.

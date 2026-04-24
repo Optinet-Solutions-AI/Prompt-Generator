@@ -299,6 +299,7 @@ async function recolorOne(brand) {
 }
 
 async function main() {
+  await loadEnvLocal();
   await ensureCleanTemplate();
 
   const argIdx = process.argv.indexOf('--brand');

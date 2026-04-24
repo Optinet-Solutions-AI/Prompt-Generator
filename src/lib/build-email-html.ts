@@ -368,6 +368,169 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
 }
 
 /**
+ * Atlanta-Insiders-style newsletter template (Gemini reference).
+ *
+ * Layout:
+ *   1. Header banner image (full-width, no padding)         — AI hero image
+ *   2. Body copy (intro + inline link, then body paragraph) — 12px, black
+ *   3. Secondary image (centered)                           — brand banner
+ *   4. Brand logo (centered, max 200px wide)                — staticConfig.logo_url
+ *   5. Social links row (pipe-separated, primary colour)
+ *   6. Black 1px horizontal divider
+ *   7. Two-column footer table: unsubscribe copy (left) + sponsor slot (right)
+ *
+ * This variant has NO headline and NO CTA button — it's a text-forward
+ * newsletter format. Users who want a call-to-action button should pick
+ * one of the other variants.
+ */
+function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
+  const { imageSrc, brand, formData } = params;
+  const cfg = params.staticConfig || {};
+  const style: BrandStyle = getBrandStyle(brand);
+  const primary = style.accentColor || '#0052cc';
+  const containerWidth = 600;
+  const brandName = brand || 'Brand';
+
+  // Image selection:
+  //   header = AI-generated image (required for this variant)
+  //   secondary = brand banner if distinct from header, else omit
+  const headerImage = imageSrc || cfg.banner_url || '';
+  const secondaryImage = cfg.banner_url && cfg.banner_url !== headerImage ? cfg.banner_url : '';
+
+  const logoUrl   = formData.secondaryLogoUrl.trim() || cfg.logo_url || '';
+  const websiteUrl = safeUrl(formData.websiteUrl.trim() || cfg.website_url || '');
+  const unsubUrl   = safeUrl(formData.unsubscribeUrl.trim() || cfg.unsubscribe_url || '');
+
+  // Intro paragraph with optional inline link (supports {link} placeholder).
+  const intro     = formData.introText.trim();
+  const linkText  = formData.linkText.trim();
+  const linkUrl   = safeUrl(formData.linkUrl.trim() || websiteUrl || '');
+  const linkStyle = `color:${primary};text-decoration:underline;`;
+  let introInner = '';
+  if (intro) {
+    const anchor = linkText ? `<a href="${escapeHtml(linkUrl)}" style="${linkStyle}">${escapeHtml(linkText)}</a>` : '';
+    if (linkText && intro.includes('{link}')) {
+      introInner = escapeHtml(intro).replace('{link}', anchor);
+    } else if (linkText) {
+      introInner = `${escapeHtml(intro)} ${anchor}`;
+    } else {
+      introInner = escapeHtml(intro);
+    }
+  }
+
+  const bodyText = formData.bodyText.trim();
+  const textRow = (introInner || bodyText)
+    ? [
+        '    <tr>',
+        '      <td style="padding:30px 20px;font-family:Arial,Helvetica,sans-serif;color:#000000;">',
+        introInner
+          ? `        <p style="font-size:12px;line-height:1.5;margin:0 0 15px 0;color:#000000;">${introInner}</p>`
+          : '',
+        bodyText
+          ? `        <p style="font-size:12px;line-height:1.5;margin:0;color:#000000;">${escapeHtml(bodyText)}</p>`
+          : '',
+        '      </td>',
+        '    </tr>',
+      ].filter(Boolean).join('\n')
+    : '';
+
+  // Socials — pipe-separated, primary-colour underlined.
+  const socialEntries = [
+    { label: 'Facebook',  url: formData.facebookUrl.trim()  },
+    { label: 'Twitter',   url: formData.twitterUrl.trim()   },
+    { label: 'Instagram', url: formData.instagramUrl.trim() },
+    { label: 'Website',   url: formData.websiteUrl.trim() || cfg.website_url || '' },
+  ].filter(e => e.url);
+  const socialHtml = socialEntries.length
+    ? socialEntries.map((e, i) => {
+        const a = `<a href="${escapeHtml(safeUrl(e.url))}" style="color:${primary};text-decoration:underline;">${e.label}</a>`;
+        return i === 0 ? a : `<span style="color:#000000;margin:0 5px;">|</span>${a}`;
+      }).join('')
+    : '';
+
+  const unsubRow = unsubUrl
+    ? `To unsubscribe from this particular email, <a href="${escapeHtml(unsubUrl)}" style="color:${primary};text-decoration:underline;">click here</a>.`
+    : '';
+
+  return [
+    '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
+    '<html xmlns="http://www.w3.org/1999/xhtml" lang="en">',
+    '<head>',
+    '  <meta charset="UTF-8" />',
+    '  <meta name="viewport" content="width=device-width,initial-scale=1.0" />',
+    '  <meta http-equiv="X-UA-Compatible" content="IE=edge" />',
+    `  <title>${escapeHtml(brandName)}</title>`,
+    '  <style type="text/css">',
+    '    body { margin:0; padding:0; background-color:#ffffff; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }',
+    '    table { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }',
+    '    img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }',
+    '    a, a img { border:0 !important; outline:none !important; }',
+    '    @media only screen and (max-width:620px) {',
+    '      .email-container { width:100% !important; }',
+    '    }',
+    '  </style>',
+    '</head>',
+    `<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#000000;">`,
+    `  <table role="presentation" class="email-container" width="${containerWidth}" align="center" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;margin:0 auto;background-color:#ffffff;">`,
+    // 1. Header banner
+    headerImage
+      ? [
+          '    <tr>',
+          '      <td align="center" style="padding:0;line-height:0;font-size:0;">',
+          `        <img src="${escapeHtml(headerImage)}" alt="${escapeHtml(brandName)} Header" width="${containerWidth}" style="width:100%;max-width:${containerWidth}px;height:auto;display:block;border:0;outline:none;" />`,
+          '      </td>',
+          '    </tr>',
+        ].join('\n')
+      : '',
+    // 2. Body copy
+    textRow,
+    // 3. Secondary image
+    secondaryImage
+      ? [
+          '    <tr>',
+          '      <td align="center" style="padding:0 20px 30px 20px;">',
+          `        <img src="${escapeHtml(secondaryImage)}" alt="${escapeHtml(brandName)} Promo" style="max-width:100%;height:auto;display:block;margin:0 auto;border:0;outline:none;" />`,
+          '      </td>',
+          '    </tr>',
+        ].join('\n')
+      : '',
+    // 4. Brand logo
+    logoUrl
+      ? [
+          '    <tr>',
+          '      <td align="center" style="padding:0 20px 20px 20px;">',
+          `        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brandName)}" style="max-width:200px;height:auto;display:inline-block;border:0;outline:none;" />`,
+          '      </td>',
+          '    </tr>',
+        ].join('\n')
+      : '',
+    // 5. Socials
+    socialHtml
+      ? `    <tr><td align="center" style="padding:0 20px 15px 20px;font-size:11px;font-family:Arial,Helvetica,sans-serif;">${socialHtml}</td></tr>`
+      : '',
+    // 6. Divider
+    '    <tr><td style="padding:0 20px 10px 20px;"><div style="border-top:1px solid #000000;font-size:0;line-height:0;height:1px;">&nbsp;</div></td></tr>',
+    // 7. Footer: unsubscribe (left) + sponsor slot (right)
+    '    <tr>',
+    '      <td style="padding:0 20px 20px 20px;">',
+    '        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">',
+    '          <tr>',
+    '            <td align="left" valign="top" style="font-size:10px;color:#000000;line-height:1.4;font-family:Arial,Helvetica,sans-serif;">',
+    `              This email was sent on behalf of <strong>${escapeHtml(brandName)}</strong>.${unsubRow ? '<br />' : ''}`,
+    unsubRow ? `              ${unsubRow}` : '',
+    '            </td>',
+    '            <td align="right" valign="top" width="120" style="font-size:0;line-height:0;"></td>',
+    '          </tr>',
+    '        </table>',
+    '      </td>',
+    '    </tr>',
+    '  </table>',
+    '</body>',
+    '</html>',
+  ].filter(Boolean).join('\n');
+}
+
+/**
  * Branded CTA button — table-based for Outlook, regular anchor for everyone else.
  * VML shape wraps the anchor for Outlook so it gets a proper pill button.
  */

@@ -581,9 +581,11 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     '</head>',
     `<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#000000;">`,
     `  <table role="presentation" class="email-container" width="${containerWidth}" align="center" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;margin:0 auto;background-color:#ffffff;">`,
-    // 1. Atlassian-style branded header (colour panel + logo)
+    // 1. Top torn-paper edge — white paper tears to reveal the dark header
+    topTornEdge,
+    // 2. Branded header (dark panel + accent brush-strokes + logo)
     brandedHeader,
-    // 2. Torn-paper edge
+    // 3. Bottom torn-paper edge
     tornEdge,
     // 3. Body copy
     textRow,

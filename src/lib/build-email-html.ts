@@ -695,27 +695,13 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     tornEdge,
     // 4. Brand wordmark centered below header
     cfg.wordmark_url
-      ? (cfg.wordmark_dark_bg
-          ? [
-              '          <tr>',
-              '            <td align="center" style="background-color:#ffffff;padding:24px 24px 8px 24px;">',
-              '              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">',
-              '                <tr>',
-              `                  <td align="center" style="background-color:${headerBg};border-radius:6px;padding:6px 14px;line-height:0;font-size:0;">`,
-              `                    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brandName)}" style="display:inline-block;max-width:180px;height:auto;border:0;outline:none;" />`,
-              '                  </td>',
-              '                </tr>',
-              '              </table>',
-              '            </td>',
-              '          </tr>',
-            ].join('\n')
-          : [
-              '          <tr>',
-              '            <td align="center" style="background-color:#ffffff;padding:24px 24px 8px 24px;line-height:0;font-size:0;">',
-              `              <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brandName)}" style="display:inline-block;max-width:220px;height:auto;border:0;outline:none;" />`,
-              '            </td>',
-              '          </tr>',
-            ].join('\n'))
+      ? [
+          '          <tr>',
+          '            <td align="center" style="background-color:#ffffff;padding:24px 24px 8px 24px;line-height:0;font-size:0;">',
+          `              <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brandName)}" style="display:inline-block;max-width:220px;height:auto;border:0;outline:none;" />`,
+          '            </td>',
+          '          </tr>',
+        ].join('\n')
       : '',
     // 5. Body copy
     textRow,

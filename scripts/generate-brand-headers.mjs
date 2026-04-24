@@ -180,10 +180,10 @@ async function generateOpenAI(brand, apiKey) {
   return { ok: true, buf };
 }
 
-// ── Google Gemini Imagen 3 ──────────────────────────────────────────
+// ── Google Imagen 4 (via Gemini API) ───────────────────────────────
 async function generateGemini(brand, apiKey) {
   const prompt = buildPrompt(brand);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`;
   const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -191,7 +191,7 @@ async function generateGemini(brand, apiKey) {
       instances: [{ prompt }],
       parameters: {
         sampleCount: 1,
-        aspectRatio: '16:9',  // closest landscape ratio to our header
+        aspectRatio: '16:9',
         personGeneration: 'dont_allow',
       },
     }),
@@ -199,13 +199,13 @@ async function generateGemini(brand, apiKey) {
 
   if (!resp.ok) {
     const errText = await resp.text();
-    return { ok: false, error: `Gemini ${resp.status}: ${errText.slice(0, 300)}` };
+    return { ok: false, error: `Imagen ${resp.status}: ${errText.slice(0, 300)}` };
   }
 
   const data = await resp.json();
   const pred = data.predictions?.[0];
   const b64  = pred?.bytesBase64Encoded;
-  if (!b64) return { ok: false, error: `no image in Gemini response: ${JSON.stringify(data).slice(0, 200)}` };
+  if (!b64) return { ok: false, error: `no image in Imagen response: ${JSON.stringify(data).slice(0, 200)}` };
   return { ok: true, buf: Buffer.from(b64, 'base64') };
 }
 

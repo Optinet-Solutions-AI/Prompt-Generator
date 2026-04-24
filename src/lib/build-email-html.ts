@@ -237,6 +237,10 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     ? `<p style="margin:0;font-size:12px;color:${INK_MUTED};font-family:${FONT_STACK};">To unsubscribe, <a href="${escapeHtml(safeUrl(unsubRaw))}" style="color:${INK_MUTED};text-decoration:underline;">click here</a>.</p>`
     : '';
 
+  // Is there a footer section worth rendering at all?
+  const hasFooterRow = !!(footerAttr || legalHtml || unsubHtml);
+  const preheaderHtml = buildPreheader(formData, brand);
+
   return [
     '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
     '<html xmlns="http://www.w3.org/1999/xhtml" lang="en">',
@@ -254,44 +258,48 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     '    @media only screen and (max-width:620px) {',
     '      .email-container { width:100% !important; }',
     '      .hero-img { width:100% !important; height:auto !important; }',
-    '      .card-wrap { padding-left:16px !important; padding-right:16px !important; }',
+    '      .card-wrap { padding-left:20px !important; padding-right:20px !important; }',
+    '      .footer-wrap { padding-left:20px !important; padding-right:20px !important; }',
     '    }',
     '  </style>',
     '</head>',
-    `<body style="margin:0;padding:0;background-color:#f0f0f0;font-family:${FONT_STACK};">`,
-    `  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0f0f0;">`,
+    `<body style="margin:0;padding:0;background-color:${PAGE_BG};font-family:${FONT_STACK};">`,
+    preheaderHtml,
+    `  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:${PAGE_BG};">`,
     '    <tr>',
-    '      <td align="center" style="padding:24px 12px 40px 12px;">',
-    `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;">`,
-    // header bar sits on a white card that's the container
-    `          <tr><td style="border-radius:8px 8px 0 0;overflow:hidden;padding:0;">`,
-    `            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff;border-radius:8px 8px 0 0;">`,
-    `              ${headerBarHtml}`,
-    `              ${heroHtml}`,
-    '            </table>',
-    '          </td></tr>',
-    // overlapping card row — overhangs the hero above
+    '      <td align="center" style="padding:32px 12px 40px 12px;">',
+    `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(9,30,66,0.08);">`,
+    // Header (logo or brand wordmark, with divider)
+    `          ${headerBarHtml}`,
+    // Hero image — flush under the header, no padding
+    `          ${heroHtml}`,
+    // Content block — headline + intro + body + centered CTA
     `          ${cardHtml}`,
-    // footer sits below the card in the same outer container
-    `          <tr><td style="background-color:#ffffff;border-radius:0 0 8px 8px;overflow:hidden;padding:0;">`,
-    `            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#ffffff;border-radius:0 0 8px 8px;">`,
-    `              ${socialHtml}`,
-    '              <tr>',
-    `                <td align="center" style="padding:18px 36px 28px 36px;border-top:1px solid #eeeeee;font-family:${FONT_STACK};text-align:center;">`,
-    `                  ${footerAttr}`,
-    `                  ${legalHtml}`,
-    `                  ${unsubHtml}`,
-    '                </td>',
-    '              </tr>',
-    '            </table>',
-    '          </td></tr>',
+    // Divider between content and footer (only when there's footer content below)
+    hasFooterRow || socialHtml
+      ? `          <tr><td style="padding:0 40px;"><div style="border-top:1px solid ${LINE_COLOR};font-size:0;line-height:0;">&nbsp;</div></td></tr>`
+      : '',
+    // Social row (muted, balanced)
+    `          ${socialHtml}`,
+    // Footer (attribution, legal, unsubscribe) on a soft tint
+    hasFooterRow
+      ? [
+          '          <tr>',
+          `            <td class="footer-wrap" align="center" style="background-color:${FOOTER_BG};padding:20px 40px 28px 40px;font-family:${FONT_STACK};text-align:center;">`,
+          `              ${footerAttr}`,
+          `              ${legalHtml}`,
+          `              ${unsubHtml}`,
+          '            </td>',
+          '          </tr>',
+        ].join('\n')
+      : '',
     '        </table>',
     '      </td>',
     '    </tr>',
     '  </table>',
     '</body>',
     '</html>',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 /**

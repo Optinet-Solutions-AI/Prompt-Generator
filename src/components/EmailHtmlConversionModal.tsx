@@ -394,7 +394,7 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
               {/* Template variant tiles */}
               <div className="space-y-1.5">
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Template</p>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setVariant('image-hero')}
@@ -407,7 +407,7 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                     <ImageIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <div className="min-w-0">
                       <p className="text-xs font-semibold leading-tight">Hero Image</p>
-                      <p className="text-[10px] opacity-70 truncate">Uses the generated image</p>
+                      <p className="text-[10px] opacity-70 truncate">With torn header</p>
                     </div>
                   </button>
                   <button
@@ -423,6 +423,21 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                     <div className="min-w-0">
                       <p className="text-xs font-semibold leading-tight">Brand Only</p>
                       <p className="text-[10px] opacity-70 truncate">Static brand banner</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVariant('atlanta-newsletter')}
+                    className={`flex items-start gap-2 px-2.5 py-2 rounded-md border text-left transition-colors ${
+                      variant === 'atlanta-newsletter'
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Newspaper className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold leading-tight">Newsletter</p>
+                      <p className="text-[10px] opacity-70 truncate">Atlanta Insiders style</p>
                     </div>
                   </button>
                 </div>

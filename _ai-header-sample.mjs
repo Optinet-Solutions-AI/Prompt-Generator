@@ -50,7 +50,10 @@ async function generateBg() {
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
     body: JSON.stringify({ model: 'gpt-image-1', prompt, size: '1536x1024', quality: 'high', n: 1 }),
   });
-  const data = await r.json();
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error(`Non-JSON from OpenAI (${r.status}): ${text.slice(0,300)}`); }
   if (!r.ok) throw new Error(`${r.status}: ${JSON.stringify(data).slice(0,400)}`);
   const b64 = data.data?.[0]?.b64_json;
   const url = data.data?.[0]?.url;

@@ -243,7 +243,7 @@ async function main() {
   };
 
   const only       = getFlag('--brand');
-  const provider   = (getFlag('--provider') || 'openai').toLowerCase();
+  const provider   = (getFlag('--provider') || 'gemini').toLowerCase();
   const compare    = hasFlag('--compare');
 
   const targets = only ? BRANDS.filter(b => b.slug === only) : BRANDS;

@@ -50,22 +50,25 @@ async function ensureCleanTemplate() {
 
   const meta = await sharp(TEMPLATE_RAW).metadata();
   const H = meta.height;
-  // Shield bounding box (eyeballed from the 600×124 reference):
-  const SHIELD_X = 220;
-  const SHIELD_W = 160;
+  // Shield bounding box — shield is ~200px wide centered on a 600px image.
+  const SHIELD_X = 200;
+  const SHIELD_W = 200;
   // Donor strip: take clean stroke pattern from the right-hand side
-  // (x 420..580) and paste OVER the shield without mirroring, so the
-  // diagonal strokes continue in the same direction (upper-right → lower-left).
+  // (x 380..580). No mirroring so diagonal strokes continue in the same
+  // direction (upper-right → lower-left).
   const donor = await sharp(TEMPLATE_RAW)
-    .extract({ left: 420, top: 0, width: SHIELD_W, height: H })
+    .extract({ left: 380, top: 0, width: SHIELD_W, height: H })
     .toBuffer();
-  // Feathered alpha mask so the seam fades out instead of being a hard edge.
-  const FEATHER = 24;
+  // Narrow feather (8px) at left/right edges only — keeps the donor almost
+  // fully opaque across the shield area so the Georgia Soccer shield doesn't
+  // bleed through, but softens the hard seam at the boundaries.
+  const FEATHER = 8;
+  const fPct = (FEATHER / SHIELD_W * 100).toFixed(2);
   const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SHIELD_W}" height="${H}">` +
     `<defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">` +
     `<stop offset="0%" stop-color="#fff" stop-opacity="0"/>` +
-    `<stop offset="${(FEATHER / SHIELD_W * 100).toFixed(1)}%" stop-color="#fff" stop-opacity="1"/>` +
-    `<stop offset="${(100 - FEATHER / SHIELD_W * 100).toFixed(1)}%" stop-color="#fff" stop-opacity="1"/>` +
+    `<stop offset="${fPct}%" stop-color="#fff" stop-opacity="1"/>` +
+    `<stop offset="${(100 - FEATHER / SHIELD_W * 100).toFixed(2)}%" stop-color="#fff" stop-opacity="1"/>` +
     `<stop offset="100%" stop-color="#fff" stop-opacity="0"/>` +
     `</linearGradient></defs>` +
     `<rect width="${SHIELD_W}" height="${H}" fill="url(#lg)"/>` +

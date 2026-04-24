@@ -183,7 +183,7 @@ async function generateOpenAI(brand, apiKey) {
 // ── Google Gemini 2.5 Flash Image (multimodal image generation) ─────
 async function generateGemini(brand, apiKey) {
   const prompt = buildPrompt(brand);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`;
   const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

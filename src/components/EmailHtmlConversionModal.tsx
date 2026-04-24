@@ -213,16 +213,22 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
 
   const handleGenerate = async () => {
     setError(null);
-    if (!formData.headline.trim() && !formData.bodyText.trim()) {
+    if (variant === 'atlanta-newsletter') {
+      // Newsletter variant doesn't use a headline — just needs body copy.
+      if (!formData.introText.trim() && !formData.bodyText.trim()) {
+        setError('Add at least an intro or body text.');
+        return;
+      }
+    } else if (!formData.headline.trim() && !formData.bodyText.trim()) {
       setError('Add at least a headline or body text.');
       return;
     }
     setIsGenerating(true);
     try {
-      // For image-hero variant we embed the AI image as data URI.
-      // For brand-only, the static banner is referenced by URL — no embed needed.
+      // image-hero + atlanta-newsletter both use the AI image — embed as data URI.
+      // brand-only references the static banner by URL, no embed needed.
       let imageSrc = '';
-      if (variant === 'image-hero') {
+      if (variant === 'image-hero' || variant === 'atlanta-newsletter') {
         const embedded = await toBase64DataUri(imageUrl);
         if (!embedded) {
           setError('Could not embed the hero image. Try downloading it locally and re-opening.');

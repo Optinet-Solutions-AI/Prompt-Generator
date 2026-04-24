@@ -137,11 +137,9 @@ function buildPrompt(brand) {
   );
 }
 
-async function generateOne(brand, apiKey) {
+// ── OpenAI gpt-image-1 ──────────────────────────────────────────────
+async function generateOpenAI(brand, apiKey) {
   const prompt = buildPrompt(brand);
-  console.log(`\n── ${brand.display} (${brand.slug}) ──`);
-  console.log(`  prompt: ${prompt.slice(0, 140)}...`);
-
   const resp = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
     headers: {
@@ -152,8 +150,8 @@ async function generateOne(brand, apiKey) {
       model:   'gpt-image-1',
       prompt,
       n:       1,
-      size:    '1536x1024', // widest gpt-image-1 supports
-      quality: 'medium',
+      size:    '1536x1024',
+      quality: 'high', // bumped from medium — user reported "looks bad/small"
     }),
   });
 
@@ -166,7 +164,6 @@ async function generateOne(brand, apiKey) {
   const item = data.data?.[0];
   const b64  = item?.b64_json;
   const url  = item?.url;
-
   let buf;
   if (b64) {
     buf = Buffer.from(b64, 'base64');
@@ -177,12 +174,57 @@ async function generateOne(brand, apiKey) {
   } else {
     return { ok: false, error: 'no image in OpenAI response' };
   }
+  return { ok: true, buf };
+}
+
+// ── Google Gemini Imagen 3 ──────────────────────────────────────────
+async function generateGemini(brand, apiKey) {
+  const prompt = buildPrompt(brand);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      instances: [{ prompt }],
+      parameters: {
+        sampleCount: 1,
+        aspectRatio: '16:9',  // closest landscape ratio to our header
+        personGeneration: 'dont_allow',
+      },
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    return { ok: false, error: `Gemini ${resp.status}: ${errText.slice(0, 300)}` };
+  }
+
+  const data = await resp.json();
+  const pred = data.predictions?.[0];
+  const b64  = pred?.bytesBase64Encoded;
+  if (!b64) return { ok: false, error: `no image in Gemini response: ${JSON.stringify(data).slice(0, 200)}` };
+  return { ok: true, buf: Buffer.from(b64, 'base64') };
+}
+
+async function generateOne(brand, provider, keys) {
+  console.log(`\n── ${brand.display} (${brand.slug}) via ${provider} ──`);
+  const prompt = buildPrompt(brand);
+  console.log(`  prompt: ${prompt.slice(0, 140)}...`);
+
+  const result = provider === 'gemini'
+    ? await generateGemini(brand, keys.gemini)
+    : await generateOpenAI(brand, keys.openai);
+
+  if (!result.ok) return result;
 
   const outDir = path.join(ROOT, 'public', 'brand-references', brand.slug);
   await fs.mkdir(outDir, { recursive: true });
-  const outPath = path.join(outDir, 'email-header-bg.png');
-  await fs.writeFile(outPath, buf);
-  return { ok: true, path: outPath, bytes: buf.length };
+  // Active file (used by composite) + provider-tagged file (for comparison)
+  const activePath   = path.join(outDir, 'email-header-bg.png');
+  const taggedPath   = path.join(outDir, `email-header-bg.${provider}.png`);
+  await fs.writeFile(activePath, result.buf);
+  await fs.writeFile(taggedPath, result.buf);
+  return { ok: true, path: activePath, bytes: result.buf.length };
 }
 
 async function main() {

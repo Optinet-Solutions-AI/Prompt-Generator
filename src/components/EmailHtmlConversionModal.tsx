@@ -719,6 +719,54 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
             </div>
 
             <div className="sticky bottom-0 px-4 pb-4 pt-2 bg-background/95 backdrop-blur-sm border-t border-border space-y-2">
+              {/* Send Test Email — shared Resend key on the server, no per-user config.
+                  Users just type a recipient + click send. Email arrives inline (not as attachment). */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Send className="w-3.5 h-3.5 text-primary" />
+                  <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                    Send Test Email
+                  </p>
+                </div>
+                <Input
+                  placeholder="recipient@example.com (comma-separate up to 5)"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  disabled={isSending}
+                  className="h-8 text-sm"
+                />
+                <Input
+                  placeholder="Subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  disabled={isSending}
+                  className="h-8 text-sm"
+                />
+                <Button
+                  type="button"
+                  onClick={handleSendTest}
+                  disabled={isSending || !recipient.trim()}
+                  variant="outline"
+                  className="w-full gap-2 h-8 text-xs"
+                >
+                  {isSending
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sending…</>
+                    : <><Send className="w-3.5 h-3.5" /> Send Test Email</>}
+                </Button>
+                {sendResult === 'ok' && (
+                  <div className="flex items-start gap-1.5 text-[11px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 rounded px-2 py-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-px" />
+                    <span>Sent — check the inbox (and spam). Renders as the email body, not an attachment.</span>
+                  </div>
+                )}
+                {sendResult === 'error' && sendError && (
+                  <div className="flex items-start gap-1.5 text-[11px] text-destructive bg-destructive/10 rounded px-2 py-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                    <span>{sendError}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <Button onClick={() => handleDownload('html')} className="flex-1 gradient-primary gap-2 h-9">
                   <Download className="w-3.5 h-3.5" /> Download HTML

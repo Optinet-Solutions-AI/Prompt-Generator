@@ -197,18 +197,22 @@ async function recolorOne(brand) {
     .raw()
     .toBuffer({ resolveWithObject: true });
 
-  const panel  = hexToRgb(brand.panelBg);
-  const accent = hexToRgb(brand.accent);
+  const panelRgb  = hexToRgb(brand.panelBg);
+  const accentRgb = hexToRgb(brand.accent);
+  const panelHsl  = rgbToHsl(panelRgb.r,  panelRgb.g,  panelRgb.b);
+  const accentHsl = rgbToHsl(accentRgb.r, accentRgb.g, accentRgb.b);
+  const refNavyL  = rgbToHsl(REF_NAVY.r, REF_NAVY.g, REF_NAVY.b).l;
+  const refRedL   = rgbToHsl(REF_RED.r,  REF_RED.g,  REF_RED.b).l;
 
   // Walk every pixel
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
     const kind = classify(r, g, b, a);
     if (kind === 'navy') {
-      const c = recolorPixel(r, g, b, REF_NAVY, panel);
+      const c = recolorPixel(r, g, b, refNavyL, panelHsl);
       data[i] = c.r; data[i + 1] = c.g; data[i + 2] = c.b;
     } else if (kind === 'red') {
-      const c = recolorPixel(r, g, b, REF_RED, accent);
+      const c = recolorPixel(r, g, b, refRedL, accentHsl);
       data[i] = c.r; data[i + 1] = c.g; data[i + 2] = c.b;
     }
     // 'light' / 'other' / 'transparent' → keep original pixel

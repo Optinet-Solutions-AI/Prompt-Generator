@@ -487,14 +487,12 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     `          ${headerBarHtml}`,
     // Bottom torn-paper edge separating the header from the white content
     `          ${tornEdgeHtml}`,
-    // Brand wordmark centered below header (Atlassian-style)
-    `          ${wordmarkHtml}`,
     // Content block — headline + intro + body
     `          ${contentHtml}`,
     // Hero banner — sits after the body text, full-bleed inside the container
     `          ${heroHtml}`,
-    // Centered CTA — follows the hero so it reads as the final action
-    `          ${ctaRowHtml}`,
+    // Brand wordmark centered — replaces CTA button, sits after the hero
+    `          ${wordmarkHtml}`,
     // Divider between content and footer (only when there's footer content below)
     hasFooterRow || socialHtml
       ? `          <tr><td style="padding:0 40px;"><div style="border-top:1px solid ${LINE_COLOR};font-size:0;line-height:0;">&nbsp;</div></td></tr>`

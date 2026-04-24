@@ -383,8 +383,8 @@ function buildIntroParagraph(data: EmailFormData): string {
   const linkText = data.linkText.trim();
   const linkUrl = safeUrl(data.linkUrl);
 
-  // Inline link style: muted brand-neutral blue, single underline, no border/outline
-  const linkStyle = 'color:#2563eb;text-decoration:underline;text-underline-offset:2px;font-weight:600;';
+  // Inline link style — Atlassian link blue, single underline for affordance.
+  const linkStyle = 'color:#0052cc;text-decoration:underline;text-underline-offset:2px;font-weight:600;';
   let body: string;
   if (linkText && intro.includes('{link}')) {
     const anchor = `<a href="${escapeHtml(linkUrl)}" style="${linkStyle}">${escapeHtml(linkText)}</a>`;
@@ -395,7 +395,7 @@ function buildIntroParagraph(data: EmailFormData): string {
   } else {
     body = escapeHtml(intro);
   }
-  return `<p style="margin:0 0 18px 0;font-size:15px;line-height:1.65;color:#444444;font-family:${FONT_STACK};">${body}</p>`;
+  return `<p style="margin:0 0 20px 0;font-size:16px;line-height:1.6;color:${INK_BODY};font-family:${FONT_STACK};">${body}</p>`;
 }
 
 function buildSocialRow(data: EmailFormData, style: BrandStyle): string {

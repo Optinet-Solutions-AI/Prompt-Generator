@@ -76,6 +76,9 @@ export interface StaticBrandConfig {
    *  replaces ALL header markup with a single full-width <img> — Atlassian
    *  style, no SVG grunge, works in every email client including Outlook. */
   header_url?: string | null;
+  /** Full brand wordmark (icon + name text). Displayed centered below the
+   *  header banner, Atlassian-style, before body content. */
+  wordmark_url?: string | null;
   website_url?: string | null;
   unsubscribe_url?: string | null;
   footer_attribution?: string | null;

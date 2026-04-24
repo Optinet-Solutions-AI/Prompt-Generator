@@ -54,6 +54,36 @@ async function headerDataUri(slug) {
   }
 }
 
+// Wordmark logo candidates per brand (wide landscape SVG = full wordmark with text)
+const WORDMARK_FILES = {
+  fortuneplay: 'scraped/logo-1.svg',
+  roosterbet:  'scraped/logo-1.svg',
+  spinjo:      'scraped/logo-1.svg',
+  luckyvibe:   'scraped/logo-1.svg',
+  spinsup:     'scraped/logo-1.svg',
+  playmojo:    'scraped/logo-1.svg',
+  lucky7even:  'scraped/logo-1.svg',
+  novadreams:  'scraped/logo-long.svg',
+  rollero:     'scraped/logo-long.svg',
+};
+
+// Convert wordmark SVG → PNG → base64 data URI at 2× (600px max-width)
+async function wordmarkDataUri(slug) {
+  const file = WORDMARK_FILES[slug];
+  if (!file) return null;
+  const p = path.join(ROOT, 'public', 'brand-references', slug, file);
+  try {
+    await fs.access(p);
+    const buf = await sharp(p, { density: 192 })
+      .resize(600, 120, { fit: 'inside', withoutEnlargement: false })
+      .png()
+      .toBuffer();
+    return `data:image/png;base64,${buf.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
 async function buildSections() {
   const sections = [];
   for (const brand of brands) {

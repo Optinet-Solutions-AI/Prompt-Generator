@@ -135,6 +135,13 @@ const INK_LIGHT    = '#97a0af';  // legal / fine print
 const LINE_COLOR   = '#ebecf0';  // dividers
 const PAGE_BG      = '#f4f5f7';  // page canvas
 const FOOTER_BG    = '#fafbfc';  // subtle footer tint
+const HEADER_BG    = '#fafbfc';  // header paper tint — matches torn edge fill
+
+// Pre-encoded SVG torn-paper edge (18px tall, irregular bumps). Fill colour
+// matches HEADER_BG so the tear reads as the header "paper" ending with a
+// rough edge before the white content below. Base64-encoded so it survives
+// strict email clients that mangle raw-utf8 data URIs.
+const TORN_EDGE_DATA_URI = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjE4IiB2aWV3Qm94PSIwIDAgMTIwMCAxOCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PHBhdGggZD0iTTAsMCBIMTIwMCBWMTAgTDExODAsMTYgTDExNjAsOCBMMTE0MCwxNCBMMTEyMCw4IEwxMTAwLDE1IEwxMDgwLDkgTDEwNjAsMTYgTDEwNDAsMTAgTDEwMjAsMTcgTDEwMDAsOSBMOTgwLDE0IEw5NjAsOCBMOTQwLDE1IEw5MjAsMTAgTDkwMCwxNyBMODgwLDkgTDg2MCwxNCBMODQwLDggTDgyMCwxNiBMODAwLDEwIEw3ODAsMTUgTDc2MCw5IEw3NDAsMTQgTDcyMCw4IEw3MDAsMTcgTDY4MCwxMCBMNjYwLDE0IEw2NDAsOSBMNjIwLDE1IEw2MDAsOCBMNTgwLDE2IEw1NjAsMTAgTDU0MCwxNCBMNTIwLDggTDUwMCwxNyBMNDgwLDkgTDQ2MCwxNSBMNDQwLDEwIEw0MjAsMTQgTDQwMCw4IEwzODAsMTYgTDM2MCw5IEwzNDAsMTQgTDMyMCwxMCBMMzAwLDE3IEwyODAsOCBMMjYwLDE1IEwyNDAsOSBMMjIwLDE0IEwyMDAsMTAgTDE4MCwxNiBMMTYwLDggTDE0MCwxNSBMMTIwLDkgTDEwMCwxNCBMODAsMTAgTDYwLDE3IEw0MCw4IEwyMCwxNSBMMCwxMCBaIiBmaWxsPSIjZmFmYmZjIi8+PC9zdmc+';
 
 const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
 

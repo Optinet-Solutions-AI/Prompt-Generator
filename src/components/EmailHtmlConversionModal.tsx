@@ -290,6 +290,48 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     }
   };
 
+  const handleSendTest = async () => {
+    setSendError('');
+    setSendResult('idle');
+    if (!generatedHtml) {
+      setSendError('Generate the email first.');
+      setSendResult('error');
+      return;
+    }
+    // Accept comma-separated recipients; server caps at 5
+    const recipients = recipient.split(',').map(s => s.trim()).filter(Boolean);
+    if (recipients.length === 0) {
+      setSendError('Enter at least one recipient email.');
+      setSendResult('error');
+      return;
+    }
+    setIsSending(true);
+    try {
+      const res = await fetch('/api/send-test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: recipients,
+          subject: (subject || formData.headline || `${effectiveBrand || 'Campaign'} test`).trim(),
+          html: generatedHtml,
+          text: generatedText || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({} as { error?: string }));
+      if (!res.ok) {
+        setSendError(data.error || `Send failed (${res.status})`);
+        setSendResult('error');
+        return;
+      }
+      setSendResult('ok');
+    } catch {
+      setSendError('Network error — could not reach the send service.');
+      setSendResult('error');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const handlePreview = () => {
     if (!generatedHtml) return;
     const blob = new Blob([generatedHtml], { type: 'text/html' });

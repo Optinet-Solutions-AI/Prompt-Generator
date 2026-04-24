@@ -289,12 +289,6 @@ function buildGrungeHeaderBgSvg(accentColor: string): string {
 const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
 
 export function buildEmailHtml(params: BuildEmailHtmlParams): string {
-  // Atlanta-newsletter variant is a fully separate template layout —
-  // dispatch early so the image-hero/brand-only code below stays untouched.
-  if (params.variant === 'atlanta-newsletter') {
-    return buildAtlantaNewsletterHtml(params);
-  }
-
   const { imageSrc, brand, formData, imgWidth, imgHeight } = params;
   const variant: EmailTemplateVariant = params.variant || 'image-hero';
   const cfg: StaticBrandConfig = params.staticConfig || {};

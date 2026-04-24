@@ -186,61 +186,87 @@ function buildTornEdgeDataUri(fillColor: string, side: 'top' | 'bottom' = 'botto
  * colour with the logo centred on top — acceptable graceful fallback.
  */
 function buildGrungeHeaderBgSvg(accentColor: string): string {
-  // Strokes are drawn in a rotated coordinate system (-18° around panel
-  // centre) so "horizontal" streaks in this frame render as DIAGONAL
-  // brush-strokes in the final image. Each stroke is a tapered polygon
-  // (narrower at the ends, wider in the middle) with rough y-jitter on
-  // top + bottom edges so it reads as paint, not a filled rectangle.
-  // Viewport is 600×180, rotation pivot (300, 90).
-  const rotatedStrokes: Array<{ pts: string; op: number }> = [
-    // Long top stroke — runs nearly full width, tapered tips
-    { op: 0.94, pts:
-      '-40,28 10,22 70,18 140,15 220,14 300,15 380,17 450,21 510,26 558,32 ' +
-      '520,44 460,46 380,47 300,47 220,46 140,47 70,45 10,46 -40,40'
+  // Redesigned to match the reference: the logo is the focal point; the gold
+  // reads as atmospheric ink-splash paint FRAMING the logo rather than a
+  // dense grid of parallel stripes. Technique:
+  //   1. Two broad "washes" at reduced opacity (~0.55–0.65) on top/bottom so
+  //      they look absorbed into the paper, not solid paint.
+  //   2. Each wash is BROKEN INTO FRAGMENTS with gaps — more natural than a
+  //      continuous streak.
+  //   3. Fragments have strong y-jitter (±6px) so edges are obviously rough.
+  //   4. Stroke body leaves a softer zone around the centre (x≈240–360) so
+  //      the logo / wordmark sits in a calmer patch.
+  //   5. Dense spatter of varied-radius dots across the whole panel for grunge.
+  // Group is rotated -16° for a diagonal axis. Viewport 600×180, pivot (300,90).
+
+  const fragments: Array<{ pts: string; op: number }> = [
+    // ── Top band — 3 fragments with gaps ─────────────────────────────────
+    { op: 0.6, pts:
+      '-50,28 10,18 70,22 130,16 200,20 240,30 ' +
+      '230,46 190,52 130,48 70,52 10,46 -50,52'
     },
-    // Mid-upper stroke — slightly shorter, offset above centre
-    { op: 0.88, pts:
-      '40,62 100,56 170,53 250,52 330,54 410,58 470,64 ' +
-      '450,78 390,80 330,80 250,80 170,79 100,78 40,76'
+    // (gap between x≈240 and x≈360 — leaves the logo zone calm)
+    { op: 0.55, pts:
+      '360,28 410,20 480,16 540,22 610,18 660,26 ' +
+      '640,48 570,50 500,46 430,52 370,48'
     },
-    // Main middle stroke — widest, strong opacity
-    { op: 0.95, pts:
-      '-30,102 30,96 100,92 180,90 260,90 340,92 420,95 490,100 555,108 ' +
-      '510,120 440,122 360,122 280,122 200,122 130,122 60,120 -30,118'
+    { op: 0.4, pts:
+      '270,14 300,10 340,14 350,24 320,30 280,28'
     },
-    // Lower-left stroke — medium length
-    { op: 0.86, pts:
-      '20,140 80,134 150,130 220,130 290,133 350,138 ' +
-      '330,150 270,152 210,152 150,152 80,150 20,148'
+
+    // ── Middle band — broad washed stroke, two fragments, low opacity ───
+    { op: 0.5, pts:
+      '-60,92 -10,82 60,78 140,80 210,76 260,84 ' +
+      '240,108 180,110 100,106 20,108 -60,114'
     },
-    // Lower-right stroke — medium length, slight offset
-    { op: 0.9, pts:
-      '370,150 430,144 500,141 560,143 610,148 ' +
-      '580,160 510,162 440,162 380,162'
+    { op: 0.55, pts:
+      '330,80 400,72 490,76 570,72 650,80 ' +
+      '640,104 560,106 480,104 390,108 340,104'
+    },
+
+    // ── Bottom band — one long broken fragment + a splash ────────────────
+    { op: 0.58, pts:
+      '-40,140 30,128 120,132 210,126 290,134 360,140 ' +
+      '340,158 260,162 180,158 100,162 30,158 -40,162'
+    },
+    { op: 0.5, pts:
+      '440,146 500,138 560,142 620,148 ' +
+      '600,164 540,166 480,162 440,164'
+    },
+    // Bottom accent splash (mid)
+    { op: 0.45, pts:
+      '280,150 320,144 360,152 340,166 300,164 270,158'
     },
   ];
-  const strokesSvg = rotatedStrokes.map(s =>
+
+  const fragmentsSvg = fragments.map(s =>
     `<polygon points="${s.pts}" fill="${accentColor}" opacity="${s.op}"/>`
   ).join('');
 
-  // Spatter overlay in the UNrotated (final) frame — small circles of varied
-  // radius scattered over the whole panel so the slashes look like they're
-  // bleeding paint and dusting the dark background.
+  // Dense spatter — varied sizes for grunge texture. Bigger blobs act as
+  // "paint droplets", smaller dots are ink mist.
   const dots: Array<[number, number, number, number]> = [
-    [50, 30, 2.0, 0.42],   [110, 80, 1.3, 0.34], [228, 22, 1.8, 0.45], [280, 80, 1.2, 0.32],
-    [390, 18, 2.1, 0.45],  [440, 90, 1.5, 0.38], [530, 28, 1.8, 0.42], [570, 88, 1.3, 0.34],
-    [35, 128, 1.6, 0.38],  [140, 98, 1.3, 0.30], [250, 158, 1.5, 0.4], [300, 108, 1.2, 0.30],
-    [370, 166, 1.7, 0.42], [470, 170, 1.4, 0.38], [540, 122, 1.6, 0.4], [580, 156, 1.3, 0.34],
-    [12, 88, 1.4, 0.32],   [590, 42, 1.3, 0.30],  [310, 90, 1.1, 0.28], [160, 98, 1.2, 0.28],
-    [78, 68, 1.2, 0.30],   [350, 56, 1.3, 0.32],  [480, 48, 1.1, 0.28], [200, 156, 1.4, 0.32],
-    [90, 150, 1.1, 0.28],  [330, 170, 1.2, 0.30], [420, 144, 1.3, 0.32], [500, 72, 1.4, 0.34],
+    // Larger droplets
+    [50, 40, 3.2, 0.55], [260, 30, 2.8, 0.5],  [410, 24, 3.0, 0.55], [560, 38, 2.6, 0.5],
+    [30, 120, 2.8, 0.5],  [210, 108, 2.4, 0.45], [380, 116, 3.0, 0.55], [540, 124, 2.6, 0.5],
+    [120, 160, 2.4, 0.5], [410, 168, 2.2, 0.45],
+    // Medium specks
+    [90, 60, 1.6, 0.4],   [180, 70, 1.4, 0.35],  [320, 58, 1.5, 0.4],  [470, 66, 1.6, 0.4],
+    [60, 92, 1.4, 0.35],  [240, 140, 1.6, 0.4],  [350, 94, 1.5, 0.38], [500, 144, 1.4, 0.35],
+    [580, 100, 1.6, 0.4], [14, 70, 1.4, 0.35],   [150, 128, 1.5, 0.38], [330, 130, 1.3, 0.35],
+    [470, 130, 1.5, 0.38], [590, 150, 1.4, 0.35],
+    // Fine mist
+    [40, 10, 0.9, 0.3],   [110, 100, 0.9, 0.28], [200, 40, 1.0, 0.3],  [290, 100, 0.9, 0.28],
+    [380, 40, 1.0, 0.32], [460, 100, 0.9, 0.28], [550, 60, 1.0, 0.3],  [28, 160, 0.9, 0.28],
+    [170, 170, 1.0, 0.3], [310, 10, 1.0, 0.3],   [450, 10, 0.9, 0.28], [590, 170, 1.0, 0.3],
+    [240, 80, 0.8, 0.26], [360, 72, 0.9, 0.28],  [90, 170, 0.9, 0.3],  [520, 82, 0.8, 0.26],
   ];
   const dotsSvg = dots.map(([x, y, r, op]) =>
     `<circle cx="${x}" cy="${y}" r="${r}" fill="${accentColor}" opacity="${op}"/>`
   ).join('');
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid slice">` +
-    `<g transform="rotate(-18 300 90)">${strokesSvg}</g>${dotsSvg}` +
+    `<g transform="rotate(-16 300 90)">${fragmentsSvg}</g>${dotsSvg}` +
     `</svg>`;
   try {
     const b64 = typeof btoa !== 'undefined'

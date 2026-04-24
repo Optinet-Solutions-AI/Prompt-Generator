@@ -377,14 +377,12 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
       : '';
   }
 
-  // ── Wordmark row (Atlassian-style) ─────────────────────────────────
-  // Full brand wordmark (icon + name) centered below the header banner.
-  // Only rendered when wordmark_url is provided via staticConfig.
-  const wordmarkHtml = cfg.wordmark_url
+  // wordmarkHtml — brand name shown centered in the CTA slot (replaces button)
+  const wordmarkHtml = brand
     ? [
         '<tr>',
-        '  <td align="center" style="background-color:#ffffff;padding:28px 24px 8px 24px;line-height:0;font-size:0;">',
-        `    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:260px;height:auto;border:0;outline:none;" />`,
+        `  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;font-family:${style.fontFamily};">`,
+        `    <span style="display:inline-block;font-size:30px;font-weight:800;color:${style.accentColor};letter-spacing:0.06em;text-align:center;font-family:${style.fontFamily};">${escapeHtml(brand)}</span>`,
         '  </td>',
         '</tr>',
       ].join('\n')

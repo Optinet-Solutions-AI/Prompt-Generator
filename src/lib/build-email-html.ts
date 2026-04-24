@@ -725,27 +725,6 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
 }
 
 /**
- * Branded CTA button — table-based for Outlook, regular anchor for everyone else.
- * VML shape wraps the anchor for Outlook so it gets a proper pill button.
- */
-function buildCtaButton(text: string, url: string, style: BrandStyle): string {
-  const bg   = style.buttonBg   || style.accentColor;
-  const fg   = style.buttonText || '#ffffff';
-  const safe = escapeHtml(url);
-  const label = escapeHtml(text);
-  return [
-    `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">`,
-    '  <tr>',
-    `    <td style="border-radius:6px;background-color:${bg};">`,
-    `      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${safe}" style="height:50px;v-text-anchor:middle;width:220px;" arcsize="12%" strokecolor="${bg}" fillcolor="${bg}"><w:anchorlock/><center style="color:${fg};font-family:sans-serif;font-size:16px;font-weight:700;">${label}</center></v:roundrect><![endif]-->`,
-    `      <!--[if !mso]><!--><a href="${safe}" style="display:inline-block;padding:15px 36px;font-family:${FONT_STACK};font-size:16px;font-weight:700;color:${fg};text-decoration:none;border-radius:6px;background-color:${bg};">${label}</a><!--<![endif]-->`,
-    '    </td>',
-    '  </tr>',
-    '</table>',
-  ].join('\n');
-}
-
-/**
  * Build the <tr> that holds the email hero. Three paths:
  *   1. variant === 'image-hero'   → AI image <img>
  *   2. variant === 'brand-only' with banner URL → static banner <img>

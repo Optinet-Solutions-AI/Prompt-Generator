@@ -305,58 +305,74 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     bannerUrl: cfg.banner_url || undefined,
   });
 
-  // ── Branded header bar (logo or wordmark fallback) ──────────────────
-  // Torn-paper grunge header: dark brand panel (style.panelBg) overlaid with
-  // diagonal brush-strokes in style.accentColor (via CSS background-image),
-  // torn white edges top AND bottom so the header reads as a ragged ribbon
-  // painted onto torn paper. Gmail/Apple Mail/iOS render the strokes; Outlook
-  // falls back to the solid panelBg with the logo centred — acceptable.
-  const headerBg   = style.panelBg       || '#172b4d';
-  const strokeColor = style.accentColor   || '#ffffff';
-  const headerText  = style.headlineColor || '#ffffff';
-  const grungeBgUrl = buildGrungeHeaderBgSvg(strokeColor);
-  const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
+  // ── Branded header ───────────────────────────────────────────────────
+  // When header_url is set (AI-generated composite: texture + logo), render
+  // it as a single full-width <img> — Atlassian style: flush to the container
+  // edges, no padding, no extra markup. Works identically in every client.
+  //
+  // Falls back to the SVG grunge approach when header_url is absent (brands
+  // that haven't been composited yet, or dev environments without assets).
+  const cfg_header = cfg.header_url || '';
 
-  // Top torn edge — white paper tears open to reveal the dark header below.
-  const topTornHtml = (logoUrl || brand)
-    ? [
-        '<tr>',
-        '  <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
-        `    <img src="${buildTornEdgeDataUri(headerBg, 'top')}" alt="" width="600" height="18" style="display:block;width:100%;max-width:600px;height:18px;border:0;outline:none;" />`,
-        '  </td>',
-        '</tr>',
-      ].join('\n')
-    : '';
+  let topTornHtml   = '';
+  let headerBarHtml = '';
+  let tornEdgeHtml  = '';
 
-  const headerBarHtml = logoUrl
-    ? [
-        '<tr>',
-        `  <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:54px 24px 46px 24px;line-height:0;font-size:0;">`,
-        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="72" style="display:inline-block;height:72px;width:auto;border:0;outline:none;" />`,
-        '  </td>',
-        '</tr>',
-      ].join('\n')
-    : (brand
-        ? [
-            '<tr>',
-            `  <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:52px 24px 44px 24px;font-family:${FONT_STACK};font-size:26px;font-weight:800;letter-spacing:0.16em;color:${headerText};text-transform:uppercase;">`,
-            `    ${escapeHtml(brand)}`,
-            '  </td>',
-            '</tr>',
-          ].join('\n')
-        : '');
+  if (cfg_header) {
+    // ── NEW: single composite image header ────────────────────────────
+    headerBarHtml = [
+      '<tr>',
+      '  <td style="padding:0;line-height:0;font-size:0;">',
+      `    <img src="${escapeHtml(cfg_header)}" alt="${escapeHtml(brand || 'Header')}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;" />`,
+      '  </td>',
+      '</tr>',
+    ].join('\n');
+  } else {
+    // ── FALLBACK: SVG grunge + torn edges (no header_url yet) ─────────
+    const headerBg    = style.panelBg       || '#172b4d';
+    const strokeColor = style.accentColor   || '#ffffff';
+    const headerText  = style.headlineColor || '#ffffff';
+    const grungeBgUrl = buildGrungeHeaderBgSvg(strokeColor);
+    const logoUrl     = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
 
-  // Bottom torn edge — header paper ends in a ragged edge before the white
-  // content. Teeth point down into transparency; TD bg is white.
-  const tornEdgeHtml = headerBarHtml
-    ? [
-        '<tr>',
-        '  <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
-        `    <img src="${buildTornEdgeDataUri(headerBg, 'bottom')}" alt="" width="600" height="24" style="display:block;width:100%;max-width:600px;height:24px;border:0;outline:none;" />`,
-        '  </td>',
-        '</tr>',
-      ].join('\n')
-    : '';
+    topTornHtml = (logoUrl || brand)
+      ? [
+          '<tr>',
+          '  <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
+          `    <img src="${buildTornEdgeDataUri(headerBg, 'top')}" alt="" width="600" height="18" style="display:block;width:100%;max-width:600px;height:18px;border:0;outline:none;" />`,
+          '  </td>',
+          '</tr>',
+        ].join('\n')
+      : '';
+
+    headerBarHtml = logoUrl
+      ? [
+          '<tr>',
+          `  <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:54px 24px 46px 24px;line-height:0;font-size:0;">`,
+          `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="72" style="display:inline-block;height:72px;width:auto;border:0;outline:none;" />`,
+          '  </td>',
+          '</tr>',
+        ].join('\n')
+      : (brand
+          ? [
+              '<tr>',
+              `  <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:52px 24px 44px 24px;font-family:${FONT_STACK};font-size:26px;font-weight:800;letter-spacing:0.16em;color:${headerText};text-transform:uppercase;">`,
+              `    ${escapeHtml(brand)}`,
+              '  </td>',
+              '</tr>',
+            ].join('\n')
+          : '');
+
+    tornEdgeHtml = headerBarHtml
+      ? [
+          '<tr>',
+          '  <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
+          `    <img src="${buildTornEdgeDataUri(headerBg, 'bottom')}" alt="" width="600" height="24" style="display:block;width:100%;max-width:600px;height:24px;border:0;outline:none;" />`,
+          '  </td>',
+          '</tr>',
+        ].join('\n')
+      : '';
+  }
 
   // ── Content block ───────────────────────────────────────────────────
   // Flush white block immediately under the hero. No overlapping card — the

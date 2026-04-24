@@ -117,13 +117,15 @@ function buildPrompt(brand) {
   // because gpt-image-1 loves to invent wordmarks unless explicitly blocked.
   return (
     `Horizontal email header banner background, wide panoramic composition. ` +
-    `Deep dark ${brand.panelBg} base color. ` +
-    `Distressed grungy diagonal brush-strokes and irregular paint splashes in ${brand.accent}, ` +
-    `hand-painted texture with rough feathered edges, ${brand.mood}. ` +
+    `Deep dark ${brand.panelBg} base color fills the entire background. ` +
+    `BOLD, THICK, DRAMATIC diagonal brush-strokes in vivid bright ${brand.accent} paint — ` +
+    `strokes are large, heavy, and high-contrast, covering at least half the surface. ` +
+    `The ${brand.accent} color is intense and saturated, not subtle — ` +
+    `thick impasto paint marks, wide slashing streaks, prominent ink splashes, ${brand.mood}. ` +
     `Rough torn white paper edge along the very top and along the very bottom of the banner, ` +
-    `uneven ragged paper tear with irregular white fragments. ` +
-    `Leave the horizontal center area slightly calmer and darker so a logo can sit on top later. ` +
-    `Painterly textured surface, ink spatter, dust speckles. ` +
+    `uneven ragged paper tear with irregular white fragments, painterly torn-paper effect. ` +
+    `The center zone is slightly darker to let a logo sit on top, but bold strokes still frame it on all sides. ` +
+    `Ink spatter and paint droplets reinforce the grunge energy. ` +
     `Absolutely NO text, NO letters, NO numbers, NO logos, NO badges, NO symbols, NO watermarks, NO signatures, NO typography of any kind. ` +
     `Pure abstract painted background only.`
   );

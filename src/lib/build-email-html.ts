@@ -603,7 +603,7 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     : '';
 
   // ── Header: composite image when available, SVG grunge fallback ─────
-  const cfg_header = cfg.logo_url === undefined ? '' : (cfg as StaticBrandConfig & { header_url?: string | null }).header_url || '';
+  const cfg_header = cfg.header_url || '';
 
   let brandedHeader: string;
   let topTornEdge = '';

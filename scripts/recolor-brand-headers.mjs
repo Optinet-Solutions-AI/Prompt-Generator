@@ -171,21 +171,20 @@ function classify(r, g, b, a) {
 }
 
 /**
- * Recolour a pixel classified as 'navy' or 'red' by applying the
- * pixel's original brightness ratio onto the target brand color.
+ * Recolour a pixel by swapping its HUE+SATURATION to the target brand colour
+ * while preserving the pixel's original LIGHTNESS. This keeps the brush-
+ * stroke texture/shading intact instead of crushing bright highlights into
+ * washed-out tones.
+ *
+ * `refLightness` is the lightness of the template's reference colour (red or
+ * navy) so we can normalise — e.g. a pixel that was slightly brighter than
+ * the reference becomes slightly brighter than the brand colour.
  */
-function recolorPixel(r, g, b, refColor, targetColor) {
-  const pxMax  = Math.max(r, g, b);
-  const refMax = Math.max(refColor.r, refColor.g, refColor.b);
-  const ratio  = pxMax / refMax;
-  // Floor so we don't push very bright pixels above 255 when brand colour is
-  // near-white. Also preserves some texture contrast.
-  const scale = Math.min(1.4, ratio);
-  return {
-    r: Math.min(255, Math.round(targetColor.r * scale)),
-    g: Math.min(255, Math.round(targetColor.g * scale)),
-    b: Math.min(255, Math.round(targetColor.b * scale)),
-  };
+function recolorPixel(r, g, b, refLightness, targetHsl) {
+  const px = rgbToHsl(r, g, b);
+  // Shift the pixel's lightness by (px.l - refLightness) from the target's base lightness.
+  const newL = Math.max(0, Math.min(1, targetHsl.l + (px.l - refLightness)));
+  return hslToRgb(targetHsl.h, targetHsl.s, newL);
 }
 
 async function recolorOne(brand) {

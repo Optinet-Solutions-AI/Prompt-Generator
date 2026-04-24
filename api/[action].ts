@@ -463,6 +463,9 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
           brand_name:          brand,
           logo_url:            row?.logo_url            ?? null,
           banner_url:          row?.banner_url          ?? null,
+          header_url:          row?.header_url          ?? null,
+          wordmark_url:        row?.wordmark_url        ?? null,
+          wordmark_dark_bg:    row?.wordmark_dark_bg    ?? false,
           website_url:         row?.website_url         ?? null,
           unsubscribe_url:     row?.unsubscribe_url     ?? null,
           footer_attribution:  row?.footer_attribution  ?? null,
@@ -472,8 +475,10 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
         // Table might not exist yet — return empty shape instead of failing
         return res.status(200).json({
           brand_name: brand,
-          logo_url: null, banner_url: null, website_url: null,
-          unsubscribe_url: null, footer_attribution: null, legal_text: null,
+          logo_url: null, banner_url: null, header_url: null,
+          wordmark_url: null, wordmark_dark_bg: false,
+          website_url: null, unsubscribe_url: null,
+          footer_attribution: null, legal_text: null,
           _note: e instanceof Error ? e.message : 'brand_email_config unavailable',
         });
       }

@@ -38,9 +38,9 @@ async function loadEnvLocal() {
       const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
       if (!m) continue;
       let [, key, val] = m;
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-        val = val.slice(1, -1);
-      }
+      // Strip surrounding quotes (including mismatched leading/trailing)
+      if (val.startsWith('"') || val.startsWith("'")) val = val.slice(1);
+      if (val.endsWith('"')   || val.endsWith("'"))   val = val.slice(0, -1);
       if (!(key in process.env)) process.env[key] = val;
     }
   } catch { /* ignore */ }

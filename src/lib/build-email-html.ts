@@ -140,7 +140,7 @@ const INK_BODY     = '#42526e';  // body copy — high-contrast but soft
 const INK_MUTED    = '#5e6c84';  // secondary info (socials, footer attr)
 const INK_LIGHT    = '#97a0af';  // legal / fine print
 const LINE_COLOR   = '#ebecf0';  // dividers
-const PAGE_BG      = '#f4f5f7';  // page canvas
+const PAGE_BG      = '#ffffff';  // page canvas — white so torn-paper edges blend
 const FOOTER_BG    = '#fafbfc';  // subtle footer tint
 
 /**

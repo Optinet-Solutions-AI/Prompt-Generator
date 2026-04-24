@@ -2,19 +2,25 @@
 /**
  * generate-brand-headers.mjs
  *
- * Generates the TEXTURE-ONLY email header background for each brand using
- * OpenAI gpt-image-1. Saves raw outputs locally for the user to review:
- *   public/brand-references/<slug>/email-header-bg.png
+ * Generates the TEXTURE-ONLY email header background for each brand.
+ * Supports TWO providers — OpenAI gpt-image-1 and Google Gemini Imagen 3 —
+ * so outputs can be side-by-side compared to pick the best.
  *
- * Logo compositing is a SEPARATE step (composite-brand-headers.mjs) so the
- * user can approve the texture before we bake the real logo in.
+ * Saves raw outputs locally for the user to review:
+ *   public/brand-references/<slug>/email-header-bg.png           (active)
+ *   public/brand-references/<slug>/email-header-bg.openai.png    (openai)
+ *   public/brand-references/<slug>/email-header-bg.gemini.png    (gemini)
  *
  * Env (from .env.local):
- *   OPENAI_API_KEY — required
+ *   OPENAI_API_KEY — required for --provider openai
+ *   GEMINI_API_KEY — required for --provider gemini
  *
  * Usage:
- *   npx tsx scripts/generate-brand-headers.mjs
- *   npx tsx scripts/generate-brand-headers.mjs --brand fortuneplay   # one brand
+ *   npx tsx scripts/generate-brand-headers.mjs                         # default openai
+ *   npx tsx scripts/generate-brand-headers.mjs --provider gemini       # all brands via gemini
+ *   npx tsx scripts/generate-brand-headers.mjs --brand fortuneplay     # one brand, openai
+ *   npx tsx scripts/generate-brand-headers.mjs --brand fortuneplay --provider gemini
+ *   npx tsx scripts/generate-brand-headers.mjs --compare --brand fortuneplay   # both providers
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';

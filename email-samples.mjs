@@ -90,7 +90,7 @@ async function wordmarkDataUri(slug) {
       .raw()
       .toBuffer({ resolveWithObject: true });
     const { data, info } = rendered;
-    if (!cfg.darkBg) {
+    if (cfg.invertWhite) {
       // White text → black so it's visible on white body.
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];

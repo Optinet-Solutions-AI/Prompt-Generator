@@ -370,11 +370,11 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
 /**
  * Atlanta-Insiders-style newsletter template (Gemini reference).
  *
- * Layout:
- *   1. Header banner image (full-width, no padding)         — AI hero image
- *   2. Body copy (intro + inline link, then body paragraph) — 12px, black
- *   3. Secondary image (centered)                           — brand banner
- *   4. Brand logo (centered, max 200px wide)                — staticConfig.logo_url
+ * Layout (Atlassian-style header with torn edge → text-forward body):
+ *   1. Branded header panel: brand panelBg background + brand logo centred
+ *   2. Torn-paper edge tearing from header colour down into white content
+ *   3. Body copy (intro + inline link, then body paragraph)  — 12px Arial
+ *   4. AI-generated image (the user-converted image)         — centred
  *   5. Social links row (pipe-separated, primary colour)
  *   6. Black 1px horizontal divider
  *   7. Two-column footer table: unsubscribe copy (left) + sponsor slot (right)
@@ -387,17 +387,16 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
   const { imageSrc, brand, formData } = params;
   const cfg = params.staticConfig || {};
   const style: BrandStyle = getBrandStyle(brand);
-  const primary = style.accentColor || '#0052cc';
+  const primary  = style.accentColor || '#0052cc';
+  const headerBg = style.panelBg     || '#172b4d';
   const containerWidth = 600;
   const brandName = brand || 'Brand';
 
-  // Image selection:
-  //   header = AI-generated image (required for this variant)
-  //   secondary = brand banner if distinct from header, else omit
-  const headerImage = imageSrc || cfg.banner_url || '';
-  const secondaryImage = cfg.banner_url && cfg.banner_url !== headerImage ? cfg.banner_url : '';
+  // The logo shown IN the branded header panel (Atlassian-style).
+  const logoUrl = formData.secondaryLogoUrl.trim() || cfg.logo_url || '';
+  // The AI-generated image that sits AFTER the body text.
+  const generatedImage = imageSrc || '';
 
-  const logoUrl   = formData.secondaryLogoUrl.trim() || cfg.logo_url || '';
   const websiteUrl = safeUrl(formData.websiteUrl.trim() || cfg.website_url || '');
   const unsubUrl   = safeUrl(formData.unsubscribeUrl.trim() || cfg.unsubscribe_url || '');
 
@@ -422,7 +421,7 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
   const textRow = (introInner || bodyText)
     ? [
         '    <tr>',
-        '      <td style="padding:30px 20px;font-family:Arial,Helvetica,sans-serif;color:#000000;">',
+        '      <td style="padding:30px 20px 20px 20px;font-family:Arial,Helvetica,sans-serif;color:#000000;">',
         introInner
           ? `        <p style="font-size:12px;line-height:1.5;margin:0 0 15px 0;color:#000000;">${introInner}</p>`
           : '',
@@ -452,6 +451,33 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     ? `To unsubscribe from this particular email, <a href="${escapeHtml(unsubUrl)}" style="color:${primary};text-decoration:underline;">click here</a>.`
     : '';
 
+  // Atlassian-style branded header: coloured panel + logo (or brand name
+  // fallback if no logo). Falls back to brand uppercase on the panel colour.
+  const brandedHeader = logoUrl
+    ? [
+        '    <tr>',
+        `      <td align="center" style="background-color:${headerBg};padding:40px 24px 28px 24px;line-height:0;font-size:0;">`,
+        `        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brandName)}" height="44" style="display:inline-block;height:44px;width:auto;border:0;outline:none;" />`,
+        '      </td>',
+        '    </tr>',
+      ].join('\n')
+    : [
+        '    <tr>',
+        `      <td align="center" style="background-color:${headerBg};padding:36px 24px 28px 24px;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:800;letter-spacing:0.16em;color:${primary};text-transform:uppercase;">`,
+        `        ${escapeHtml(brandName)}`,
+        '      </td>',
+        '    </tr>',
+      ].join('\n');
+
+  // Torn-paper edge between the branded header and the white content.
+  const tornEdge = [
+    '    <tr>',
+    '      <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
+    `        <img src="${buildTornEdgeDataUri(headerBg)}" alt="" width="${containerWidth}" height="24" style="display:block;width:100%;max-width:${containerWidth}px;height:24px;border:0;outline:none;" />`,
+    '      </td>',
+    '    </tr>',
+  ].join('\n');
+
   return [
     '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
     '<html xmlns="http://www.w3.org/1999/xhtml" lang="en">',
@@ -472,34 +498,18 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     '</head>',
     `<body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#000000;">`,
     `  <table role="presentation" class="email-container" width="${containerWidth}" align="center" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;margin:0 auto;background-color:#ffffff;">`,
-    // 1. Header banner
-    headerImage
-      ? [
-          '    <tr>',
-          '      <td align="center" style="padding:0;line-height:0;font-size:0;">',
-          `        <img src="${escapeHtml(headerImage)}" alt="${escapeHtml(brandName)} Header" width="${containerWidth}" style="width:100%;max-width:${containerWidth}px;height:auto;display:block;border:0;outline:none;" />`,
-          '      </td>',
-          '    </tr>',
-        ].join('\n')
-      : '',
-    // 2. Body copy
+    // 1. Atlassian-style branded header (colour panel + logo)
+    brandedHeader,
+    // 2. Torn-paper edge
+    tornEdge,
+    // 3. Body copy
     textRow,
-    // 3. Secondary image
-    secondaryImage
+    // 4. AI-generated image — user's converted image, after the body text
+    generatedImage
       ? [
           '    <tr>',
-          '      <td align="center" style="padding:0 20px 30px 20px;">',
-          `        <img src="${escapeHtml(secondaryImage)}" alt="${escapeHtml(brandName)} Promo" style="max-width:100%;height:auto;display:block;margin:0 auto;border:0;outline:none;" />`,
-          '      </td>',
-          '    </tr>',
-        ].join('\n')
-      : '',
-    // 4. Brand logo
-    logoUrl
-      ? [
-          '    <tr>',
-          '      <td align="center" style="padding:0 20px 20px 20px;">',
-          `        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brandName)}" style="max-width:200px;height:auto;display:inline-block;border:0;outline:none;" />`,
+          '      <td align="center" style="padding:10px 20px 30px 20px;">',
+          `        <img src="${escapeHtml(generatedImage)}" alt="${escapeHtml(brandName)}" style="max-width:100%;height:auto;display:block;margin:0 auto;border:0;outline:none;" />`,
           '      </td>',
           '    </tr>',
         ].join('\n')

@@ -110,6 +110,12 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
   // Template variant + static brand config
   const [variant, setVariant] = useState<EmailTemplateVariant>('image-hero');
   const [staticConfig, setStaticConfig] = useState<StaticBrandConfig | null>(null);
+  // Send test email (shared Resend key on the server — users don't configure)
+  const [recipient, setRecipient] = useState('');
+  const [subject, setSubject] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendResult, setSendResult] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [sendError, setSendError] = useState<string>('');
 
   useEffect(() => { setSelectedBrand(brand || ''); }, [brand]);
   const effectiveBrand = selectedBrand || undefined;

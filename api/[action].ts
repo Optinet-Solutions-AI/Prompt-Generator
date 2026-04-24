@@ -479,6 +479,64 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       }
     }
 
+    // SEND TEST EMAIL — dispatches the generated HTML via Resend so the user
+    // gets a real inbox render (instead of the HTML arriving as a .html
+    // attachment when they try to forward it from Gmail compose).
+    //
+    // One shared Resend API key lives on the server — app users don't
+    // configure anything. They type recipient + click send.
+    //
+    // Env:
+    //   RESEND_API_KEY  (required)
+    //   EMAIL_FROM      (optional, default: 'Prompt Generator <onboarding@resend.dev>')
+    if (action === 'send-test-email') {
+      if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'POST only' });
+      }
+      const body = (req.body || {}) as { to?: string | string[]; subject?: string; html?: string; text?: string };
+      const { to, subject, html, text } = body;
+      if (!to || !subject || !html) {
+        return res.status(400).json({ error: 'to, subject, and html are required' });
+      }
+      // Normalise recipients to an array + cap for shared-key safety
+      const recipients = (Array.isArray(to) ? to : [to])
+        .map(s => (typeof s === 'string' ? s.trim() : ''))
+        .filter(Boolean);
+      if (recipients.length === 0) return res.status(400).json({ error: 'at least one recipient required' });
+      if (recipients.length > 5)  return res.status(400).json({ error: 'max 5 recipients per send' });
+
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          error: 'Email sending is not configured (RESEND_API_KEY missing). Add it in Vercel project settings.',
+        });
+      }
+      const from = process.env.EMAIL_FROM || 'Prompt Generator <onboarding@resend.dev>';
+
+      try {
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({ from, to: recipients, subject, html, text }),
+        });
+        const data = await r.json().catch(() => ({} as { id?: string; message?: string; name?: string }));
+        if (!r.ok) {
+          return res.status(r.status).json({
+            error: (data as { message?: string }).message || `Resend request failed (${r.status})`,
+            details: data,
+          });
+        }
+        return res.status(200).json({ id: (data as { id?: string }).id ?? null });
+      } catch (e: unknown) {
+        return res.status(502).json({
+          error: e instanceof Error ? e.message : 'Failed to reach Resend',
+        });
+      }
+    }
+
     // SAVE AS REFERENCE — save a blended/generated prompt as a new reference
     // Also handles 'save-prompt' (same operation — insert a new record)
     if (action === 'save-as-reference' || action === 'save-prompt') {

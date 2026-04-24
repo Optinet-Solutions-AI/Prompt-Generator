@@ -73,11 +73,70 @@ const WORDMARK_FILES = {
   rollero:     { file: 'scraped/logo-long.svg',  darkBg: true,  invertWhite: false }, // dark pill
 };
 
+// Brand panel colours for the dark halo (match build-email-html's panelBg).
+const PANEL_BG = {
+  fortuneplay: [15, 8, 0],
+  roosterbet:  [20, 0, 0],
+  spinjo:      [0, 13, 26],
+  luckyvibe:   [0, 26, 51],
+  spinsup:     [8, 0, 28],
+  playmojo:    [2, 13, 22],
+  lucky7even:  [8, 0, 26],
+  novadreams:  [0, 3, 15],
+  rollero:     [8, 6, 0],
+};
+
+/**
+ * Dilate the alpha channel of an RGBA buffer into a "halo" that traces the
+ * shape of visible pixels, fill it with the brand's panelBg, then composite
+ * the original wordmark on top. Result: the dark colour hugs the
+ * letters/icon instead of being a rectangular box.
+ */
+function addDarkHalo(data, width, height, panelRgb, radius = 5) {
+  // Build a visible-pixel flag grid
+  const visible = new Uint8Array(width * height);
+  for (let i = 0; i < visible.length; i++) {
+    if (data[i * 4 + 3] > 80) visible[i] = 1;
+  }
+  // Output RGBA, initially transparent
+  const out = Buffer.alloc(data.length);
+  const r2 = radius * radius;
+  for (let y = 0; y < height; y++) {
+    const yMin = Math.max(0, y - radius);
+    const yMax = Math.min(height - 1, y + radius);
+    for (let x = 0; x < width; x++) {
+      // Fast path: if pixel itself is visible, output halo colour
+      // (original will be composited on top later, so this halo shows
+      // only around the edges of the wordmark).
+      let inHalo = false;
+      const xMin = Math.max(0, x - radius);
+      const xMax = Math.min(width - 1, x + radius);
+      outer:
+      for (let ny = yMin; ny <= yMax; ny++) {
+        const dy = ny - y;
+        for (let nx = xMin; nx <= xMax; nx++) {
+          const dx = nx - x;
+          if (dx * dx + dy * dy > r2) continue;
+          if (visible[ny * width + nx]) { inHalo = true; break outer; }
+        }
+      }
+      const outIdx = (y * width + x) * 4;
+      if (inHalo) {
+        out[outIdx]     = panelRgb[0];
+        out[outIdx + 1] = panelRgb[1];
+        out[outIdx + 2] = panelRgb[2];
+        out[outIdx + 3] = 255;
+      }
+    }
+  }
+  return out;
+}
+
 // Convert wordmark SVG → PNG → base64 data URI.
-// When `darkBg` is false: recolours near-white text pixels to black so the
-//   wordmark is legible on a white email body without a pill.
-// When `darkBg` is true: leaves pixels untouched — the wordmark will be
-//   wrapped in a dark brand-colored pill by the email builder.
+// darkBg=false + invertWhite=true → white text pixels recoloured to black.
+// darkBg=true  → original wordmark gets a brand-colored HALO dilated around
+//                its silhouette so the dark fill hugs the logo/text rather
+//                than sitting behind a rectangular pill.
 async function wordmarkDataUri(slug) {
   const cfg = WORDMARK_FILES[slug];
   if (!cfg) return null;
@@ -91,7 +150,6 @@ async function wordmarkDataUri(slug) {
       .toBuffer({ resolveWithObject: true });
     const { data, info } = rendered;
     if (cfg.invertWhite) {
-      // White text → black so it's visible on white body.
       for (let i = 0; i < data.length; i += 4) {
         const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
         if (a > 40 && r > 235 && g > 235 && b > 235) {
@@ -99,10 +157,26 @@ async function wordmarkDataUri(slug) {
         }
       }
     }
-    const buf = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
-      .png()
-      .toBuffer();
-    return `data:image/png;base64,${buf.toString('base64')}`;
+    let finalBuf;
+    if (cfg.darkBg) {
+      const panel = PANEL_BG[slug] || [0, 0, 0];
+      const haloData = addDarkHalo(data, info.width, info.height, panel, 6);
+      const haloPng = await sharp(haloData, {
+        raw: { width: info.width, height: info.height, channels: 4 },
+      }).png().toBuffer();
+      const wordmarkPng = await sharp(data, {
+        raw: { width: info.width, height: info.height, channels: 4 },
+      }).png().toBuffer();
+      finalBuf = await sharp(haloPng)
+        .composite([{ input: wordmarkPng, blend: 'over' }])
+        .png()
+        .toBuffer();
+    } else {
+      finalBuf = await sharp(data, {
+        raw: { width: info.width, height: info.height, channels: 4 },
+      }).png().toBuffer();
+    }
+    return `data:image/png;base64,${finalBuf.toString('base64')}`;
   } catch {
     return null;
   }

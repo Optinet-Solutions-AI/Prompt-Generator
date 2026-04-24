@@ -67,15 +67,30 @@ const WORDMARK_FILES = {
   rollero:     'scraped/logo-long.svg',
 };
 
-// Convert wordmark SVG → PNG → base64 data URI at 2× (600px max-width)
+// Convert wordmark SVG → PNG → base64 data URI. Walks the raw pixels and
+// recolours near-white (text) pixels to black so the wordmark is visible on
+// a white email body without needing an ugly dark pill behind it.
 async function wordmarkDataUri(slug) {
   const file = WORDMARK_FILES[slug];
   if (!file) return null;
   const p = path.join(ROOT, 'public', 'brand-references', slug, file);
   try {
     await fs.access(p);
-    const buf = await sharp(p, { density: 192 })
-      .resize(600, 120, { fit: 'inside', withoutEnlargement: false })
+    const rendered = await sharp(p, { density: 256 })
+      .resize(600, 140, { fit: 'inside', withoutEnlargement: false })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const { data, info } = rendered;
+    // Recolour near-white pixels → black (white text becomes black text).
+    // Leaves mid-tones and coloured pixels untouched.
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+      if (a > 40 && r > 235 && g > 235 && b > 235) {
+        data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
+      }
+    }
+    const buf = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
       .png()
       .toBuffer();
     return `data:image/png;base64,${buf.toString('base64')}`;

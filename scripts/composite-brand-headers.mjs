@@ -36,12 +36,12 @@ const BRANDS = [
   { slug: 'rollero',     display: 'Rollero',     logo: 'scraped/logo-short.svg',  logoPng: null },
 ];
 
-// ── Dimensions ──────────────────────────────────────────────────────
-const OUT_W        = 1200; // 2× retina — displays at 600px wide in email
-const TEXTURE_H    = 280;  // height of the dark texture band (140px at 1×)
-const LOGO_MAX_H   = 240;  // max logo height (120px at 1× display)
-const LOGO_MAX_W   = 560;  // max logo width
-const LOGO_OVERFLOW = 80;  // px of logo that spill BELOW the texture into white
+// ── Dimensions (match Georgia Soccer reference template: 600×124) ───
+const OUT_W        = 600;  // native template width
+const TEXTURE_H    = 124;  // native template height (includes torn paper)
+const LOGO_MAX_H   = 110;  // max logo height — sits within the header
+const LOGO_MAX_W   = 260;  // max logo width
+const LOGO_OVERFLOW = 28;  // px of logo that spill BELOW the texture into white
 // Final canvas is TEXTURE_H + LOGO_OVERFLOW tall so the logo badge visually
 // floats half-in-header / half-in-body (Atlassian overflow badge style).
 const OUT_H = TEXTURE_H + LOGO_OVERFLOW;

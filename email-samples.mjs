@@ -54,17 +54,19 @@ async function headerDataUri(slug) {
   }
 }
 
-// Wordmark logo candidates per brand (wide landscape SVG = full wordmark with text)
+// Wordmark per brand. `darkBg` = true when the wordmark is too light-coloured
+// to be readable on a white email body (e.g. Rollero is all-gold, NovaDreams
+// uses light blue) and needs a dark pill behind it for contrast.
 const WORDMARK_FILES = {
-  fortuneplay: 'scraped/logo-1.svg',
-  roosterbet:  'scraped/logo-1.svg',
-  spinjo:      'scraped/logo-1.svg',
-  luckyvibe:   'scraped/logo-1.svg',
-  spinsup:     'scraped/logo-1.svg',
-  playmojo:    'scraped/logo-1.svg',
-  lucky7even:  'scraped/logo-1.svg',
-  novadreams:  'scraped/logo-long.svg',
-  rollero:     'scraped/logo-long.svg',
+  fortuneplay: { file: 'scraped/logo-1.svg',     darkBg: false }, // mixed colours, legible on white
+  roosterbet:  { file: 'scraped/logo-1.svg',     darkBg: false },
+  spinjo:      { file: 'scraped/logo-1.svg',     darkBg: false },
+  luckyvibe:   { file: 'scraped/logo-1.svg',     darkBg: false },
+  spinsup:     { file: 'scraped/logo-1.svg',     darkBg: true  }, // magenta/pink blends into white
+  playmojo:    { file: 'scraped/logo-1.svg',     darkBg: false },
+  lucky7even:  { file: 'scraped/logo-1.svg',     darkBg: false },
+  novadreams:  { file: 'scraped/logo-long.svg',  darkBg: true  }, // cyan on white is unreadable
+  rollero:     { file: 'scraped/logo-long.svg',  darkBg: true  }, // gold on white is unreadable
 };
 
 // Convert wordmark SVG → PNG → base64 data URI. Walks the raw pixels and

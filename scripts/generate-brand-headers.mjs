@@ -116,17 +116,18 @@ function buildPrompt(brand) {
   // than to structured keyword lists. Heavy emphasis on "NO text/logos/symbols"
   // because gpt-image-1 loves to invent wordmarks unless explicitly blocked.
   return (
-    `Horizontal email header banner background, wide panoramic composition. ` +
-    `Deep dark ${brand.panelBg} base color fills the entire background. ` +
-    `BOLD, THICK, DRAMATIC diagonal brush-strokes in vivid bright ${brand.accent} paint — ` +
-    `strokes are large, heavy, and high-contrast, covering at least half the surface. ` +
-    `The ${brand.accent} color is intense and saturated, not subtle — ` +
-    `thick impasto paint marks, wide slashing streaks, prominent ink splashes, ${brand.mood}. ` +
-    `Rough torn white paper edge along the very top and along the very bottom of the banner, ` +
-    `uneven ragged paper tear with irregular white fragments, painterly torn-paper effect. ` +
-    `The center zone is slightly darker to let a logo sit on top, but bold strokes still frame it on all sides. ` +
-    `Ink spatter and paint droplets reinforce the grunge energy. ` +
-    `Absolutely NO text, NO letters, NO numbers, NO logos, NO badges, NO symbols, NO watermarks, NO signatures, NO typography of any kind. ` +
+    `Horizontal email header banner, wide panoramic format. ` +
+    `Deep dark ${brand.panelBg} background filling the entire image from top to bottom — ` +
+    `the dark color bleeds flush to the top edge, no white paper at the top. ` +
+    `ONE single wide bold diagonal brush stroke in vivid saturated ${brand.accent} paint, ` +
+    `sweeping from the upper-right corner diagonally down toward the lower-left corner, ` +
+    `thick impasto paint, heavy and dominant, ${brand.mood}. ` +
+    `The stroke is ONE continuous band — not two stripes, not multiple parallel lines, just one bold slash. ` +
+    `Rough torn white paper effect ONLY along the very bottom edge of the banner — ` +
+    `uneven ragged white paper tear fragments tearing downward into white, bottom edge only. ` +
+    `The center area of the composition is slightly calmer to allow a logo to sit on top. ` +
+    `Ink spatter and paint droplets around the main stroke for grunge texture. ` +
+    `Absolutely NO text, NO letters, NO numbers, NO logos, NO badges, NO symbols, NO watermarks. ` +
     `Pure abstract painted background only.`
   );
 }

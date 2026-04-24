@@ -117,16 +117,15 @@ function buildPrompt(brand) {
   // because gpt-image-1 loves to invent wordmarks unless explicitly blocked.
   return (
     `Horizontal email header banner, wide panoramic format. ` +
-    `Deep dark ${brand.panelBg} background filling the entire image from top to bottom — ` +
-    `the dark color bleeds flush to the top edge, no white paper at the top. ` +
-    `ONE single wide bold diagonal brush stroke in vivid saturated ${brand.accent} paint, ` +
-    `sweeping from the upper-right corner diagonally down toward the lower-left corner, ` +
-    `thick impasto paint, heavy and dominant, ${brand.mood}. ` +
-    `The stroke is ONE continuous band — not two stripes, not multiple parallel lines, just one bold slash. ` +
-    `Rough torn white paper effect ONLY along the very bottom edge of the banner — ` +
-    `uneven ragged white paper tear fragments tearing downward into white, bottom edge only. ` +
-    `The center area of the composition is slightly calmer to allow a logo to sit on top. ` +
-    `Ink spatter and paint droplets around the main stroke for grunge texture. ` +
+    `Deep dark ${brand.panelBg} background filling the entire image flush from top edge to bottom edge — ` +
+    `no white at the top, the dark color starts immediately at the top. ` +
+    `2 to 3 bold parallel diagonal brush strokes in vivid saturated ${brand.accent} paint, ` +
+    `each stroke sweeping from the upper-right corner diagonally down toward the lower-left corner, ` +
+    `like thick slashing paint bands across the composition, ${brand.mood}. ` +
+    `The strokes are wide, heavy, impasto — like the gold bands in Atlanta Insiders-style casino banners. ` +
+    `No white torn paper edge anywhere — the image is purely dark background with bold color strokes from edge to edge. ` +
+    `The center area is slightly calmer to allow a logo to sit on top. ` +
+    `Ink spatter and paint droplets for grunge texture. ` +
     `Absolutely NO text, NO letters, NO numbers, NO logos, NO badges, NO symbols, NO watermarks. ` +
     `Pure abstract painted background only.`
   );

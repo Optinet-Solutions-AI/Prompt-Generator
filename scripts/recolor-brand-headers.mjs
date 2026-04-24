@@ -49,19 +49,35 @@ async function ensureCleanTemplate() {
   }
 
   const meta = await sharp(TEMPLATE_RAW).metadata();
-  const W = meta.width, H = meta.height;
+  const H = meta.height;
   // Shield bounding box (eyeballed from the 600×124 reference):
   const SHIELD_X = 220;
   const SHIELD_W = 160;
-  // Donor strip: take the right-hand stroke pattern (x 420..580), mirror it so
-  // the diagonal direction still points top-right → bottom-left, then paste
-  // it over the shield area.
+  // Donor strip: take clean stroke pattern from the right-hand side
+  // (x 420..580) and paste OVER the shield without mirroring, so the
+  // diagonal strokes continue in the same direction (upper-right → lower-left).
   const donor = await sharp(TEMPLATE_RAW)
     .extract({ left: 420, top: 0, width: SHIELD_W, height: H })
-    .flop() // horizontal mirror to keep stroke direction consistent
+    .toBuffer();
+  // Feathered alpha mask so the seam fades out instead of being a hard edge.
+  const FEATHER = 24;
+  const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SHIELD_W}" height="${H}">` +
+    `<defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">` +
+    `<stop offset="0%" stop-color="#fff" stop-opacity="0"/>` +
+    `<stop offset="${(FEATHER / SHIELD_W * 100).toFixed(1)}%" stop-color="#fff" stop-opacity="1"/>` +
+    `<stop offset="${(100 - FEATHER / SHIELD_W * 100).toFixed(1)}%" stop-color="#fff" stop-opacity="1"/>` +
+    `<stop offset="100%" stop-color="#fff" stop-opacity="0"/>` +
+    `</linearGradient></defs>` +
+    `<rect width="${SHIELD_W}" height="${H}" fill="url(#lg)"/>` +
+    `</svg>`;
+  const maskBuf = await sharp(Buffer.from(maskSvg)).png().toBuffer();
+  const donorFeathered = await sharp(donor)
+    .ensureAlpha()
+    .composite([{ input: maskBuf, blend: 'dest-in' }])
+    .png()
     .toBuffer();
   const cleaned = await sharp(TEMPLATE_RAW)
-    .composite([{ input: donor, left: SHIELD_X, top: 0, blend: 'over' }])
+    .composite([{ input: donorFeathered, left: SHIELD_X, top: 0, blend: 'over' }])
     .png()
     .toBuffer();
   await fs.writeFile(TEMPLATE_CLEAN, cleaned);

@@ -186,27 +186,38 @@ function buildTornEdgeDataUri(fillColor: string, side: 'top' | 'bottom' = 'botto
  * colour with the logo centred on top — acceptable graceful fallback.
  */
 function buildGrungeHeaderBgSvg(accentColor: string): string {
-  // Diagonal brush-stroke parallelograms, slightly varied angles + opacities
-  // so they read as hand-painted rather than geometric.
+  // Each stroke is a ~20-vertex irregular polygon: top edge + bottom edge
+  // each have small y-jitter so the stroke reads as a hand-painted streak
+  // with rough edges (not a clean parallelogram). All strokes are diagonal
+  // (top edge slopes down-left to up-right) to match the reference ribbon.
   const strokes: Array<{ pts: string; op: number }> = [
-    { pts: '30,18 200,4 234,60 54,78',     op: 0.95 },
-    { pts: '250,12 400,6 436,62 276,78',   op: 0.88 },
-    { pts: '450,22 580,6 614,64 474,82',   op: 0.92 },
-    { pts: '70,102 270,88 308,144 96,158', op: 0.82 },
-    { pts: '340,110 530,96 574,156 368,170', op: 0.9  },
+    // Top row — left
+    { op: 0.95, pts: '18,44 40,39 62,42 84,35 108,38 130,31 152,33 174,27 196,24 214,26 218,70 198,72 176,68 154,74 132,71 110,77 88,73 66,79 44,76 22,82' },
+    // Top row — center
+    { op: 0.9,  pts: '238,36 260,32 282,34 304,28 326,30 350,23 372,26 394,19 416,22 430,25 434,63 414,66 392,62 370,68 348,64 326,70 304,65 282,71 260,66 244,72' },
+    // Top row — right
+    { op: 0.93, pts: '450,48 474,42 496,44 520,37 542,40 564,33 584,31 598,34 604,38 594,72 576,76 554,70 532,76 510,72 488,78 466,74 450,80 440,76 446,52' },
+    // Bottom row — left
+    { op: 0.84, pts: '64,110 88,106 112,109 134,102 158,105 180,98 202,101 226,95 250,98 268,101 272,148 250,150 228,146 206,152 184,148 162,154 140,150 116,156 92,151 70,156' },
+    // Bottom row — right
+    { op: 0.92, pts: '320,118 344,114 366,116 390,109 414,112 438,106 462,109 486,102 510,105 534,108 540,156 518,158 494,154 470,160 446,156 422,162 400,158 376,164 352,159 330,164' },
   ];
   const strokesSvg = strokes.map(s =>
     `<polygon points="${s.pts}" fill="${accentColor}" opacity="${s.op}"/>`
   ).join('');
 
-  // Subtle speckle / noise dots so the slashes don't look too clean.
-  const dots: Array<[number, number, number]> = [
-    [90, 40, 1.6], [250, 52, 1.3], [440, 34, 1.5], [120, 112, 1.4], [380, 130, 1.2],
-    [520, 120, 1.5], [180, 148, 1.3], [360, 70, 1.1], [500, 160, 1.6], [60, 60, 1.2],
-    [230, 30, 1.2], [330, 90, 1.4], [470, 140, 1.1], [150, 80, 1.1], [420, 50, 1.4],
+  // Spatter overlay — small circles of varied radius near and between the
+  // strokes so the slashes look like they're bleeding paint into the panel.
+  const dots: Array<[number, number, number, number]> = [
+    [50, 30, 2.0, 0.4], [110, 90, 1.3, 0.35], [228, 22, 1.8, 0.45], [280, 82, 1.2, 0.35],
+    [390, 18, 2.1, 0.45], [440, 90, 1.5, 0.38], [530, 28, 1.8, 0.42], [570, 88, 1.3, 0.35],
+    [35, 128, 1.6, 0.38], [140, 94, 1.3, 0.3],  [250, 160, 1.5, 0.4],  [300, 108, 1.2, 0.3],
+    [370, 168, 1.7, 0.42], [470, 172, 1.4, 0.38], [540, 122, 1.6, 0.4], [580, 158, 1.3, 0.35],
+    [8, 88, 1.4, 0.32],   [590, 42, 1.3, 0.3],   [310, 90, 1.1, 0.28], [160, 98, 1.2, 0.28],
+    [78, 68, 1.2, 0.3],   [350, 56, 1.3, 0.32],  [480, 48, 1.1, 0.28], [200, 156, 1.4, 0.32],
   ];
-  const dotsSvg = dots.map(([x, y, r]) =>
-    `<circle cx="${x}" cy="${y}" r="${r}" fill="${accentColor}" opacity="0.38"/>`
+  const dotsSvg = dots.map(([x, y, r, op]) =>
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="${accentColor}" opacity="${op}"/>`
   ).join('');
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid slice">${strokesSvg}${dotsSvg}</svg>`;

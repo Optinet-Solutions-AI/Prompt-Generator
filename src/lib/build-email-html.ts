@@ -154,19 +154,21 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   });
 
   // ── Branded header bar (logo or wordmark fallback) ──────────────────
+  // Clean white header with a thin divider — no coloured panel, so the
+  // header doesn't feel "pasted on" over the hero.
   const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
   const headerBarHtml = logoUrl
     ? [
         '<tr>',
-        `  <td align="center" style="background-color:${style.panelBg};padding:18px 24px;line-height:0;font-size:0;">`,
-        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="40" style="display:inline-block;height:40px;width:auto;border:0;outline:none;" />`,
+        `  <td align="center" style="background-color:#ffffff;padding:32px 24px 24px 24px;line-height:0;font-size:0;border-bottom:1px solid ${LINE_COLOR};">`,
+        `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="36" style="display:inline-block;height:36px;width:auto;border:0;outline:none;" />`,
         '  </td>',
         '</tr>',
       ].join('\n')
     : (brand
         ? [
             '<tr>',
-            `  <td align="center" style="background-color:${style.panelBg};padding:20px 24px;font-family:${FONT_STACK};font-size:20px;font-weight:800;letter-spacing:0.08em;color:${style.accentColor};text-transform:uppercase;">`,
+            `  <td align="center" style="background-color:#ffffff;padding:28px 24px 24px 24px;border-bottom:1px solid ${LINE_COLOR};font-family:${FONT_STACK};font-size:17px;font-weight:800;letter-spacing:0.14em;color:${INK_HEADLINE};text-transform:uppercase;">`,
             `    ${escapeHtml(brand)}`,
             '  </td>',
             '</tr>',

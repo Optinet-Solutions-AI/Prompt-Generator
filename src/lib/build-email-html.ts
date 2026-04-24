@@ -175,22 +175,21 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
           ].join('\n')
         : '');
 
-  // ── Overlapping card ────────────────────────────────────────────────
-  // White card with margin-top:-64px overlaps the bottom of the hero.
-  // Gmail, Apple Mail, Yahoo Mail, iOS Mail all honour negative div margins.
-  // Outlook (Word engine) ignores margin-top on divs — the MSO conditional
-  // resets it to 0 so Outlook users see the card flush below the hero.
+  // ── Content block ───────────────────────────────────────────────────
+  // Flush white block immediately under the hero. No overlapping card — the
+  // hero sits tight against the body so the email reads as one continuous
+  // surface rather than stacked panels. CTA is centered for prominence.
   const brandLabel = brand
-    ? `<p style="margin:0 0 10px 0;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${style.accentColor};font-family:${FONT_STACK};">${escapeHtml(brand)}</p>`
+    ? `<p style="margin:0 0 16px 0;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${style.accentColor};font-family:${FONT_STACK};">${escapeHtml(brand)}</p>`
     : '';
 
   const headlineHtml = formData.headline.trim()
-    ? `<h1 style="margin:0 0 14px 0;font-size:26px;line-height:1.25;font-weight:800;color:#111111;letter-spacing:-0.02em;font-family:${FONT_STACK};">${escapeHtml(formData.headline)}</h1>`
+    ? `<h1 style="margin:0 0 16px 0;font-size:28px;line-height:1.3;font-weight:700;color:${INK_HEADLINE};letter-spacing:-0.01em;font-family:${FONT_STACK};">${escapeHtml(formData.headline)}</h1>`
     : '';
 
   const introHtml = buildIntroParagraph(formData);
   const bodyHtml = formData.bodyText.trim()
-    ? `<p style="margin:0 0 20px 0;font-size:15px;line-height:1.65;color:#444444;font-family:${FONT_STACK};">${escapeHtml(formData.bodyText)}</p>`
+    ? `<p style="margin:0 0 28px 0;font-size:16px;line-height:1.6;color:${INK_BODY};font-family:${FONT_STACK};">${escapeHtml(formData.bodyText)}</p>`
     : '';
 
   const ctaText = formData.linkText.trim();
@@ -201,16 +200,14 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   const cardHtml = hasCardContent
     ? [
         '<tr>',
-        '  <td style="padding:0 32px 36px 32px;">',
-        '    <!--[if mso]><div style="margin-top:0;"><![endif]-->',
-        `    <div style="background:#ffffff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.12);margin-top:-64px;padding:32px 32px 28px 32px;position:relative;">`,
-        `      ${brandLabel}`,
-        `      ${headlineHtml}`,
-        `      ${introHtml}`,
-        `      ${bodyHtml}`,
-        `      ${ctaHtml}`,
-        '    </div>',
-        '    <!--[if mso]></div><![endif]-->',
+        `  <td style="background-color:#ffffff;padding:36px 40px 32px 40px;font-family:${FONT_STACK};">`,
+        `    ${brandLabel}`,
+        `    ${headlineHtml}`,
+        `    ${introHtml}`,
+        `    ${bodyHtml}`,
+        ctaHtml
+          ? `    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:4px 0 0 0;">${ctaHtml}</td></tr></table>`
+          : '',
         '  </td>',
         '</tr>',
       ].join('\n')

@@ -522,29 +522,41 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     ? `To unsubscribe from this particular email, <a href="${escapeHtml(unsubUrl)}" style="color:${primary};text-decoration:underline;">click here</a>.`
     : '';
 
-  // Atlassian-style branded header: coloured panel + logo (or brand name
-  // fallback if no logo). Falls back to brand uppercase on the panel colour.
+  // Torn-paper grunge header: dark brand panel + diagonal accent brush-strokes
+  // via CSS background-image, with torn white edges top AND bottom so the
+  // header reads as a ragged painted ribbon on torn paper.
+  const grungeBgUrl = buildGrungeHeaderBgSvg(primary);
+
   const brandedHeader = logoUrl
     ? [
         '    <tr>',
-        `      <td align="center" style="background-color:${headerBg};padding:40px 24px 28px 24px;line-height:0;font-size:0;">`,
-        `        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brandName)}" height="44" style="display:inline-block;height:44px;width:auto;border:0;outline:none;" />`,
+        `      <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:54px 24px 46px 24px;line-height:0;font-size:0;">`,
+        `        <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brandName)}" height="72" style="display:inline-block;height:72px;width:auto;border:0;outline:none;" />`,
         '      </td>',
         '    </tr>',
       ].join('\n')
     : [
         '    <tr>',
-        `      <td align="center" style="background-color:${headerBg};padding:36px 24px 28px 24px;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:800;letter-spacing:0.16em;color:${primary};text-transform:uppercase;">`,
+        `      <td align="center" bgcolor="${headerBg}" style="background-color:${headerBg};background-image:url('${grungeBgUrl}');background-repeat:no-repeat;background-size:cover;background-position:center center;padding:52px 24px 44px 24px;font-family:Arial,Helvetica,sans-serif;font-size:26px;font-weight:800;letter-spacing:0.16em;color:${primary};text-transform:uppercase;">`,
         `        ${escapeHtml(brandName)}`,
         '      </td>',
         '    </tr>',
       ].join('\n');
 
-  // Torn-paper edge between the branded header and the white content.
+  // Top torn-paper edge — white paper tears open to reveal the dark header.
+  const topTornEdge = [
+    '    <tr>',
+    '      <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
+    `        <img src="${buildTornEdgeDataUri(headerBg, 'top')}" alt="" width="${containerWidth}" height="18" style="display:block;width:100%;max-width:${containerWidth}px;height:18px;border:0;outline:none;" />`,
+    '      </td>',
+    '    </tr>',
+  ].join('\n');
+
+  // Bottom torn-paper edge between the branded header and the white content.
   const tornEdge = [
     '    <tr>',
     '      <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
-    `        <img src="${buildTornEdgeDataUri(headerBg)}" alt="" width="${containerWidth}" height="24" style="display:block;width:100%;max-width:${containerWidth}px;height:24px;border:0;outline:none;" />`,
+    `        <img src="${buildTornEdgeDataUri(headerBg, 'bottom')}" alt="" width="${containerWidth}" height="24" style="display:block;width:100%;max-width:${containerWidth}px;height:24px;border:0;outline:none;" />`,
     '      </td>',
     '    </tr>',
   ].join('\n');

@@ -470,8 +470,9 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
   const { imageSrc, brand, formData } = params;
   const cfg = params.staticConfig || {};
   const style: BrandStyle = getBrandStyle(brand);
-  const primary  = style.accentColor || '#0052cc';
-  const headerBg = style.panelBg     || '#172b4d';
+  const primary    = style.accentColor   || '#0052cc';
+  const headerBg   = style.panelBg       || '#172b4d';
+  const headerText = style.headlineColor || '#ffffff';
   const containerWidth = 600;
   const brandName = brand || 'Brand';
 

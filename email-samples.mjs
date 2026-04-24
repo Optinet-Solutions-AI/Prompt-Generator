@@ -24,9 +24,8 @@ const slugMap = {
   Lucky7even: 'lucky7even', NovaDreams: 'novadreams', Rollero: 'rollero',
 };
 const variants = [
-  { id: 'image-hero',         label: 'image-hero' },
-  { id: 'brand-only',         label: 'brand-only' },
-  { id: 'atlanta-newsletter', label: 'atlanta-newsletter' },
+  { id: 'image-hero', label: 'image-hero' },
+  { id: 'brand-only', label: 'brand-only' },
 ];
 
 const form = {

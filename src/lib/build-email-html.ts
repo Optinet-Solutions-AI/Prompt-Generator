@@ -224,17 +224,17 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     || (cfg.footer_attribution || '')
     || (brand ? `This email was sent on behalf of ${brand}.` : '');
   const footerAttr = attribution
-    ? `<p style="margin:0 0 6px 0;font-size:12px;line-height:1.6;color:#999999;">${escapeHtml(attribution)}</p>`
+    ? `<p style="margin:0 0 10px 0;font-size:13px;line-height:1.55;color:${INK_MUTED};font-family:${FONT_STACK};">${escapeHtml(attribution)}</p>`
     : '';
 
   const legalText = cfg.legal_text || '';
   const legalHtml = legalText
-    ? `<p style="margin:0 0 6px 0;font-size:11px;line-height:1.6;color:#b0b0b0;">${escapeHtml(legalText)}</p>`
+    ? `<p style="margin:0 0 12px 0;font-size:12px;line-height:1.55;color:${INK_LIGHT};font-family:${FONT_STACK};">${escapeHtml(legalText)}</p>`
     : '';
 
   const unsubRaw = formData.unsubscribeUrl.trim() || (cfg.unsubscribe_url || '');
   const unsubHtml = unsubRaw
-    ? `<p style="margin:0;font-size:11px;color:#b0b0b0;">To unsubscribe, <a href="${escapeHtml(safeUrl(unsubRaw))}" style="color:#999999;text-decoration:underline;">click here</a>.</p>`
+    ? `<p style="margin:0;font-size:12px;color:${INK_MUTED};font-family:${FONT_STACK};">To unsubscribe, <a href="${escapeHtml(safeUrl(unsubRaw))}" style="color:${INK_MUTED};text-decoration:underline;">click here</a>.</p>`
     : '';
 
   return [

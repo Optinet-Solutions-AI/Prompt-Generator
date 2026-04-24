@@ -30,12 +30,67 @@ const ROOT       = path.resolve(__dirname, '..');
 const TEMPLATE_RAW   = path.join(ROOT, 'public', 'brand-references', '_template', 'header-template.png');
 const TEMPLATE_CLEAN = path.join(ROOT, 'public', 'brand-references', '_template', 'header-template-clean.png');
 
+// Load GEMINI_API_KEY from .env.local
+async function loadEnvLocal() {
+  try {
+    const raw = await fs.readFile(path.join(ROOT, '.env.local'), 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+      if (!m) continue;
+      let [, key, val] = m;
+      if (val.startsWith('"') || val.startsWith("'")) val = val.slice(1);
+      if (val.endsWith('"')   || val.endsWith("'"))   val = val.slice(0, -1);
+      if (!(key in process.env)) process.env[key] = val;
+    }
+  } catch { /* ignore */ }
+}
+
 /**
- * Build a shield-free version of the template by cloning the right-side
- * stroke pattern over the centered Georgia Soccer shield. Run once per
- * recolour; the cleaned image is cached so subsequent runs skip this step.
+ * Use Gemini image editing (gemini-3-pro-image-preview) to remove the
+ * Georgia Soccer shield + text from the template, filling with the
+ * surrounding stroke pattern. Falls back to the donor-strip clone method
+ * when the API is unavailable or fails.
  */
-async function ensureCleanTemplate() {
+async function removeShieldWithGemini(apiKey) {
+  const imgBuf = await fs.readFile(TEMPLATE_RAW);
+  const b64    = imgBuf.toString('base64');
+  const url    = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`;
+  const prompt =
+    'Remove the soccer shield logo, the soccer ball, and the "GEORGIA SOCCER" text from the centre of this banner. ' +
+    'Fill in the removed area seamlessly with the same diagonal red-and-navy brush-stroke texture that appears on the left and right sides of the banner. ' +
+    'Keep the torn cream-white paper edge along the bottom exactly as it is. ' +
+    'The result should look like a clean abstract painted sports banner with NO logo, NO shield, NO text, NO badge, NO typography — just diagonal red strokes on navy background with torn paper at the bottom. ' +
+    'Preserve the original dimensions, colours, and stroke style.';
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType: 'image/png', data: b64 } },
+        ],
+      }],
+      generationConfig: { responseModalities: ['IMAGE'] },
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Gemini ${resp.status}: ${errText.slice(0, 250)}`);
+  }
+  const data = await resp.json();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const imgPart = parts.find(p => p.inlineData?.data);
+  if (!imgPart) throw new Error(`no image in response: ${JSON.stringify(data).slice(0, 250)}`);
+  return Buffer.from(imgPart.inlineData.data, 'base64');
+}
+
+/**
+ * Fallback: donor-strip clone — copies a clean stroke region over the shield
+ * with soft feathered edges. Used when Gemini is unavailable.
+ */
+async function removeShieldWithDonor() {
   try {
     const rawStat = await fs.stat(TEMPLATE_RAW);
     let cleanNeedsRebuild = true;

@@ -9,6 +9,7 @@ import { buildEmailHtml, EMPTY_EMAIL_FORM } from './src/lib/build-email-html.ts'
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename));

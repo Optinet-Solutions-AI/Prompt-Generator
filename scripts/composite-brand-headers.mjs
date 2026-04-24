@@ -53,7 +53,13 @@ async function loadLogo(brand) {
   const svgPath = path.join(refDir, brand.logo);
   try {
     await fs.access(svgPath);
-    const buf = await sharp(svgPath, { density: 192 })
+    // Render large first, trim transparent padding, then resize to fit —
+    // makes the logo fill the available badge space tightly.
+    const rendered = await sharp(svgPath, { density: 384 }).png().toBuffer();
+    let trimmed;
+    try { trimmed = await sharp(rendered).trim().toBuffer(); }
+    catch { trimmed = rendered; }
+    const buf = await sharp(trimmed)
       .resize(LOGO_MAX_W, LOGO_MAX_H, { fit: 'inside', withoutEnlargement: false })
       .png()
       .toBuffer();
@@ -65,7 +71,11 @@ async function loadLogo(brand) {
     const pngPath = path.join(refDir, brand.logoPng);
     try {
       await fs.access(pngPath);
-      const buf = await sharp(pngPath)
+      const rendered = await sharp(pngPath).png().toBuffer();
+      let trimmed;
+      try { trimmed = await sharp(rendered).trim().toBuffer(); }
+      catch { trimmed = rendered; }
+      const buf = await sharp(trimmed)
         .resize(LOGO_MAX_W, LOGO_MAX_H, { fit: 'inside', withoutEnlargement: false })
         .png()
         .toBuffer();

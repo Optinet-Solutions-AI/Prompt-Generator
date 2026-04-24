@@ -572,7 +572,7 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
   const textRow = (introInner || bodyText)
     ? [
         '    <tr>',
-        '      <td style="padding:30px 20px 20px 20px;font-family:Arial,Helvetica,sans-serif;color:#000000;">',
+        '      <td style="padding:16px 20px 20px 20px;font-family:Arial,Helvetica,sans-serif;color:#000000;">',
         introInner
           ? `        <p style="font-size:12px;line-height:1.5;margin:0 0 15px 0;color:#000000;">${introInner}</p>`
           : '',

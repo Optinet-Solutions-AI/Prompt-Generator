@@ -219,18 +219,28 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   const ctaUrl  = safeUrl(formData.linkUrl);
   const ctaHtml = ctaText ? buildCtaButton(ctaText, ctaUrl, style) : '';
 
-  const hasCardContent = brandLabel || headlineHtml || introHtml || bodyHtml || ctaHtml;
-  const cardHtml = hasCardContent
+  // Content block — eyebrow + headline + intro + body. CTA is rendered in
+  // its own row AFTER the hero image so the flow is:
+  //   copy → visual payoff → call-to-action.
+  const hasCopy = !!(brandLabel || headlineHtml || introHtml || bodyHtml);
+  const contentHtml = hasCopy
     ? [
         '<tr>',
-        `  <td style="background-color:#ffffff;padding:36px 40px 32px 40px;font-family:${FONT_STACK};">`,
+        `  <td class="card-wrap" style="background-color:#ffffff;padding:36px 40px 24px 40px;font-family:${FONT_STACK};">`,
         `    ${brandLabel}`,
         `    ${headlineHtml}`,
         `    ${introHtml}`,
         `    ${bodyHtml}`,
-        ctaHtml
-          ? `    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:4px 0 0 0;">${ctaHtml}</td></tr></table>`
-          : '',
+        '  </td>',
+        '</tr>',
+      ].join('\n')
+    : '';
+
+  const ctaRowHtml = ctaHtml
+    ? [
+        '<tr>',
+        `  <td class="card-wrap" align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;">`,
+        `    ${ctaHtml}`,
         '  </td>',
         '</tr>',
       ].join('\n')

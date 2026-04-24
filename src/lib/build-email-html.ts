@@ -476,8 +476,8 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     preheaderHtml,
     `  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:${PAGE_BG};">`,
     '    <tr>',
-    '      <td align="center" style="padding:32px 12px 40px 12px;">',
-    `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(9,30,66,0.08);">`,
+    '      <td align="center" style="padding:0 0 40px 0;">',
+    `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;background-color:#ffffff;border-radius:0 0 12px 12px;overflow:hidden;box-shadow:0 2px 8px rgba(9,30,66,0.12);">`,
     // Top torn-paper edge — white paper tears to reveal the dark header
     `          ${topTornHtml}`,
     // Header (dark brand panel + gold brush-strokes + centered logo)

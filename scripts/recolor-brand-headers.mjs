@@ -91,32 +91,12 @@ async function removeShieldWithGemini(apiKey) {
  * with soft feathered edges. Used when Gemini is unavailable.
  */
 async function removeShieldWithDonor() {
-  try {
-    const rawStat = await fs.stat(TEMPLATE_RAW);
-    let cleanNeedsRebuild = true;
-    try {
-      const cleanStat = await fs.stat(TEMPLATE_CLEAN);
-      if (cleanStat.mtimeMs >= rawStat.mtimeMs) cleanNeedsRebuild = false;
-    } catch { /* clean doesn't exist yet */ }
-    if (!cleanNeedsRebuild) return;
-  } catch {
-    throw new Error(`template missing at ${TEMPLATE_RAW}`);
-  }
-
   const meta = await sharp(TEMPLATE_RAW).metadata();
   const H = meta.height;
-  // Shield bounding box — shield is ~200px wide centered on a 600px image.
-  const SHIELD_X = 200;
-  const SHIELD_W = 200;
-  // Donor strip: take clean stroke pattern from the right-hand side
-  // (x 380..580). No mirroring so diagonal strokes continue in the same
-  // direction (upper-right → lower-left).
+  const SHIELD_X = 200, SHIELD_W = 200;
   const donor = await sharp(TEMPLATE_RAW)
     .extract({ left: 380, top: 0, width: SHIELD_W, height: H })
     .toBuffer();
-  // Narrow feather (8px) at left/right edges only — keeps the donor almost
-  // fully opaque across the shield area so the Georgia Soccer shield doesn't
-  // bleed through, but softens the hard seam at the boundaries.
   const FEATHER = 8;
   const fPct = (FEATHER / SHIELD_W * 100).toFixed(2);
   const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SHIELD_W}" height="${H}">` +
@@ -134,12 +114,50 @@ async function removeShieldWithDonor() {
     .composite([{ input: maskBuf, blend: 'dest-in' }])
     .png()
     .toBuffer();
-  const cleaned = await sharp(TEMPLATE_RAW)
+  return sharp(TEMPLATE_RAW)
     .composite([{ input: donorFeathered, left: SHIELD_X, top: 0, blend: 'over' }])
     .png()
     .toBuffer();
-  await fs.writeFile(TEMPLATE_CLEAN, cleaned);
-  console.log(`  ✓ wrote ${path.relative(ROOT, TEMPLATE_CLEAN)} (shield removed)`);
+}
+
+/**
+ * Ensure the shield-free template exists. Prefers Gemini image editing for a
+ * clean result; falls back to donor-strip cloning when Gemini fails.
+ * Cached — regenerated only when the raw template is newer than the clean one.
+ */
+async function ensureCleanTemplate() {
+  try { await fs.access(TEMPLATE_RAW); }
+  catch { throw new Error(`template missing at ${TEMPLATE_RAW}`); }
+
+  const rawStat = await fs.stat(TEMPLATE_RAW);
+  try {
+    const cleanStat = await fs.stat(TEMPLATE_CLEAN);
+    if (cleanStat.mtimeMs >= rawStat.mtimeMs) return;
+  } catch { /* clean doesn't exist yet */ }
+
+  // Ensure enclosing directory exists (for fresh checkouts)
+  await fs.mkdir(path.dirname(TEMPLATE_CLEAN), { recursive: true });
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  let cleanedBuf = null;
+  if (apiKey) {
+    try {
+      console.log('  → removing shield via Gemini image edit...');
+      cleanedBuf = await removeShieldWithGemini(apiKey);
+      // Normalise to exact template dimensions (Gemini may return a different size)
+      const { width, height } = await sharp(TEMPLATE_RAW).metadata();
+      cleanedBuf = await sharp(cleanedBuf).resize(width, height, { fit: 'fill' }).png().toBuffer();
+      console.log('  ✓ Gemini cleanup succeeded');
+    } catch (err) {
+      console.log(`  ⚠ Gemini cleanup failed (${err.message.slice(0, 120)}); falling back to donor-strip method`);
+    }
+  } else {
+    console.log('  ⚠ GEMINI_API_KEY not set; using donor-strip fallback');
+  }
+  if (!cleanedBuf) cleanedBuf = await removeShieldWithDonor();
+
+  await fs.writeFile(TEMPLATE_CLEAN, cleanedBuf);
+  console.log(`  ✓ wrote ${path.relative(ROOT, TEMPLATE_CLEAN)}`);
 }
 
 // Brand palette (panelBg = template navy replacement, accent = template red replacement).

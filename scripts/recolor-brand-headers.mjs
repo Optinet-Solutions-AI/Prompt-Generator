@@ -165,8 +165,7 @@ async function recolorOne(brand) {
 }
 
 async function main() {
-  try { await fs.access(TEMPLATE); }
-  catch { console.error(`ERROR: template missing at ${TEMPLATE}`); process.exit(1); }
+  await ensureCleanTemplate();
 
   const argIdx = process.argv.indexOf('--brand');
   const only = argIdx >= 0 ? process.argv[argIdx + 1] : null;

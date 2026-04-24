@@ -302,12 +302,16 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     '    <tr>',
     '      <td align="center" style="padding:32px 12px 40px 12px;">',
     `        <table role="presentation" class="email-container" width="${containerWidth}" cellspacing="0" cellpadding="0" border="0" style="width:${containerWidth}px;max-width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(9,30,66,0.08);">`,
-    // Header (logo or brand wordmark, with divider)
+    // Header (tinted "paper" panel with logo)
     `          ${headerBarHtml}`,
-    // Hero image — flush under the header, no padding
+    // Torn-paper edge separating the header from the white content
+    `          ${tornEdgeHtml}`,
+    // Content block — eyebrow + headline + intro + body
+    `          ${contentHtml}`,
+    // Hero banner — sits after the body text, full-bleed inside the container
     `          ${heroHtml}`,
-    // Content block — headline + intro + body + centered CTA
-    `          ${cardHtml}`,
+    // Centered CTA — follows the hero so it reads as the final action
+    `          ${ctaRowHtml}`,
     // Divider between content and footer (only when there's footer content below)
     hasFooterRow || socialHtml
       ? `          <tr><td style="padding:0 40px;"><div style="border-top:1px solid ${LINE_COLOR};font-size:0;line-height:0;">&nbsp;</div></td></tr>`

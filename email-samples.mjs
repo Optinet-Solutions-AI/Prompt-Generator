@@ -54,19 +54,23 @@ async function headerDataUri(slug) {
   }
 }
 
-// Wordmark per brand. `darkBg` = true when the wordmark is too light-coloured
-// to be readable on a white email body (e.g. Rollero is all-gold, NovaDreams
-// uses light blue) and needs a dark pill behind it for contrast.
+// Wordmark per brand. Flags:
+//   darkBg       — wrap the wordmark in a compact dark pill when the logo is
+//                  too light to read on a white email body.
+//   invertWhite  — recolour near-white pixels to black. ONLY enable when the
+//                  wordmark has large white TEXT areas; enabling it on logos
+//                  with small white highlights (eyes, shines, details) turns
+//                  those highlights into ugly black blocks.
 const WORDMARK_FILES = {
-  fortuneplay: { file: 'scraped/logo-1.svg',     darkBg: false }, // mixed colours, legible on white
-  roosterbet:  { file: 'scraped/logo-1.svg',     darkBg: false },
-  spinjo:      { file: 'scraped/logo-1.svg',     darkBg: false },
-  luckyvibe:   { file: 'scraped/logo-1.svg',     darkBg: false },
-  spinsup:     { file: 'scraped/logo-1.svg',     darkBg: true  }, // magenta/pink blends into white
-  playmojo:    { file: 'scraped/logo-1.svg',     darkBg: false },
-  lucky7even:  { file: 'scraped/logo-1.svg',     darkBg: false },
-  novadreams:  { file: 'scraped/logo-long.svg',  darkBg: true  }, // cyan on white is unreadable
-  rollero:     { file: 'scraped/logo-long.svg',  darkBg: true  }, // gold on white is unreadable
+  fortuneplay: { file: 'scraped/logo-1.svg',     darkBg: false, invertWhite: true  }, // white "FORTUNE" text
+  roosterbet:  { file: 'scraped/logo-1.svg',     darkBg: false, invertWhite: false }, // red/dark, highlights only
+  spinjo:      { file: 'scraped/logo-1.svg',     darkBg: false, invertWhite: false }, // no white
+  luckyvibe:   { file: 'scraped/logo-1.svg',     darkBg: false, invertWhite: false }, // dark script, highlights only
+  spinsup:     { file: 'scraped/logo-1.svg',     darkBg: true,  invertWhite: false }, // dark pill, leave as-is
+  playmojo:    { file: 'scraped/logo-1.svg',     darkBg: false, invertWhite: false },
+  lucky7even:  { file: 'scraped/logo-1.svg',     darkBg: false, invertWhite: false },
+  novadreams:  { file: 'scraped/logo-long.svg',  darkBg: true,  invertWhite: false }, // dark pill
+  rollero:     { file: 'scraped/logo-long.svg',  darkBg: true,  invertWhite: false }, // dark pill
 };
 
 // Convert wordmark SVG → PNG → base64 data URI.

@@ -186,41 +186,62 @@ function buildTornEdgeDataUri(fillColor: string, side: 'top' | 'bottom' = 'botto
  * colour with the logo centred on top — acceptable graceful fallback.
  */
 function buildGrungeHeaderBgSvg(accentColor: string): string {
-  // Each stroke is a ~20-vertex irregular polygon: top edge + bottom edge
-  // each have small y-jitter so the stroke reads as a hand-painted streak
-  // with rough edges (not a clean parallelogram). All strokes are diagonal
-  // (top edge slopes down-left to up-right) to match the reference ribbon.
-  const strokes: Array<{ pts: string; op: number }> = [
-    // Top row — left
-    { op: 0.95, pts: '18,44 40,39 62,42 84,35 108,38 130,31 152,33 174,27 196,24 214,26 218,70 198,72 176,68 154,74 132,71 110,77 88,73 66,79 44,76 22,82' },
-    // Top row — center
-    { op: 0.9,  pts: '238,36 260,32 282,34 304,28 326,30 350,23 372,26 394,19 416,22 430,25 434,63 414,66 392,62 370,68 348,64 326,70 304,65 282,71 260,66 244,72' },
-    // Top row — right
-    { op: 0.93, pts: '450,48 474,42 496,44 520,37 542,40 564,33 584,31 598,34 604,38 594,72 576,76 554,70 532,76 510,72 488,78 466,74 450,80 440,76 446,52' },
-    // Bottom row — left
-    { op: 0.84, pts: '64,110 88,106 112,109 134,102 158,105 180,98 202,101 226,95 250,98 268,101 272,148 250,150 228,146 206,152 184,148 162,154 140,150 116,156 92,151 70,156' },
-    // Bottom row — right
-    { op: 0.92, pts: '320,118 344,114 366,116 390,109 414,112 438,106 462,109 486,102 510,105 534,108 540,156 518,158 494,154 470,160 446,156 422,162 400,158 376,164 352,159 330,164' },
+  // Strokes are drawn in a rotated coordinate system (-18° around panel
+  // centre) so "horizontal" streaks in this frame render as DIAGONAL
+  // brush-strokes in the final image. Each stroke is a tapered polygon
+  // (narrower at the ends, wider in the middle) with rough y-jitter on
+  // top + bottom edges so it reads as paint, not a filled rectangle.
+  // Viewport is 600×180, rotation pivot (300, 90).
+  const rotatedStrokes: Array<{ pts: string; op: number }> = [
+    // Long top stroke — runs nearly full width, tapered tips
+    { op: 0.94, pts:
+      '-40,28 10,22 70,18 140,15 220,14 300,15 380,17 450,21 510,26 558,32 ' +
+      '520,44 460,46 380,47 300,47 220,46 140,47 70,45 10,46 -40,40'
+    },
+    // Mid-upper stroke — slightly shorter, offset above centre
+    { op: 0.88, pts:
+      '40,62 100,56 170,53 250,52 330,54 410,58 470,64 ' +
+      '450,78 390,80 330,80 250,80 170,79 100,78 40,76'
+    },
+    // Main middle stroke — widest, strong opacity
+    { op: 0.95, pts:
+      '-30,102 30,96 100,92 180,90 260,90 340,92 420,95 490,100 555,108 ' +
+      '510,120 440,122 360,122 280,122 200,122 130,122 60,120 -30,118'
+    },
+    // Lower-left stroke — medium length
+    { op: 0.86, pts:
+      '20,140 80,134 150,130 220,130 290,133 350,138 ' +
+      '330,150 270,152 210,152 150,152 80,150 20,148'
+    },
+    // Lower-right stroke — medium length, slight offset
+    { op: 0.9, pts:
+      '370,150 430,144 500,141 560,143 610,148 ' +
+      '580,160 510,162 440,162 380,162'
+    },
   ];
-  const strokesSvg = strokes.map(s =>
+  const strokesSvg = rotatedStrokes.map(s =>
     `<polygon points="${s.pts}" fill="${accentColor}" opacity="${s.op}"/>`
   ).join('');
 
-  // Spatter overlay — small circles of varied radius near and between the
-  // strokes so the slashes look like they're bleeding paint into the panel.
+  // Spatter overlay in the UNrotated (final) frame — small circles of varied
+  // radius scattered over the whole panel so the slashes look like they're
+  // bleeding paint and dusting the dark background.
   const dots: Array<[number, number, number, number]> = [
-    [50, 30, 2.0, 0.4], [110, 90, 1.3, 0.35], [228, 22, 1.8, 0.45], [280, 82, 1.2, 0.35],
-    [390, 18, 2.1, 0.45], [440, 90, 1.5, 0.38], [530, 28, 1.8, 0.42], [570, 88, 1.3, 0.35],
-    [35, 128, 1.6, 0.38], [140, 94, 1.3, 0.3],  [250, 160, 1.5, 0.4],  [300, 108, 1.2, 0.3],
-    [370, 168, 1.7, 0.42], [470, 172, 1.4, 0.38], [540, 122, 1.6, 0.4], [580, 158, 1.3, 0.35],
-    [8, 88, 1.4, 0.32],   [590, 42, 1.3, 0.3],   [310, 90, 1.1, 0.28], [160, 98, 1.2, 0.28],
-    [78, 68, 1.2, 0.3],   [350, 56, 1.3, 0.32],  [480, 48, 1.1, 0.28], [200, 156, 1.4, 0.32],
+    [50, 30, 2.0, 0.42],   [110, 80, 1.3, 0.34], [228, 22, 1.8, 0.45], [280, 80, 1.2, 0.32],
+    [390, 18, 2.1, 0.45],  [440, 90, 1.5, 0.38], [530, 28, 1.8, 0.42], [570, 88, 1.3, 0.34],
+    [35, 128, 1.6, 0.38],  [140, 98, 1.3, 0.30], [250, 158, 1.5, 0.4], [300, 108, 1.2, 0.30],
+    [370, 166, 1.7, 0.42], [470, 170, 1.4, 0.38], [540, 122, 1.6, 0.4], [580, 156, 1.3, 0.34],
+    [12, 88, 1.4, 0.32],   [590, 42, 1.3, 0.30],  [310, 90, 1.1, 0.28], [160, 98, 1.2, 0.28],
+    [78, 68, 1.2, 0.30],   [350, 56, 1.3, 0.32],  [480, 48, 1.1, 0.28], [200, 156, 1.4, 0.32],
+    [90, 150, 1.1, 0.28],  [330, 170, 1.2, 0.30], [420, 144, 1.3, 0.32], [500, 72, 1.4, 0.34],
   ];
   const dotsSvg = dots.map(([x, y, r, op]) =>
     `<circle cx="${x}" cy="${y}" r="${r}" fill="${accentColor}" opacity="${op}"/>`
   ).join('');
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid slice">${strokesSvg}${dotsSvg}</svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid slice">` +
+    `<g transform="rotate(-18 300 90)">${strokesSvg}</g>${dotsSvg}` +
+    `</svg>`;
   try {
     const b64 = typeof btoa !== 'undefined'
       ? btoa(svg)

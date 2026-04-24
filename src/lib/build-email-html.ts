@@ -72,6 +72,10 @@ export type EmailTemplateVariant = 'image-hero' | 'brand-only' | 'atlanta-newsle
 export interface StaticBrandConfig {
   logo_url?: string | null;
   banner_url?: string | null;
+  /** AI-generated composite header image (texture + logo). When present,
+   *  replaces ALL header markup with a single full-width <img> — Atlassian
+   *  style, no SVG grunge, works in every email client including Outlook. */
+  header_url?: string | null;
   website_url?: string | null;
   unsubscribe_url?: string | null;
   footer_attribution?: string | null;

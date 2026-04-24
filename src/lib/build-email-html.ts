@@ -55,11 +55,14 @@ export const EMPTY_EMAIL_FORM: EmailFormData = {
 };
 
 /**
- * Two template variants per brand:
- *   - 'image-hero' : AI-generated image is the hero (default).
- *   - 'brand-only' : Static brand banner is the hero (AI image ignored).
+ * Three template variants per brand:
+ *   - 'image-hero'        : AI-generated image is the hero (default).
+ *   - 'brand-only'        : Static brand banner is the hero (AI image ignored).
+ *   - 'atlanta-newsletter': Atlanta-Insiders-style newsletter — header image,
+ *                           two text paragraphs, secondary image, logo bottom,
+ *                           socials, divider, unsubscribe. No headline/CTA.
  */
-export type EmailTemplateVariant = 'image-hero' | 'brand-only';
+export type EmailTemplateVariant = 'image-hero' | 'brand-only' | 'atlanta-newsletter';
 
 /**
  * Per-brand static header/footer config loaded from Supabase

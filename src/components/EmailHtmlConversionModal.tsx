@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Download, Eye, Mail, Loader2, Copy, Check, Sparkles, Image as ImageIcon, LayoutTemplate } from 'lucide-react';
+import { Download, Eye, Mail, Loader2, Copy, Check, Sparkles, Image as ImageIcon, LayoutTemplate, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { BRAND_STANDARDS } from '@/lib/brand-standards';
 import {
   buildEmailHtml,

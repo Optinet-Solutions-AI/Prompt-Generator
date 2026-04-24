@@ -227,43 +227,61 @@ async function generateOne(brand, provider, keys) {
   return { ok: true, path: activePath, bytes: result.buf.length };
 }
 
+function getFlag(flag) {
+  const idx = process.argv.indexOf(flag);
+  return idx >= 0 ? (process.argv[idx + 1] || '') : null;
+}
+function hasFlag(flag) { return process.argv.includes(flag); }
+
 async function main() {
   await loadEnvLocal();
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    console.error('ERROR: OPENAI_API_KEY not set in .env.local.');
-    process.exit(1);
-  }
+  const keys = {
+    openai: process.env.OPENAI_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+  };
 
-  const argIdx = process.argv.indexOf('--brand');
-  const only = argIdx >= 0 ? process.argv[argIdx + 1] : null;
+  const only       = getFlag('--brand');
+  const provider   = (getFlag('--provider') || 'openai').toLowerCase();
+  const compare    = hasFlag('--compare');
+
   const targets = only ? BRANDS.filter(b => b.slug === only) : BRANDS;
   if (only && targets.length === 0) {
     console.error(`ERROR: unknown brand slug "${only}". Valid: ${BRANDS.map(b => b.slug).join(', ')}`);
     process.exit(1);
   }
 
-  console.log(`Generating header textures for ${targets.length} brand(s) via gpt-image-1 @ 1536x1024, medium quality...`);
+  // Determine which providers to run
+  const providers = compare ? ['openai', 'gemini'] : [provider];
+  for (const p of providers) {
+    if (p === 'openai' && !keys.openai) { console.error('ERROR: OPENAI_API_KEY not set.'); process.exit(1); }
+    if (p === 'gemini' && !keys.gemini) { console.error('ERROR: GEMINI_API_KEY not set.'); process.exit(1); }
+    if (p !== 'openai' && p !== 'gemini') { console.error(`ERROR: unknown provider "${p}".`); process.exit(1); }
+  }
+
+  console.log(`Generating header textures for ${targets.length} brand(s) × ${providers.length} provider(s): ${providers.join(', ')}`);
+
   const results = [];
-  for (const brand of targets) {
-    try {
-      const r = await generateOne(brand, apiKey);
-      if (r.ok) {
-        console.log(`  ✓ saved ${path.relative(ROOT, r.path)} (${(r.bytes / 1024).toFixed(0)} KB)`);
-      } else {
-        console.log(`  ✗ FAILED: ${r.error}`);
+  for (const p of providers) {
+    for (const brand of targets) {
+      try {
+        const r = await generateOne(brand, p, keys);
+        if (r.ok) {
+          console.log(`  ✓ [${p}] ${path.relative(ROOT, r.path)} (${(r.bytes / 1024).toFixed(0)} KB)`);
+        } else {
+          console.log(`  ✗ [${p}] FAILED: ${r.error}`);
+        }
+        results.push({ brand: brand.slug, provider: p, ...r });
+      } catch (err) {
+        console.log(`  ✗ [${p}] CRASH: ${err.message}`);
+        results.push({ brand: brand.slug, provider: p, ok: false, error: err.message });
       }
-      results.push({ brand: brand.slug, ...r });
-    } catch (err) {
-      console.log(`  ✗ CRASH: ${err.message}`);
-      results.push({ brand: brand.slug, ok: false, error: err.message });
     }
   }
 
   const ok = results.filter(r => r.ok).length;
   console.log(`\nDone. ${ok}/${results.length} succeeded.`);
   if (ok < results.length) {
-    console.log('Failed brands:', results.filter(r => !r.ok).map(r => r.brand).join(', '));
+    console.log('Failures:', results.filter(r => !r.ok).map(r => `${r.brand}/${r.provider}`).join(', '));
     process.exit(1);
   }
 }

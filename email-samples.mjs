@@ -89,8 +89,10 @@ async function buildSections() {
   for (const brand of brands) {
     const slug = slugMap[brand];
     const header_url = await headerDataUri(slug);
+    const wordmark_url = await wordmarkDataUri(slug);
     const staticConfig = {
       header_url,
+      wordmark_url,
       legal_text: '21+ only. Please play responsibly.',
       footer_attribution: `Sent on behalf of ${brand}.`,
       unsubscribe_url: 'https://example.com/unsub',

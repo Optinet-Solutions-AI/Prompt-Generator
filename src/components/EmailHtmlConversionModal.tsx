@@ -255,6 +255,11 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
       }
       setGeneratedHtml(html);
       setGeneratedText(text);
+      // Prefill the subject once, using the headline if the user hasn't
+      // typed anything yet. Subject remains editable.
+      setSubject(prev => prev.trim() || formData.headline.trim() || (effectiveBrand ? `${effectiveBrand} campaign` : 'Email preview'));
+      setSendResult('idle');
+      setSendError('');
     } catch {
       setError('Failed to build email HTML. Please try again.');
     } finally {

@@ -161,13 +161,14 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
   });
 
   // ── Branded header bar (logo or wordmark fallback) ──────────────────
-  // Clean white header with a thin divider — no coloured panel, so the
-  // header doesn't feel "pasted on" over the hero.
+  // Subtle tinted "paper" panel that tears off at the bottom into the white
+  // content area below. Inspired by Atlassian email headers. No hard border —
+  // the torn-edge SVG acts as the visual separator.
   const logoUrl = formData.secondaryLogoUrl.trim() || (cfg.logo_url || '');
   const headerBarHtml = logoUrl
     ? [
         '<tr>',
-        `  <td align="center" style="background-color:#ffffff;padding:32px 24px 24px 24px;line-height:0;font-size:0;border-bottom:1px solid ${LINE_COLOR};">`,
+        `  <td align="center" style="background-color:${HEADER_BG};padding:36px 24px 24px 24px;line-height:0;font-size:0;">`,
         `    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(brand || 'Logo')}" height="36" style="display:inline-block;height:36px;width:auto;border:0;outline:none;" />`,
         '  </td>',
         '</tr>',
@@ -175,12 +176,27 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     : (brand
         ? [
             '<tr>',
-            `  <td align="center" style="background-color:#ffffff;padding:28px 24px 24px 24px;border-bottom:1px solid ${LINE_COLOR};font-family:${FONT_STACK};font-size:17px;font-weight:800;letter-spacing:0.14em;color:${INK_HEADLINE};text-transform:uppercase;">`,
+            `  <td align="center" style="background-color:${HEADER_BG};padding:32px 24px 24px 24px;font-family:${FONT_STACK};font-size:17px;font-weight:800;letter-spacing:0.14em;color:${INK_HEADLINE};text-transform:uppercase;">`,
             `    ${escapeHtml(brand)}`,
             '  </td>',
             '</tr>',
           ].join('\n')
         : '');
+
+  // Torn-paper separator between the tinted header and the white content.
+  // Renders as an <img> that fills the 600px container — SVG data URI
+  // works in Gmail/Apple Mail/Outlook web. For very old Outlook desktop
+  // the broken image shows as blank which still looks fine against the
+  // continuous white content below.
+  const tornEdgeHtml = headerBarHtml
+    ? [
+        '<tr>',
+        '  <td style="padding:0;line-height:0;font-size:0;background-color:#ffffff;">',
+        `    <img src="${TORN_EDGE_DATA_URI}" alt="" width="600" height="18" style="display:block;width:100%;max-width:600px;height:18px;border:0;outline:none;" />`,
+        '  </td>',
+        '</tr>',
+      ].join('\n')
+    : '';
 
   // ── Content block ───────────────────────────────────────────────────
   // Flush white block immediately under the hero. No overlapping card — the

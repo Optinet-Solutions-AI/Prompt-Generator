@@ -287,8 +287,17 @@ async function recolorOne(brand) {
     } else if (kind === 'red') {
       const c = recolorPixel(r, g, b, refRedL, accentHsl);
       data[i] = c.r; data[i + 1] = c.g; data[i + 2] = c.b;
+    } else if (kind === 'light') {
+      // Neutralise cream/beige torn paper → pure white. Preserves the
+      // brightness variation of the torn paper texture (so the jagged edge
+      // still reads as paper) but removes the warm cream tone that clashes
+      // with the pure-white email body. Formula: greyscale by averaging RGB,
+      // then push the grey toward white.
+      const avg = Math.round((r + g + b) / 3);
+      const pushed = Math.min(255, Math.round(avg * 1.05));
+      data[i] = pushed; data[i + 1] = pushed; data[i + 2] = pushed;
     }
-    // 'light' / 'other' / 'transparent' → keep original pixel
+    // 'other' / 'transparent' → keep original pixel
   }
 
   await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })

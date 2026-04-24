@@ -691,7 +691,17 @@ function buildAtlantaNewsletterHtml(params: BuildEmailHtmlParams): string {
     brandedHeader,
     // 3. Bottom torn-paper edge
     tornEdge,
-    // 4. Body copy
+    // 4. Brand wordmark centered below header
+    cfg.wordmark_url
+      ? [
+          '          <tr>',
+          '            <td align="center" style="background-color:#ffffff;padding:28px 24px 8px 24px;line-height:0;font-size:0;">',
+          `              <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brandName)}" style="display:inline-block;max-width:260px;height:auto;border:0;outline:none;" />`,
+          '            </td>',
+          '          </tr>',
+        ].join('\n')
+      : '',
+    // 5. Body copy
     textRow,
     // 5. AI-generated image — user's converted image, after the body text
     generatedImage

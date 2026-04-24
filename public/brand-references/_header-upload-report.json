@@ -1,0 +1,56 @@
+[
+  {
+    "brand_name": "FortunePlay",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/fortuneplay/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/fortuneplay/wordmark.png",
+    "wordmark_dark_bg": false
+  },
+  {
+    "brand_name": "Roosterbet",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/roosterbet/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/roosterbet/wordmark.png",
+    "wordmark_dark_bg": false
+  },
+  {
+    "brand_name": "SpinJo",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinjo/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinjo/wordmark.png",
+    "wordmark_dark_bg": false
+  },
+  {
+    "brand_name": "LuckyVibe",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/luckyvibe/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/luckyvibe/wordmark.png",
+    "wordmark_dark_bg": false
+  },
+  {
+    "brand_name": "SpinsUp",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinsup/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/spinsup/wordmark.png",
+    "wordmark_dark_bg": true
+  },
+  {
+    "brand_name": "PlayMojo",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/playmojo/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/playmojo/wordmark.png",
+    "wordmark_dark_bg": false
+  },
+  {
+    "brand_name": "Lucky7even",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/lucky7even/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/lucky7even/wordmark.png",
+    "wordmark_dark_bg": false
+  },
+  {
+    "brand_name": "NovaDreams",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/novadreams/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/novadreams/wordmark.png",
+    "wordmark_dark_bg": true
+  },
+  {
+    "brand_name": "Rollero",
+    "header_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/rollero/email-header.png",
+    "wordmark_url": "https://hggcgloqujgqvtswstlf.supabase.co/storage/v1/object/public/brand-assets/rollero/wordmark.png",
+    "wordmark_dark_bg": true
+  }
+]

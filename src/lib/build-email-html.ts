@@ -377,21 +377,14 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
       : '';
   }
 
-  // wordmarkHtml — full brand wordmark (icon + name) IMAGE sitting on a dark
-  // brand-colored pill so white logos stay visible on the white email body.
-  // Replaces the old CTA button.
-  const wmPanel = style.panelBg || '#0F0800';
+  // wordmarkHtml — brand wordmark image (logo-1.svg) on plain white.
+  // White text pixels in the wordmark were already recoloured to black by the
+  // upstream loader so no dark pill is needed behind the full wordmark.
   const wordmarkHtml = cfg.wordmark_url
     ? [
         '<tr>',
-        '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;">',
-        '    <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">',
-        '      <tr>',
-        `        <td align="center" style="background-color:${wmPanel};border-radius:10px;padding:18px 36px;line-height:0;font-size:0;">`,
-        `          <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:280px;height:auto;border:0;outline:none;" />`,
-        '        </td>',
-        '      </tr>',
-        '    </table>',
+        '  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;line-height:0;font-size:0;">',
+        `    <img src="${escapeHtml(cfg.wordmark_url)}" alt="${escapeHtml(brand || 'Brand')}" style="display:inline-block;max-width:280px;height:auto;border:0;outline:none;" />`,
         '  </td>',
         '</tr>',
       ].join('\n')
@@ -399,7 +392,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
         ? [
             '<tr>',
             `  <td align="center" style="background-color:#ffffff;padding:28px 40px 32px 40px;font-family:${style.fontFamily};">`,
-            `    <span style="display:inline-block;padding:18px 36px;background-color:${wmPanel};border-radius:10px;font-size:30px;font-weight:800;color:${style.headlineColor || '#ffffff'};letter-spacing:0.06em;font-family:${style.fontFamily};">${escapeHtml(brand)}</span>`,
+            `    <span style="display:inline-block;font-size:30px;font-weight:800;color:${style.panelBg || '#000000'};letter-spacing:0.06em;font-family:${style.fontFamily};">${escapeHtml(brand)}</span>`,
             '  </td>',
             '</tr>',
           ].join('\n')

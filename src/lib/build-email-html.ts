@@ -135,13 +135,31 @@ const INK_LIGHT    = '#97a0af';  // legal / fine print
 const LINE_COLOR   = '#ebecf0';  // dividers
 const PAGE_BG      = '#f4f5f7';  // page canvas
 const FOOTER_BG    = '#fafbfc';  // subtle footer tint
-const HEADER_BG    = '#fafbfc';  // header paper tint — matches torn edge fill
 
-// Pre-encoded SVG torn-paper edge (18px tall, irregular bumps). Fill colour
-// matches HEADER_BG so the tear reads as the header "paper" ending with a
-// rough edge before the white content below. Base64-encoded so it survives
-// strict email clients that mangle raw-utf8 data URIs.
-const TORN_EDGE_DATA_URI = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjE4IiB2aWV3Qm94PSIwIDAgMTIwMCAxOCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PHBhdGggZD0iTTAsMCBIMTIwMCBWMTAgTDExODAsMTYgTDExNjAsOCBMMTE0MCwxNCBMMTEyMCw4IEwxMTAwLDE1IEwxMDgwLDkgTDEwNjAsMTYgTDEwNDAsMTAgTDEwMjAsMTcgTDEwMDAsOSBMOTgwLDE0IEw5NjAsOCBMOTQwLDE1IEw5MjAsMTAgTDkwMCwxNyBMODgwLDkgTDg2MCwxNCBMODQwLDggTDgyMCwxNiBMODAwLDEwIEw3ODAsMTUgTDc2MCw5IEw3NDAsMTQgTDcyMCw4IEw3MDAsMTcgTDY4MCwxMCBMNjYwLDE0IEw2NDAsOSBMNjIwLDE1IEw2MDAsOCBMNTgwLDE2IEw1NjAsMTAgTDU0MCwxNCBMNTIwLDggTDUwMCwxNyBMNDgwLDkgTDQ2MCwxNSBMNDQwLDEwIEw0MjAsMTQgTDQwMCw4IEwzODAsMTYgTDM2MCw5IEwzNDAsMTQgTDMyMCwxMCBMMzAwLDE3IEwyODAsOCBMMjYwLDE1IEwyNDAsOSBMMjIwLDE0IEwyMDAsMTAgTDE4MCwxNiBMMTYwLDggTDE0MCwxNSBMMTIwLDkgTDEwMCwxNCBMODAsMTAgTDYwLDE3IEw0MCw4IEwyMCwxNSBMMCwxMCBaIiBmaWxsPSIjZmFmYmZjIi8+PC9zdmc+';
+/**
+ * Torn-paper edge rendered as an inline SVG data URI (24px tall, deep
+ * irregular teeth so the effect reads clearly, not as a straight line).
+ * Fill colour matches the header's brand panel colour so the tear looks
+ * like the branded header paper ending in a rough edge before white content.
+ *
+ * Base64-encoded for max email-client compatibility (Gmail, Outlook web,
+ * Apple Mail all honour base64 SVG data URIs in <img src>).
+ */
+function buildTornEdgeDataUri(fillColor: string): string {
+  const path = 'M0,0 H1200 V6 L1185,20 L1170,4 L1155,22 L1140,8 L1125,20 L1110,2 L1095,18 L1080,8 L1065,22 L1050,4 L1035,20 L1020,6 L1005,22 L990,4 L975,18 L960,8 L945,22 L930,2 L915,16 L900,8 L885,20 L870,4 L855,22 L840,8 L825,18 L810,2 L795,22 L780,6 L765,20 L750,4 L735,16 L720,8 L705,22 L690,2 L675,18 L660,8 L645,20 L630,4 L615,22 L600,6 L585,18 L570,8 L555,22 L540,4 L525,20 L510,2 L495,16 L480,8 L465,22 L450,4 L435,18 L420,8 L405,22 L390,2 L375,20 L360,8 L345,16 L330,4 L315,22 L300,6 L285,18 L270,8 L255,22 L240,2 L225,20 L210,4 L195,16 L180,8 L165,22 L150,4 L135,18 L120,8 L105,22 L90,2 L75,20 L60,4 L45,16 L30,8 L15,22 L0,6 Z';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="24" viewBox="0 0 1200 24" preserveAspectRatio="none"><path d="${path}" fill="${fillColor}"/></svg>`;
+  // btoa exists in modern browsers and Node 16+. Fallback only triggers in
+  // exotic environments — shouldn't fire in production.
+  try {
+    const b64 = typeof btoa !== 'undefined'
+      ? btoa(svg)
+      : (typeof Buffer !== 'undefined' ? Buffer.from(svg, 'utf-8').toString('base64') : '');
+    return `data:image/svg+xml;base64,${b64}`;
+  } catch {
+    // Last-resort: percent-encoded utf-8 — still works in most clients.
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+}
 
 const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
 

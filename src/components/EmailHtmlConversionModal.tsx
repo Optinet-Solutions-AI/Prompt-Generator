@@ -119,6 +119,9 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
 
   useEffect(() => { setSelectedBrand(brand || ''); }, [brand]);
   const effectiveBrand = selectedBrand || undefined;
+  // Brand accent color — used to tint the social URL placeholders so they
+  // match the inline-link colour rendered inside the email body.
+  const brandAccent = BRAND_STANDARDS[effectiveBrand || '']?.accentColor;
 
   const [imgDims, setImgDims] = useState<{ w: number; h: number }>({ w: 1200, h: 628 });
   useEffect(() => {

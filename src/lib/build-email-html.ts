@@ -415,11 +415,21 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
         : '');
 
   // ── Content block ───────────────────────────────────────────────────
+  // Brand cue colours — restrained: a single accent tick above the
+  // headline + brand-coloured inline links + a 2px brand border above
+  // the footer. Keeps the body copy itself neutral for readability.
+  const brandLinkColor   = style.buttonBg     || '#0052cc';
+  const brandAccentRule  = style.buttonBg     || style.accentColor || '#0052cc';
+  const brandFooterRule  = style.accentColor  || brandAccentRule;
+
+  const headlineTick = formData.headline.trim()
+    ? `<div style="width:32px;height:3px;background-color:${brandAccentRule};margin:0 0 14px 0;line-height:0;font-size:0;">&nbsp;</div>`
+    : '';
   const headlineHtml = formData.headline.trim()
     ? `<h1 style="margin:0 0 16px 0;font-size:28px;line-height:1.3;font-weight:700;color:${INK_HEADLINE};letter-spacing:-0.01em;font-family:${FONT_STACK};">${escapeHtml(formData.headline)}</h1>`
     : '';
 
-  const introHtml = buildIntroParagraph(formData);
+  const introHtml = buildIntroParagraph(formData, brandLinkColor);
   const bodyHtml = formData.bodyText.trim()
     ? `<p style="margin:0 0 28px 0;font-size:16px;line-height:1.6;color:${INK_BODY};font-family:${FONT_STACK};">${escapeHtml(formData.bodyText)}</p>`
     : '';

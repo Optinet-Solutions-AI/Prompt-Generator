@@ -522,11 +522,12 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
       : '',
     // Social row (muted, balanced)
     `          ${socialHtml}`,
-    // Footer (attribution, legal, unsubscribe) on a soft tint
+    // Footer (attribution, legal, unsubscribe) on a soft tint, separated
+    // from the body by a 2px brand-coloured rule for a quiet brand cue.
     hasFooterRow
       ? [
           '          <tr>',
-          `            <td class="footer-wrap" align="center" style="background-color:${FOOTER_BG};padding:20px 40px 28px 40px;font-family:${FONT_STACK};text-align:center;">`,
+          `            <td class="footer-wrap" align="center" style="background-color:${FOOTER_BG};border-top:2px solid ${brandFooterRule};padding:20px 40px 28px 40px;font-family:${FONT_STACK};text-align:center;">`,
           `              ${footerAttr}`,
           `              ${legalHtml}`,
           `              ${unsubHtml}`,

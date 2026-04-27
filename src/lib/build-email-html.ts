@@ -597,15 +597,16 @@ function buildHeroRow(opts: {
   ].join('\n');
 }
 
-function buildIntroParagraph(data: EmailFormData): string {
+function buildIntroParagraph(data: EmailFormData, linkColor: string = '#0052cc'): string {
   const intro = data.introText.trim();
   if (!intro) return '';
 
   const linkText = data.linkText.trim();
   const linkUrl = safeUrl(data.linkUrl);
 
-  // Inline link style — Atlassian link blue, single underline for affordance.
-  const linkStyle = 'color:#0052cc;text-decoration:underline;text-underline-offset:2px;font-weight:600;';
+  // Inline link style — brand-coloured (falls back to Atlassian link blue),
+  // single underline for affordance.
+  const linkStyle = `color:${linkColor};text-decoration:underline;text-underline-offset:2px;font-weight:600;`;
   let body: string;
   if (linkText && intro.includes('{link}')) {
     const anchor = `<a href="${escapeHtml(linkUrl)}" style="${linkStyle}">${escapeHtml(linkText)}</a>`;

@@ -439,6 +439,7 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     ? [
         '<tr>',
         `  <td class="card-wrap" style="background-color:#ffffff;padding:20px 40px 24px 40px;font-family:${FONT_STACK};">`,
+        `    ${headlineTick}`,
         `    ${headlineHtml}`,
         `    ${introHtml}`,
         `    ${bodyHtml}`,

@@ -628,11 +628,14 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   Social links <span className="text-muted-foreground font-normal normal-case">(leave blank to omit)</span>
                 </p>
+                {brandAccent && (
+                  <style>{`.email-social-ph::placeholder { color: ${brandAccent}; opacity: 1; }`}</style>
+                )}
                 <div className="grid grid-cols-2 gap-1.5">
-                  <Input placeholder="Facebook URL"  value={formData.facebookUrl}  onChange={(e) => handleField('facebookUrl', e.target.value)}  className="h-8 text-sm" />
-                  <Input placeholder="Twitter URL"   value={formData.twitterUrl}   onChange={(e) => handleField('twitterUrl', e.target.value)}   className="h-8 text-sm" />
-                  <Input placeholder="Instagram URL" value={formData.instagramUrl} onChange={(e) => handleField('instagramUrl', e.target.value)} className="h-8 text-sm" />
-                  <Input placeholder="Website URL"   value={formData.websiteUrl}   onChange={(e) => handleField('websiteUrl', e.target.value)}   className="h-8 text-sm" />
+                  <Input placeholder="Facebook URL"  value={formData.facebookUrl}  onChange={(e) => handleField('facebookUrl', e.target.value)}  className="h-8 text-sm email-social-ph" />
+                  <Input placeholder="Twitter URL"   value={formData.twitterUrl}   onChange={(e) => handleField('twitterUrl', e.target.value)}   className="h-8 text-sm email-social-ph" />
+                  <Input placeholder="Instagram URL" value={formData.instagramUrl} onChange={(e) => handleField('instagramUrl', e.target.value)} className="h-8 text-sm email-social-ph" />
+                  <Input placeholder="Website URL"   value={formData.websiteUrl}   onChange={(e) => handleField('websiteUrl', e.target.value)}   className="h-8 text-sm email-social-ph" />
                 </div>
               </div>
 

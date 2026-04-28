@@ -621,7 +621,7 @@ function buildIntroParagraph(data: EmailFormData, linkColor: string = '#0052cc')
   return `<p style="margin:0 0 20px 0;font-size:16px;line-height:1.6;color:${INK_BODY};font-family:${FONT_STACK};">${body}</p>`;
 }
 
-function buildSocialRow(data: EmailFormData, _style: BrandStyle): string {
+function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
   const entries = [
     { label: 'Facebook',  url: data.facebookUrl },
     { label: 'Twitter',   url: data.twitterUrl },
@@ -631,8 +631,11 @@ function buildSocialRow(data: EmailFormData, _style: BrandStyle): string {
 
   if (entries.length === 0) return '';
 
-  // Muted row — readable on white, doesn't steal attention from the CTA above.
-  const linkStyle = `color:${INK_MUTED};text-decoration:none;font-weight:600;font-size:13px;letter-spacing:0.02em;`;
+  // Brand-tinted row — picks up the brand's accentColor so the social labels
+  // visually match the inline link colour used inside the body copy. Falls
+  // back to the muted neutral if no brand is provided.
+  const linkColor = style?.accentColor || INK_MUTED;
+  const linkStyle = `color:${linkColor};text-decoration:none;font-weight:600;font-size:13px;letter-spacing:0.02em;`;
   const sepStyle  = `color:${LINE_COLOR};padding:0 12px;font-size:13px;`;
   const parts = entries.map((e, i) => {
     const link = `<a href="${escapeHtml(safeUrl(e.url))}" style="${linkStyle}">${escapeHtml(e.label)}</a>`;

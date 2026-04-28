@@ -315,13 +315,33 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     }
     setIsSending(true);
     try {
+      // Build a "send-safe" HTML before posting to Resend.
+      //
+      // Gmail strips `data:image/...` URIs from <img src> for security, AND
+      // clips the inline body once the source HTML crosses ~102KB. The
+      // downloaded .html embeds the hero as base64 so it works offline —
+      // perfect for download but fatal for Gmail. For the send path we
+      // rebuild the HTML with the hero referenced by its public URL, so
+      // the email stays small AND Gmail actually renders the image.
+      const sendHtml = (variant === 'image-hero' && imageUrl)
+        ? buildEmailHtml({
+            imageSrc: imageUrl,
+            brand: effectiveBrand,
+            formData,
+            imgWidth: imgDims.w,
+            imgHeight: imgDims.h,
+            variant,
+            staticConfig: staticConfig || undefined,
+          })
+        : generatedHtml;
+
       const res = await fetch('/api/send-test-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: recipients,
           subject: (subject || formData.headline || `${effectiveBrand || 'Campaign'} test`).trim(),
-          html: generatedHtml,
+          html: sendHtml,
           text: generatedText || undefined,
         }),
       });

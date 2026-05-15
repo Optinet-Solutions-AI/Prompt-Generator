@@ -556,6 +556,27 @@ function Lightbox({
     finally { setIsDownloading(false); }
   };
 
+  const overlayUrl = getBrandOverlayUrl(image.brand_name);
+  const handleDownloadWithShadow = (radius: number) => async () => {
+    if (!overlayUrl) return;
+    setIsDownloading(true);
+    try {
+      await downloadImageRounded(displayUrl, image.filename, { radius, overlayUrl });
+    } catch (err) {
+      if (err instanceof BrandOverlayMissingError) {
+        alert(
+          `No brand shadow overlay found for "${image.brand_name}".\n\n` +
+          `Upload a transparent PNG to:\n${overlayUrl}\n\n` +
+          `See public/brand-overlays/README.md for the filename convention.`,
+        );
+      } else {
+        window.open(displayUrl, '_blank');
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {

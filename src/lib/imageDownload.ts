@@ -23,14 +23,27 @@ export async function downloadImageBlob(url: string, filename: string) {
   triggerBlobDownload(blob, filename || `image-${Date.now()}.png`);
 }
 
-// Rounded download — draws the image onto a canvas with a rounded-rect clip
-// at `radius` px, then saves the resulting PNG. Falls back to opening the
+// Rounded / mirrored download — draws the image onto a canvas applying any
+// combination of rounded-rect clip and horizontal mirror, then saves as PNG.
+// Rounded corners stay transparent (no fill). Falls back to opening the
 // original in a new tab if anything fails (e.g. canvas tainted by CORS).
+export interface DownloadTransformOptions {
+  radius?: number;   // 0 = square corners; >0 = rounded with that px radius
+  mirror?: boolean;  // horizontally flip (for Arabic RTL layouts)
+}
+
 export async function downloadImageRounded(
   url: string,
   filename: string,
-  radius: number = DEFAULT_CORNER_RADIUS,
+  radiusOrOptions: number | DownloadTransformOptions = DEFAULT_CORNER_RADIUS,
 ) {
+  const opts: DownloadTransformOptions =
+    typeof radiusOrOptions === 'number'
+      ? { radius: radiusOrOptions }
+      : radiusOrOptions;
+  const radius = opts.radius ?? DEFAULT_CORNER_RADIUS;
+  const mirror = !!opts.mirror;
+
   const res = await fetch(url);
   const blob = await res.blob();
   const objectUrl = window.URL.createObjectURL(blob);
@@ -43,11 +56,18 @@ export async function downloadImageRounded(
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('canvas 2d context unavailable');
 
-    // Clip to a rounded rectangle the size of the image, then draw.
-    // Clamp radius so it never exceeds half the shorter side.
-    const r = Math.max(0, Math.min(radius, Math.min(canvas.width, canvas.height) / 2));
-    roundedRectPath(ctx, 0, 0, canvas.width, canvas.height, r);
-    ctx.clip();
+    // Clip in pixel space first so the rounded shape isn't affected by the
+    // mirror transform. Clamp radius to half the shorter side.
+    if (radius > 0) {
+      const r = Math.max(0, Math.min(radius, Math.min(canvas.width, canvas.height) / 2));
+      roundedRectPath(ctx, 0, 0, canvas.width, canvas.height, r);
+      ctx.clip();
+    }
+
+    if (mirror) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(img, 0, 0);
 
     const outBlob: Blob | null = await new Promise(resolve =>
@@ -56,8 +76,12 @@ export async function downloadImageRounded(
     if (!outBlob) throw new Error('canvas.toBlob returned null');
 
     const baseName = filename || `image-${Date.now()}.png`;
-    const roundedName = baseName.replace(/(\.[^.]+)?$/, `-rounded${radius}.png`);
-    triggerBlobDownload(outBlob, roundedName);
+    const tagParts: string[] = [];
+    if (mirror) tagParts.push('mirrored');
+    if (radius > 0) tagParts.push(`rounded${radius}`);
+    const tag = tagParts.length ? `-${tagParts.join('-')}` : '';
+    const outName = baseName.replace(/(\.[^.]+)?$/, `${tag}.png`);
+    triggerBlobDownload(outBlob, outName);
   } finally {
     window.URL.revokeObjectURL(objectUrl);
   }

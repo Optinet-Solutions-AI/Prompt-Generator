@@ -5,9 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Copy, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { AssistantConcept, AssistantUsage, GeneratedFields } from '@/lib/assistant-types';
-import { useAssistantImageGen } from '@/hooks/useAssistantImageGen';
+import type {
+  AssistantConcept,
+  AssistantProvider,
+  AssistantUsage,
+  GeneratedFields,
+} from '@/lib/assistant-types';
 import { saveAssistantPrompt } from '@/lib/assistant-storage';
+import { RefineChat } from './RefineChat';
+import { ImageLightbox } from './ImageLightbox';
 
 interface Props {
   fields: GeneratedFields & { brand: string };
@@ -17,6 +23,8 @@ interface Props {
   pickedConcept: AssistantConcept;
   allConcepts: AssistantConcept[];
   usage: AssistantUsage;
+  /** The model selected in the page header — used for refine calls. */
+  refineModel: AssistantProvider;
 }
 
 const FIELD_ORDER: (keyof GeneratedFields)[] = [
@@ -24,37 +32,139 @@ const FIELD_ORDER: (keyof GeneratedFields)[] = [
   'mood', 'background', 'positive_prompt', 'negative_prompt',
 ];
 
-export function GeneratedPromptPanel({ fields, token, task, description, pickedConcept, allConcepts, usage }: Props) {
+type ImageProvider = 'chatgpt' | 'gemini';
+type ChatTurnWithImage = { role: 'user' | 'assistant'; content: string; imageUrl?: string };
+
+async function callImageGen(args: {
+  positivePrompt: string;
+  brand: string;
+  provider: ImageProvider;
+  token: string;
+}): Promise<string> {
+  const res = await fetch('/api/generate-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: args.positivePrompt,
+      provider: args.provider,
+      aspectRatio: '16:9',
+      backend: 'cloud-run',
+      resolution: '1K',
+      brand: args.brand,
+      source: 'assistant',
+      test_user_id: args.token,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Image gen failed (${res.status}): ${await res.text()}`);
+  }
+  const data = await res.json();
+  const url: string | undefined = data.imageUrl ?? data.url ?? data.public_url;
+  if (!url) throw new Error('No image URL returned');
+  return url;
+}
+
+export function GeneratedPromptPanel({
+  fields,
+  token,
+  task,
+  description,
+  pickedConcept,
+  allConcepts,
+  usage,
+  refineModel,
+}: Props) {
   const { toast } = useToast();
+
+  // The "live" fields — start with what generate produced; refine swaps these.
+  const [currentFields, setCurrentFields] = useState(fields);
+
+  // Chat history (text + images). Empty until first image gen.
+  const [chatTurns, setChatTurns] = useState<ChatTurnWithImage[]>([]);
+  const [lastImageProvider, setLastImageProvider] = useState<ImageProvider>('chatgpt');
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   function copyAll() {
-    navigator.clipboard.writeText(fields.positive_prompt);
+    navigator.clipboard.writeText(currentFields.positive_prompt);
     toast({ title: 'Copied positive prompt' });
   }
 
-  const { generate, loading: imageLoading, imageUrls, error: imageError } = useAssistantImageGen(token);
+  // First image generation — kicks off the chat.
+  async function onFirstGenerate(provider: ImageProvider) {
+    setImageError(null);
+    setImageBusy(true);
+    setLastImageProvider(provider);
+    try {
+      const url = await callImageGen({
+        positivePrompt: currentFields.positive_prompt,
+        brand: currentFields.brand,
+        provider,
+        token,
+      });
+      setChatTurns(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `Here is your ${provider === 'chatgpt' ? 'ChatGPT' : 'Gemini'} take on "${task}". Tell me what you would change.`,
+        },
+        { role: 'assistant', content: '', imageUrl: url },
+      ]);
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImageBusy(false);
+    }
+  }
+
+  // Called by RefineChat after a successful refine — regenerate with the same provider.
+  async function onRegenerate(refined: GeneratedFields): Promise<string | null> {
+    try {
+      return await callImageGen({
+        positivePrompt: refined.positive_prompt,
+        brand: currentFields.brand,
+        provider: lastImageProvider,
+        token,
+      });
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : String(e));
+      return null;
+    }
+  }
+
+  // Synced from RefineChat each time fields are refined.
+  function onFieldsRefined(refined: GeneratedFields) {
+    setCurrentFields({ ...refined, brand: currentFields.brand });
+  }
+
+  // Pull image URLs out of the chat history for the Save row.
+  const allImageUrls = chatTurns
+    .map(t => t.imageUrl)
+    .filter((u): u is string => Boolean(u));
 
   async function onLike() {
     setSaveError(null);
     try {
       await saveAssistantPrompt({
         test_user_id: token,
-        brand: fields.brand,
+        brand: currentFields.brand,
         task,
         description,
         provider: usage.provider,
         model: usage.model,
         all_concepts: allConcepts,
         picked_concept: pickedConcept,
-        generated_fields: fields,
+        generated_fields: currentFields,
         usage: {
           input_tokens: usage.input_tokens,
           cached_input_tokens: usage.cached_input_tokens,
           output_tokens: usage.output_tokens,
         },
-        image_drive_ids: imageUrls,
+        image_drive_ids: allImageUrls,
         liked: true,
       });
       setLiked(true);
@@ -63,10 +173,12 @@ export function GeneratedPromptPanel({ fields, token, task, description, pickedC
     }
   }
 
+  const chatStarted = chatTurns.length > 0;
+
   return (
     <section className="mt-8 rounded-lg border p-6 bg-card">
       <header className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Generated prompt ({fields.brand})</h2>
+        <h2 className="text-xl font-semibold">Generated prompt ({currentFields.brand})</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={copyAll}>
             <Copy className="h-4 w-4 mr-1" />Copy positive prompt
@@ -83,42 +195,43 @@ export function GeneratedPromptPanel({ fields, token, task, description, pickedC
           <AccordionItem key={key} value={key}>
             <AccordionTrigger className="capitalize">{key.replace(/_/g, ' ')}</AccordionTrigger>
             <AccordionContent>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{fields[key]}</p>
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentFields[key]}</p>
             </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
 
       <div className="mt-6 flex gap-2">
-        <Button onClick={() => generate({
-          positivePrompt: fields.positive_prompt,
-          negativePrompt: fields.negative_prompt,
-          brand: fields.brand,
-          provider: 'chatgpt',
-        })} disabled={imageLoading}>
-          {imageLoading ? 'Generating…' : 'ChatGPT 🎨'}
+        <Button onClick={() => onFirstGenerate('chatgpt')} disabled={imageBusy}>
+          {imageBusy && lastImageProvider === 'chatgpt' ? 'Generating…' : 'ChatGPT 🎨'}
         </Button>
-        <Button variant="secondary" onClick={() => generate({
-          positivePrompt: fields.positive_prompt,
-          negativePrompt: fields.negative_prompt,
-          brand: fields.brand,
-          provider: 'gemini',
-        })} disabled={imageLoading}>
-          {imageLoading ? 'Generating…' : 'Gemini 🎨'}
+        <Button variant="secondary" onClick={() => onFirstGenerate('gemini')} disabled={imageBusy}>
+          {imageBusy && lastImageProvider === 'gemini' ? 'Generating…' : 'Gemini 🎨'}
         </Button>
       </div>
 
       {imageError && <p className="text-sm text-destructive mt-2">{imageError}</p>}
 
-      {imageUrls.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {imageUrls.map((url, i) => (
-            <img key={i} src={url} alt={`generated ${i+1}`} className="rounded border" />
-          ))}
-        </div>
+      {chatStarted && (
+        <RefineChat
+          token={token}
+          brand={currentFields.brand}
+          model={refineModel}
+          fields={currentFields}
+          initialTurns={chatTurns}
+          onRegenerate={onRegenerate}
+          onFieldsRefined={onFieldsRefined}
+          onImageClick={setLightboxSrc}
+        />
       )}
 
       {saveError && <p className="text-sm text-destructive mt-2">{saveError}</p>}
+
+      <ImageLightbox
+        src={lightboxSrc}
+        alt="Generated image — full view"
+        onClose={() => setLightboxSrc(null)}
+      />
     </section>
   );
 }

@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Download, FileCode, Mail, Loader2, Wand2, Bot, Gem, Heart, Shuffle, Save, Check, AlertTriangle } from 'lucide-react';
+import { X, Download, FileCode, Mail, Loader2, Wand2, Bot, Gem, Heart, Shuffle, Save, Check, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
 import { FavoriteHeart } from './FavoriteHeart';

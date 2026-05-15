@@ -284,6 +284,7 @@ export function ImageModal({
             aspect_ratio: 'edited',
             resolution:   resolution || '1K',
             filename:     `edited-${Date.now()}.png`,
+            brand,
           });
           editStoredIdRef.current = stored.id;
         } catch (err) { console.error('Auto-save edit failed:', err); }

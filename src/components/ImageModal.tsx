@@ -445,6 +445,7 @@ export function ImageModal({
               const brandSlug = (brand || '').toLowerCase().replace(/\s+/g, '');
               return `variation-${eng}-${variation.variationMode}${brandSlug ? `-${brandSlug}` : ''}-${variation.variationIndex}-${Date.now()}.png`;
             })(),
+            brand,
           });
           varStoredIdsRef.current.set(variation.imageId, stored.id);
         } catch (err) { console.error('Auto-save variation failed:', err); }

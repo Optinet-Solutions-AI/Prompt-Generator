@@ -1573,16 +1573,28 @@ function ImageCard({
                 <Download className="w-3.5 h-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 z-[1200]" onClick={e => e.stopPropagation()}>
+            <DropdownMenuContent align="end" className="w-56 z-[1200]" onClick={e => e.stopPropagation()}>
               <DropdownMenuItem
                 onClick={async e => { e.stopPropagation(); await downloadImage(image.public_url, image.filename); }}
                 className="gap-2"
               >
                 <Download className="w-4 h-4" /> Normal
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleCardDownloadRounded} className="gap-2">
-                <Download className="w-4 h-4" /> Rounded corners
+              <DropdownMenuItem onClick={() => handleCardDownloadRounded(null)} className="gap-2">
+                <Download className="w-4 h-4" /> Rounded corners (no shadow)
               </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2">
+                  <Download className="w-4 h-4" /> Rounded + brand shadow
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-44 z-[1200]">
+                  {BRANDS.map(b => (
+                    <DropdownMenuItem key={b} onClick={() => handleCardDownloadRounded(b)}>
+                      {b}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

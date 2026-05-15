@@ -32,14 +32,29 @@ describe('_brand-rules', () => {
   it('adds RocketSpin palette and scene mandate', () => {
     expect(BRAND_PALETTES.RocketSpin).toMatch(/champagne gold/i);
     expect(BRAND_PALETTES.RocketSpin).toMatch(/glowing cyan/i);
-    expect(BRAND_SCENE_MANDATES.RocketSpin).toMatch(/arc reactor/i);
+    expect(BRAND_SCENE_MANDATES.RocketSpin).toMatch(/chest reactor/i);
     expect(BRAND_SCENE_MANDATES.RocketSpin).toMatch(/NEVER Pixar/i);
+    expect(BRAND_SCENE_MANDATES.RocketSpin).toMatch(/rugged action-hero/i);
+  });
+
+  // Regression: image generators (Imagen, gpt-image-1) reject prompts that
+  // include real celebrity names or copyrighted franchise references. The
+  // brand mandate must never reintroduce these — descriptive features only.
+  it('RocketSpin mandate has no celebrity names or copyrighted franchise refs', () => {
+    const m = BRAND_SCENE_MANDATES.RocketSpin.toLowerCase();
+    const tripWires = [
+      'henry cavill', 'chris evans', 'tom holland', 'ryan reynolds',
+      'iron man', 'marvel', ' mcu', 'avengers', 'star wars',
+    ];
+    for (const phrase of tripWires) {
+      expect(m, `must not contain "${phrase}"`).not.toContain(phrase);
+    }
   });
 
   it('buildBrandRules returns palette + mandate for known brand', () => {
     const out = buildBrandRules('RocketSpin');
     expect(out.palette).toContain('#D4B26A');
-    expect(out.mandate).toContain('arc reactor');
+    expect(out.mandate).toContain('chest reactor');
   });
 
   it('buildBrandRules returns palette null and empty mandate for unknown brand', () => {

@@ -129,6 +129,37 @@ describe('_llm.chat — Gemini', () => {
     expect(sent.generationConfig.maxOutputTokens).toBe(4000);
   });
 
+  it('retries once on 503 and succeeds on the retry', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'busy' })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }],
+          usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
+        }),
+      });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await chat({
+      provider: 'gemini', model: 'gemini-2.5-pro', system: 's', user: 'u', maxTokens: 100,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.text).toBe('{"ok":true}');
+  });
+
+  it('surfaces the 5xx error after exhausting retries', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValue({ ok: false, status: 503, text: async () => 'still busy' });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(
+      chat({ provider: 'gemini', model: 'gemini-2.5-pro', system: 's', user: 'u', maxTokens: 100 })
+    ).rejects.toThrow(/503.*still busy/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('throws when finishReason is not STOP (truncation guard)', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

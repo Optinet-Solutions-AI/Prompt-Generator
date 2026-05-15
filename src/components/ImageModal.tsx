@@ -776,13 +776,13 @@ export function ImageModal({
                     <Download className="w-3.5 h-3.5" /> Normal
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDownloadRounded} className="gap-2">
-                    <Download className="w-3.5 h-3.5" /> Rounded ({ROUNDED_CORNER_RADIUS}px)
+                    <Download className="w-3.5 h-3.5" /> Rounded corners
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDownloadMirrored} className="gap-2">
                     <Download className="w-3.5 h-3.5" /> Arabic (RTL, mirrored)
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDownloadMirroredRounded} className="gap-2">
-                    <Download className="w-3.5 h-3.5" /> Arabic + Rounded ({ROUNDED_CORNER_RADIUS}px)
+                    <Download className="w-3.5 h-3.5" /> Arabic + Rounded corners
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

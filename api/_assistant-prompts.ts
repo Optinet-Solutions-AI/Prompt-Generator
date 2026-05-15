@@ -61,10 +61,10 @@ export function buildGenerateSystemPrompt(brand: string): string {
     '',
     'IMAGE-GEN SAFETY (HARD RULES — image generators reject prompts that violate these):',
     '- Never name any real person, celebrity, actor, athlete, musician, or public figure.',
-    '  Use descriptive features (jaw, build, hair, eyes) instead of "looks like <Name>".',
-    '- Never reference copyrighted franchises, films, shows, or characters (Marvel, DC,',
-    '  MCU, Iron Man, Star Wars, Disney, Pixar, anime series, etc.). Use generic terms',
-    '  ("superhero suit", "high-tech armor", "cinematic blockbuster style") instead.',
+    '  Use descriptive features (jaw, build, hair, eyes) instead.',
+    '- Never reference copyrighted franchises, films, shows, characters, or brand names.',
+    '  Use generic terms like "superhero suit", "high-tech armor", "cinematic blockbuster',
+    '  style" instead.',
     '- Never reference real brand logos beyond the one we are designing for.',
   ].join('\n');
 }

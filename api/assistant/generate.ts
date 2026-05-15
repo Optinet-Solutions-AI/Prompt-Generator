@@ -8,6 +8,16 @@ const GENERATE_MODEL: Record<'openai' | 'gemini', string> = {
   gemini: 'gemini-2.5-pro',
 };
 
+// Per-model token budget. Gemini 2.5 Pro requires thinking mode (cannot be
+// disabled), and thinking tokens count against maxOutputTokens — so Pro
+// needs significant headroom to think AND emit the full 8-field structured
+// prompt. gpt-4o doesn't have a thinking budget, so the actual output ceiling
+// is fine at a tighter number.
+const MAX_TOKENS: Record<'openai' | 'gemini', number> = {
+  openai: 1200,
+  gemini: 4000,
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 

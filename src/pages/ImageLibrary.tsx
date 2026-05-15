@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Download, FileCode, Mail, Images, RefreshCw, Trash2, X,
-  ChevronLeft, ChevronRight, Sparkles, Wand2, Bot, Cpu, Loader2, Plus, Save, Heart, Shuffle, Expand,
+  ChevronLeft, ChevronRight, ChevronDown, Sparkles, Wand2, Bot, Cpu, Loader2, Plus, Save, Heart, Shuffle, Expand,
   AlertTriangle, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

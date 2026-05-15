@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LLM_PRICING, IMAGE_PRICING, computeLlmCost, computeImageCost } from './_pricing';
+import { LLM_PRICING, IMAGE_PRICING, computeLlmCost, computeImageCost } from './_pricing.js';
 
 describe('LLM_PRICING table', () => {
   it('has Gemini Flash and Pro filled with sourced values', () => {

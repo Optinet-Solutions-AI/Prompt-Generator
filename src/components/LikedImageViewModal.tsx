@@ -1,10 +1,16 @@
 import { useEffect, useCallback } from 'react';
-import { X, Download, FileCode, Mail } from 'lucide-react';
+import { X, Download, FileCode, Mail, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
 import { useState } from 'react';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS } from '@/lib/imageDownload';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface LikedImageViewModalProps {
   isOpen: boolean;

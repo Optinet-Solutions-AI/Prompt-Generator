@@ -202,18 +202,33 @@ export function ImageModal({
     } catch { window.open(current.displayUrl, '_blank'); }
   };
 
-  const handleDownloadRounded = async () => {
+  // Brand shadow is auto-baked into the rounded-corners variants when the
+  // current brand has an overlay file in public/brand-overlays/. If no
+  // overlay exists for the brand, the rounded download still works — just
+  // without the shadow.
+  const overlayUrl = getBrandOverlayUrl(brand);
+
+  const downloadRoundedVariant = async (opts: { mirror?: boolean }) => {
+    const filename = `image-${current.provider}-${Date.now()}.png`;
+    const baseOpts = { radius: ROUNDED_CORNER_RADIUS, mirror: !!opts.mirror };
     try {
-      await downloadImageRounded(
-        current.displayUrl,
-        `image-${current.provider}-${Date.now()}.png`,
-        ROUNDED_CORNER_RADIUS,
-      );
-    } catch { window.open(current.displayUrl, '_blank'); }
+      await downloadImageRounded(current.displayUrl, filename, overlayUrl ? { ...baseOpts, overlayUrl } : baseOpts);
+    } catch (err) {
+      if (err instanceof BrandOverlayMissingError) {
+        // Overlay file missing — fall back to plain rounded so the click still works.
+        console.warn(`Brand overlay missing for "${brand}", falling back to plain rounded.`);
+        try { await downloadImageRounded(current.displayUrl, filename, baseOpts); }
+        catch { window.open(current.displayUrl, '_blank'); }
+      } else {
+        window.open(current.displayUrl, '_blank');
+      }
+    }
   };
 
-  // Downloads a horizontally flipped (mirrored) copy for Arabic RTL layouts,
-  // optionally with rounded corners (transparent corner pixels).
+  const handleDownloadRounded = () => downloadRoundedVariant({ mirror: false });
+
+  // Downloads a horizontally flipped (mirrored) copy for Arabic RTL layouts —
+  // square corners, no shadow.
   const handleDownloadMirrored = async () => {
     try {
       await downloadImageRounded(
@@ -224,43 +239,7 @@ export function ImageModal({
     } catch { window.open(current.displayUrl, '_blank'); }
   };
 
-  const handleDownloadMirroredRounded = async () => {
-    try {
-      await downloadImageRounded(
-        current.displayUrl,
-        `image-${current.provider}-${Date.now()}.png`,
-        { radius: ROUNDED_CORNER_RADIUS, mirror: true },
-      );
-    } catch { window.open(current.displayUrl, '_blank'); }
-  };
-
-  // Brand shadow variants — overlay a per-brand PNG mask on top of the image
-  // before saving. Each variant pairs the shadow with the same transforms as
-  // the four base variants above.
-  const overlayUrl = getBrandOverlayUrl(brand);
-  const handleDownloadWithShadow = (opts: { radius?: number; mirror?: boolean }) => async () => {
-    if (!overlayUrl) {
-      alert('No brand selected — brand shadow needs a brand context.');
-      return;
-    }
-    try {
-      await downloadImageRounded(
-        current.displayUrl,
-        `image-${current.provider}-${Date.now()}.png`,
-        { ...opts, overlayUrl },
-      );
-    } catch (err) {
-      if (err instanceof BrandOverlayMissingError) {
-        alert(
-          `No brand shadow overlay found for "${brand}".\n\n` +
-          `Upload a transparent PNG to:\n${overlayUrl}\n\n` +
-          `See public/brand-overlays/README.md for the filename convention.`,
-        );
-      } else {
-        window.open(current.displayUrl, '_blank');
-      }
-    }
-  };
+  const handleDownloadMirroredRounded = () => downloadRoundedVariant({ mirror: true });
 
   const handleEditImage = async () => {
     if (!editInstructions.trim()) return;

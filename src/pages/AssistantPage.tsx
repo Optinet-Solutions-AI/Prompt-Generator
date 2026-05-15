@@ -135,6 +135,7 @@ export default function AssistantPage() {
           pickedConcept={pickedConcept!}
           allConcepts={concepts}
           usage={generatedUsage!}
+          refineModel={model}
         />
       )}
 

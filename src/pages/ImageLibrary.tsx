@@ -541,6 +541,13 @@ function Lightbox({
     finally { setIsDownloading(false); }
   };
 
+  const handleDownloadRounded = async () => {
+    setIsDownloading(true);
+    try { await downloadImageRounded(displayUrl, image.filename, ROUNDED_CORNER_RADIUS); }
+    catch { window.open(displayUrl, '_blank'); }
+    finally { setIsDownloading(false); }
+  };
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {

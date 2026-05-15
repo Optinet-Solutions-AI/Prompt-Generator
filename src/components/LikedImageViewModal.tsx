@@ -134,7 +134,7 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: Liked
                 <Download className="w-4 h-4" /> Normal
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleDownloadRounded} className="gap-2">
-                <Download className="w-4 h-4" /> Rounded ({ROUNDED_CORNER_RADIUS}px)
+                <Download className="w-4 h-4" /> Rounded corners
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -1124,13 +1124,24 @@ function Lightbox({
                   <ChevronDown className="w-4 h-4 opacity-80" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 z-[1200]">
+              <DropdownMenuContent align="end" className="w-60 z-[1200]">
                 <DropdownMenuItem onClick={handleDownload} className="gap-2">
                   <Download className="w-4 h-4" /> Normal
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDownloadRounded} className="gap-2">
                   <Download className="w-4 h-4" /> Rounded corners
                 </DropdownMenuItem>
+                {overlayUrl && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleDownloadWithShadow(0)} className="gap-2">
+                      <Download className="w-4 h-4" /> With brand shadow
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDownloadWithShadow(ROUNDED_CORNER_RADIUS)} className="gap-2">
+                      <Download className="w-4 h-4" /> Rounded + brand shadow
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 

@@ -22,7 +22,7 @@ for (const line of env.split(/\r?\n/)) {
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) { console.error('GEMINI_API_KEY missing'); process.exit(1); }
 
-const MODEL = 'gemini-2.5-pro';
+const MODEL = "gemini-2.5-flash";
 
 const PERSONALITY = `You are a senior visual concept partner working with a creative director.
 Speak in first person. Be direct. Have opinions. Recommend the choice you
@@ -92,7 +92,8 @@ const body = {
   systemInstruction: { parts: [{ text: system }] },
   contents: [{ role: 'user', parts: [{ text: user }] }],
   generationConfig: {
-    maxOutputTokens: 4000,
+    maxOutputTokens: 2000,
+    thinkingConfig: { thinkingBudget: 0 },
     responseMimeType: 'application/json',
     responseSchema: schema,
     // Pro REQUIRES thinking — no thinkingBudget=0 setting.

@@ -5,17 +5,16 @@ import { buildGenerateSystemPrompt, GENERATE_JSON_SCHEMA } from '../_assistant-p
 
 const GENERATE_MODEL: Record<'openai' | 'gemini', string> = {
   openai: 'gpt-4o',
-  gemini: 'gemini-2.5-pro',
+  // Flash with thinking disabled produces an equally rich 8-field structured
+  // prompt in ~3-4 seconds. Pro takes 14-18s (thinking-mode overhead) which
+  // pushes past Vercel hobby's 10s function timeout AND costs 4x more for
+  // negligible quality difference on this templated task.
+  gemini: 'gemini-2.5-flash',
 };
 
-// Per-model token budget. Gemini 2.5 Pro requires thinking mode (cannot be
-// disabled), and thinking tokens count against maxOutputTokens — so Pro
-// needs significant headroom to think AND emit the full 8-field structured
-// prompt. gpt-4o doesn't have a thinking budget, so the actual output ceiling
-// is fine at a tighter number.
 const MAX_TOKENS: Record<'openai' | 'gemini', number> = {
   openai: 1200,
-  gemini: 4000,
+  gemini: 2000,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

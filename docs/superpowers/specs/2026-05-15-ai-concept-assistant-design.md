@@ -469,7 +469,9 @@ shadcn primitives from [src/components/ui/](../../../src/components/ui/) so the 
   accordion plus the existing image-gen button row and heart button. This is the
   largest piece of UI reuse from the main app.
 - `<CostTrackerButton />` and `<CostTrackerPanel />` — top-right icon button that
-  opens a slide-over with the breakdown described in Section 4B.
+  opens a slide-over panel showing today / this month / all-time totals, split
+  into LLM and Image-generation sections, with a per-call list and a
+  "Prices as of <date>" footer.
 - `<SavedPromptsPanel />` — collapsible list of her past saved prompts (rows from
   `assistant_prompts` where `test_user_id` matches her token).
 

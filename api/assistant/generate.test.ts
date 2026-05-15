@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import handler from './generate';
+import handler from './generate.js';
 
 function mockReqRes(body: unknown) {
   const req = { method: 'POST', body } as unknown as { method: string; body: unknown };

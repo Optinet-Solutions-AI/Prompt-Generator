@@ -1,5 +1,43 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// ── AI Assistant cost logging (opt-in via request body) ────────────────
+// This helper is a no-op for the main app — only fires when the new
+// AI Assistant page sends `source: 'assistant'` + `test_user_id`.
+// Failures here NEVER affect the user's response.
+export async function logAssistantImageGen(
+  req: VercelRequest,
+  fileId: string,
+  provider: string,
+  model: string,
+  size: string,
+  quality: string | null,
+): Promise<void> {
+  const body = (req as { body?: Record<string, unknown> }).body ?? {};
+  if (body.source !== 'assistant' || !body.test_user_id) return;
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { computeImageCost } = await import('./_pricing');
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+    await supabase.from('assistant_image_gens').insert({
+      prompt_id:     (body.assistant_prompt_id as string) ?? null,
+      test_user_id:  body.test_user_id as string,
+      provider,
+      model,
+      size,
+      quality,
+      image_count:   1,
+      drive_file_id: fileId,
+      cost_usd:      computeImageCost(size, quality, 1),
+    });
+  } catch (err) {
+    // Non-fatal — cost logging must NEVER break the main flow.
+    console.error('assistant_image_gens log failed (non-fatal):', err);
+  }
+}
+
 // ── Google Drive helpers (inlined — Vercel API routes must be self-contained) ──
 
 async function getGoogleAccessToken(): Promise<string> {

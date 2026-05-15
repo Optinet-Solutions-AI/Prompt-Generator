@@ -1543,13 +1543,28 @@ function ImageCard({
             )}
             <p className="text-white/60 text-[10px]">{image.resolution}</p>
           </div>
-          <button
-            onClick={async e => { e.stopPropagation(); await downloadImage(image.public_url, image.filename); }}
-            className="pointer-events-auto w-7 h-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
-            title="Download"
-          >
-            <Download className="w-3.5 h-3.5" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={e => e.stopPropagation()}
+                className="pointer-events-auto w-7 h-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
+                title="Download"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 z-[1200]" onClick={e => e.stopPropagation()}>
+              <DropdownMenuItem
+                onClick={async e => { e.stopPropagation(); await downloadImage(image.public_url, image.filename); }}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" /> Normal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCardDownloadRounded} className="gap-2">
+                <Download className="w-4 h-4" /> Rounded corners
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

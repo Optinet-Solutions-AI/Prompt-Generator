@@ -105,9 +105,27 @@ describe('_llm.chat — Gemini', () => {
     expect(body.generationConfig.maxOutputTokens).toBe(600);
     expect(body.generationConfig.responseMimeType).toBe('application/json');
     expect(body.generationConfig.responseSchema).toBeDefined();
+    expect(body.generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
 
     expect(result.text).toBe('{"concepts":[]}');
     expect(result.usage).toEqual({ input_tokens: 120, cached_input_tokens: 0, output_tokens: 30 });
+  });
+
+  it('throws when finishReason is not STOP (truncation guard)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{
+          finishReason: 'MAX_TOKENS',
+          content: { parts: [{ text: '{"concepts":[{"title":"Sky Stri' }] },
+        }],
+        usageMetadata: { promptTokenCount: 400, candidatesTokenCount: 600 },
+      }),
+    }) as unknown as typeof fetch;
+
+    await expect(
+      chat({ provider: 'gemini', model: 'gemini-2.5-flash', system: 's', user: 'u', maxTokens: 600, json: true })
+    ).rejects.toThrow(/finishReason=MAX_TOKENS/);
   });
 
   it('strips additionalProperties from the schema before sending to Gemini', async () => {

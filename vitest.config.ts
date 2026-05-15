@@ -3,7 +3,7 @@ import path from 'node:path';
 
 export default defineConfig({
   test: {
-    globals: true,
+    globals: false,
     environment: 'node',
     include: ['api/**/*.test.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['node_modules/**', 'dist/**'],

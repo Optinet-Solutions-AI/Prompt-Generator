@@ -118,6 +118,7 @@ export function GeneratedPromptPanel({
         },
         { role: 'assistant', content: '', imageUrl: url },
       ]);
+      setAllImageUrls(prev => [...prev, url]);
     } catch (e) {
       setImageError(e instanceof Error ? e.message : String(e));
     } finally {

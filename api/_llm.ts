@@ -30,6 +30,30 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
   }
 }
 
+// Both OpenAI and Gemini occasionally return transient 5xx errors under load
+// (Gemini 2.5 Pro especially). We retry once with a short backoff before
+// surfacing the failure. Kept conservative — Vercel hobby has a 10s function
+// timeout, so we can't afford long retry chains.
+const RETRIABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const RETRY_DELAY_MS = 600;
+
+async function fetchWithRetry(url: string, init: RequestInit, label: string): Promise<Response> {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (!RETRIABLE_STATUSES.has(res.status) || attempt === 2) return res;
+      // 5xx + still have retries → wait then loop
+      await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+    } catch (err) {
+      // Network error → retry once then rethrow
+      if (attempt === 2) throw err;
+      await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+    }
+  }
+  // Unreachable in practice; satisfies the type checker.
+  throw new Error(`${label}: retry loop exited without response`);
+}
+
 // Gemini's responseSchema follows a subset of OpenAPI 3.0 — it rejects JSON
 // Schema Draft 7 keywords like `additionalProperties` that OpenAI requires for
 // strict mode. We strip those keys recursively before sending to Gemini, keeping

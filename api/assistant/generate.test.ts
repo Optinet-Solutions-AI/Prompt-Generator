@@ -66,7 +66,7 @@ describe('POST /api/assistant/generate', () => {
     expect(body.prompt).toBe(STRUCTURED.positive_prompt);
     expect(body.usage).toEqual({
       provider: 'gemini',
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       input_tokens: 800,
       cached_input_tokens: 0,
       output_tokens: 400,

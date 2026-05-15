@@ -2495,19 +2495,19 @@ export function CostTrackerPanel({ testUserId }: Props) {
 }
 ```
 
-- [ ] **Step 3: Mount the panel in AssistantPage**
+- [ ] **Step 4: Mount the panel in AssistantPage**
 
 Add `<CostTrackerPanel testUserId={token!} />` to the page header next to the model dropdown.
 
-- [ ] **Step 4: Manual verification**
+- [ ] **Step 5: Manual verification**
 
 Open the page, run two LLM calls and one image gen. Open the Cost Tracker — expected: today total reflects the calls. Gemini calls show non-null cost. OpenAI calls show "price unknown" (until pricing is filled).
 
-- [ ] **Step 5: Screenshot**
+- [ ] **Step 6: Screenshot**
 
 Capture and self-analyze the slide-over.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 Propose commit message:
 ```

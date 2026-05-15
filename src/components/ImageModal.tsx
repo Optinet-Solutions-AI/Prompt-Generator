@@ -769,6 +769,9 @@ export function ImageModal({
               <Button size="sm" className="gap-1.5 gradient-primary shrink-0" onClick={handleDownload} disabled={isEditing}>
                 <Download className="w-3.5 h-3.5" />Download
               </Button>
+              <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={handleDownloadRounded} disabled={isEditing} title={`Download with ${ROUNDED_CORNER_RADIUS}px rounded corners`}>
+                <Download className="w-3.5 h-3.5" />Rounded ({ROUNDED_CORNER_RADIUS}px)
+              </Button>
               <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={handleDownloadMirrored} disabled={isEditing} title="Download horizontally flipped copy for Arabic (RTL) layout">
                 <Download className="w-3.5 h-3.5" />Arabic (RTL)
               </Button>

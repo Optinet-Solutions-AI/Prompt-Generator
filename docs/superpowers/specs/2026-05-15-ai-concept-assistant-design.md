@@ -417,6 +417,12 @@ export function computeLlmCost(model: string, usage: { input_tokens: number; cac
   const cachedCost = (p.cached_input_per_million ?? p.input_per_million) * usage.cached_input_tokens;
   return (billableInput * p.input_per_million + cachedCost + usage.output_tokens * p.output_per_million) / 1_000_000;
 }
+
+export function computeImageCost(size: string, quality: string | null, count: number): number | null {
+  const entry = IMAGE_PRICING.find(p => p.size === size && (p.quality ?? null) === quality);
+  if (!entry || entry.cost_per_image_usd === null) return null;
+  return entry.cost_per_image_usd * count;
+}
 ```
 
 **Key principle:** when a price is `null`, the tracker UI shows "price unknown for

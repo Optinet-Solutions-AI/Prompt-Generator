@@ -1448,6 +1448,25 @@ function ImageCard({
     }
   };
 
+  // Brand shadow is auto-baked into the Rounded download when this image's
+  // brand has an overlay file. Missing overlay falls back to plain rounded.
+  const cardOverlayUrl = getBrandOverlayUrl(image.brand_name);
+  const handleCardDownloadRounded = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const baseOpts = { radius: ROUNDED_CORNER_RADIUS };
+    try {
+      await downloadImageRounded(image.public_url, image.filename, cardOverlayUrl ? { ...baseOpts, overlayUrl: cardOverlayUrl } : baseOpts);
+    } catch (err) {
+      if (err instanceof BrandOverlayMissingError) {
+        console.warn(`Brand overlay missing for "${image.brand_name}", falling back to plain rounded.`);
+        try { await downloadImageRounded(image.public_url, image.filename, baseOpts); }
+        catch { window.open(image.public_url, '_blank'); }
+      } else {
+        window.open(image.public_url, '_blank');
+      }
+    }
+  };
+
   return (
     <div
       className="group relative overflow-hidden rounded-2xl cursor-pointer bg-zinc-100 dark:bg-zinc-800 border border-border/60 hover:border-primary/50 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 aspect-[4/3]"

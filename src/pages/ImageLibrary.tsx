@@ -1470,17 +1470,15 @@ function ImageCard({
     }
   };
 
-  // Brand shadow is auto-baked into the Rounded download when this image's
-  // brand has an overlay file. Missing overlay falls back to plain rounded.
-  const cardOverlayUrl = getBrandOverlayUrl(image.brand_name || image.brand);
-  const handleCardDownloadRounded = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  // User picks the brand shadow at download time. Pass null for plain rounded.
+  const handleCardDownloadRounded = async (brandForOverlay: string | null) => {
     const baseOpts = { radius: ROUNDED_CORNER_RADIUS };
+    const overlayUrl = brandForOverlay ? getBrandOverlayUrl(brandForOverlay) : null;
     try {
-      await downloadImageRounded(image.public_url, image.filename, cardOverlayUrl ? { ...baseOpts, overlayUrl: cardOverlayUrl } : baseOpts);
+      await downloadImageRounded(image.public_url, image.filename, overlayUrl ? { ...baseOpts, overlayUrl } : baseOpts);
     } catch (err) {
       if (err instanceof BrandOverlayMissingError) {
-        console.warn(`Brand overlay missing for "${image.brand_name}", falling back to plain rounded.`);
+        console.warn(`Brand overlay missing for "${brandForOverlay}", falling back to plain rounded.`);
         try { await downloadImageRounded(image.public_url, image.filename, baseOpts); }
         catch { window.open(image.public_url, '_blank'); }
       } else {

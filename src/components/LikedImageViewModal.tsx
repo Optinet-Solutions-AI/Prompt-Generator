@@ -45,6 +45,18 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: Liked
     }
   };
 
+  const handleDownloadRounded = async () => {
+    try {
+      await downloadImageRounded(
+        imgUrl,
+        recordId || `liked-image-${Date.now()}.png`,
+        ROUNDED_CORNER_RADIUS,
+      );
+    } catch {
+      window.open(imgUrl, '_blank');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (

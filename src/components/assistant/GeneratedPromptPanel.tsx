@@ -24,8 +24,10 @@ const FIELD_ORDER: (keyof GeneratedFields)[] = [
   'mood', 'background', 'positive_prompt', 'negative_prompt',
 ];
 
-export function GeneratedPromptPanel({ fields, token }: Props) {
+export function GeneratedPromptPanel({ fields, token, task, description, pickedConcept, allConcepts, usage }: Props) {
   const { toast } = useToast();
+  const [liked, setLiked] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function copyAll() {
     navigator.clipboard.writeText(fields.positive_prompt);
@@ -34,13 +36,46 @@ export function GeneratedPromptPanel({ fields, token }: Props) {
 
   const { generate, loading: imageLoading, imageUrls, error: imageError } = useAssistantImageGen(token);
 
+  async function onLike() {
+    setSaveError(null);
+    try {
+      await saveAssistantPrompt({
+        test_user_id: token,
+        brand: fields.brand,
+        task,
+        description,
+        provider: usage.provider,
+        model: usage.model,
+        all_concepts: allConcepts,
+        picked_concept: pickedConcept,
+        generated_fields: fields,
+        usage: {
+          input_tokens: usage.input_tokens,
+          cached_input_tokens: usage.cached_input_tokens,
+          output_tokens: usage.output_tokens,
+        },
+        image_drive_ids: imageUrls,
+        liked: true,
+      });
+      setLiked(true);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   return (
     <section className="mt-8 rounded-lg border p-6 bg-card">
       <header className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Generated prompt ({fields.brand})</h2>
-        <Button variant="outline" size="sm" onClick={copyAll}>
-          <Copy className="h-4 w-4 mr-1" />Copy positive prompt
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={copyAll}>
+            <Copy className="h-4 w-4 mr-1" />Copy positive prompt
+          </Button>
+          <Button variant="outline" size="sm" onClick={onLike} disabled={liked}>
+            <Heart className={`h-4 w-4 mr-1 ${liked ? 'fill-current' : ''}`} />
+            {liked ? 'Saved' : 'Save'}
+          </Button>
+        </div>
       </header>
 
       <Accordion type="multiple" defaultValue={['positive_prompt']}>

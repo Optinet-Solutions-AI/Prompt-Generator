@@ -24,7 +24,7 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
     case 'openai':
       return chatOpenAI(opts);
     case 'gemini':
-      throw new Error('Gemini provider not yet implemented');
+      return chatGemini(opts);
     case 'claude':
       throw new Error('Claude provider not yet wired');
   }

@@ -30,6 +30,48 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
   }
 }
 
+async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${opts.model}:generateContent?key=${apiKey}`;
+
+  const generationConfig: Record<string, unknown> = {
+    maxOutputTokens: opts.maxTokens,
+  };
+  if (opts.json) {
+    generationConfig.responseMimeType = 'application/json';
+    if (opts.jsonSchema) generationConfig.responseSchema = opts.jsonSchema;
+  }
+
+  const body = {
+    systemInstruction: { parts: [{ text: opts.system }] },
+    contents: [{ role: 'user', parts: [{ text: opts.user }] }],
+    generationConfig,
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini request failed (${res.status}): ${errText}`);
+  }
+
+  const data = await res.json();
+  return {
+    text: data.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+    usage: {
+      input_tokens: data.usageMetadata?.promptTokenCount ?? 0,
+      cached_input_tokens: 0,
+      output_tokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+    },
+  };
+}
+
 async function chatOpenAI(opts: ChatOptions): Promise<ChatResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');

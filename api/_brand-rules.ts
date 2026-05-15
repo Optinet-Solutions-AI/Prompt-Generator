@@ -22,13 +22,15 @@ export const BRAND_SCENE_MANDATES: Record<string, string> = {
   LuckyVibe:   'BEACH/SUNSET IS MANDATORY: The scene MUST feature sunset lighting as the primary light source, AND sand must be visible somewhere in the frame (even if the setting is a stadium with grass, add sand at the edges or as a foreground element). Palm trees MUST appear in the background. This is the LuckyVibe signature. If the base prompt lacks these, ADD them naturally.',
   RocketSpin:
     'STYLE MANDATE: Hyperrealistic cinematic CGI at the quality of a live-action ' +
-    'Marvel film (Unreal Engine 5 / MCU-grade). NEVER Pixar style, NEVER anime, ' +
-    'NEVER cartoon, NEVER plastic skin, NEVER oversized head/eyes. ' +
-    'HERO MANDATE: Athletic male, age 28-32, Hollywood casting type (Henry Cavill ' +
-    '/ Chris Evans), short tousled brown hair, light stubble, piercing blue eyes. ' +
+    'superhero blockbuster (Unreal Engine 5, AAA cinematic render quality). NEVER ' +
+    'Pixar style, NEVER anime, NEVER cartoon, NEVER plastic skin, NEVER oversized ' +
+    'head/eyes. ' +
+    'HERO MANDATE: Athletic male, age 28-32, rugged action-hero appearance with ' +
+    'masculine angular features and a square jaw, fit athletic build, short ' +
+    'tousled brown hair, light stubble, piercing blue eyes. ' +
     'Amber/orange-tinted aviator-style tactical goggles with a thin champagne-gold ' +
-    'frame. Sleek white-and-gold Iron Man-style armor with a circular glowing cyan ' +
-    'arc reactor centered on the chest, gold pauldrons, gold wrist cuffs. ' +
+    'frame. Sleek white-and-gold high-tech armored suit with a circular glowing ' +
+    'cyan chest reactor centered on the torso, gold pauldrons, gold wrist cuffs. ' +
     'Female variant: long-haired blonde, same armor. ' +
     'BRAND OBJECTS (use at least one when relevant): gold coins engraved "RS", ' +
     'white rockets with golden thrusters, blue holographic UI elements, white gift ' +
@@ -36,7 +38,10 @@ export const BRAND_SCENE_MANDATES: Record<string, string> = {
     'COMPOSITION: Hero centered, facing camera, symmetrical framing, negative ' +
     'space on the sides for text. Lighting always warm and soft, with volumetric ' +
     'god rays and lens flare. ' +
-    'MOOD: Premium, aspirational, optimistic, victorious, cinematic.',
+    'MOOD: Premium, aspirational, optimistic, victorious, cinematic. ' +
+    'SAFETY: Never name any real person, celebrity, actor, athlete, or public figure. ' +
+    'Never reference copyrighted franchises, characters, films, or brands (Marvel, ' +
+    'DC, Iron Man, MCU, etc.). Use descriptive features only.',
 };
 
 export interface BrandRules {

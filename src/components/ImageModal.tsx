@@ -194,6 +194,16 @@ export function ImageModal({
     } catch { window.open(current.displayUrl, '_blank'); }
   };
 
+  const handleDownloadRounded = async () => {
+    try {
+      await downloadImageRounded(
+        current.displayUrl,
+        `image-${current.provider}-${Date.now()}.png`,
+        ROUNDED_CORNER_RADIUS,
+      );
+    } catch { window.open(current.displayUrl, '_blank'); }
+  };
+
   // Downloads a horizontally flipped (mirrored) copy for Arabic RTL layouts
   const handleDownloadMirrored = async () => {
     try {

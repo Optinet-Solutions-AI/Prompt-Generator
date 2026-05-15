@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { logAssistantImageGen } from './generate-image';
+import { logAssistantImageGen } from './generate-image.js';
 
 const insertMock = vi.fn();
 

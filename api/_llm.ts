@@ -30,6 +30,22 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
   }
 }
 
+// Gemini's responseSchema follows a subset of OpenAPI 3.0 — it rejects JSON
+// Schema Draft 7 keywords like `additionalProperties` that OpenAI requires for
+// strict mode. We strip those keys recursively before sending to Gemini, keeping
+// the original schema untouched for the OpenAI path.
+function sanitizeSchemaForGemini(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(sanitizeSchemaForGemini);
+  if (schema === null || typeof schema !== 'object') return schema;
+  const UNSUPPORTED = new Set(['additionalProperties', '$schema', '$id', 'const']);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(schema as Record<string, unknown>)) {
+    if (UNSUPPORTED.has(k)) continue;
+    out[k] = sanitizeSchemaForGemini(v);
+  }
+  return out;
+}
+
 async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
@@ -41,7 +57,7 @@ async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
   };
   if (opts.json) {
     generationConfig.responseMimeType = 'application/json';
-    if (opts.jsonSchema) generationConfig.responseSchema = opts.jsonSchema;
+    if (opts.jsonSchema) generationConfig.responseSchema = sanitizeSchemaForGemini(opts.jsonSchema);
   }
 
   const body = {

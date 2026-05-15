@@ -116,6 +116,8 @@ export default function AssistantPage() {
           </div>
         </section>
       )}
+
+      {generated && <GeneratedPromptPanel fields={generated} />}
     </main>
   );
 }

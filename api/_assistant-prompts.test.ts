@@ -36,6 +36,6 @@ describe('buildGenerateSystemPrompt', () => {
     const out = buildGenerateSystemPrompt('RocketSpin');
     expect(out).toMatch(/never name any real person/i);
     expect(out).toMatch(/copyrighted franchises/i);
-    expect(out).toMatch(/marvel/i);
+    expect(out).toMatch(/brand names/i);
   });
 });

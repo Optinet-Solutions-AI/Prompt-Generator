@@ -117,6 +117,8 @@ export function GeneratedPromptPanel({ fields, token, task, description, pickedC
           ))}
         </div>
       )}
+
+      {saveError && <p className="text-sm text-destructive mt-2">{saveError}</p>}
     </section>
   );
 }

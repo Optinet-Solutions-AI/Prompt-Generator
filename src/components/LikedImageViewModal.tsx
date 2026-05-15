@@ -122,6 +122,15 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: Liked
             <Download className="w-4 h-4" />
             Download Image
           </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleDownloadRounded}
+            title={`Download with ${ROUNDED_CORNER_RADIUS}px rounded corners`}
+          >
+            <Download className="w-4 h-4" />
+            Rounded ({ROUNDED_CORNER_RADIUS}px)
+          </Button>
         </div>
       </div>
 

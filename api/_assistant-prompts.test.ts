@@ -31,4 +31,11 @@ describe('buildGenerateSystemPrompt', () => {
     expect(out).toMatch(/negative_prompt/);
     expect(out).toMatch(/format_layout/);
   });
+
+  it('forbids real-person names and copyrighted franchise refs in output', () => {
+    const out = buildGenerateSystemPrompt('RocketSpin');
+    expect(out).toMatch(/never name any real person/i);
+    expect(out).toMatch(/copyrighted franchises/i);
+    expect(out).toMatch(/marvel/i);
+  });
 });

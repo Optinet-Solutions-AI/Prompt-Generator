@@ -29,11 +29,13 @@ interface GeneratedImage {
 
 import { BRANDS } from '@/types/prompt';
 import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, replaceStoredImage, storeImage } from '@/lib/imageStore';
-import { downloadImageRounded, ROUNDED_CORNER_RADIUS } from '@/lib/imageDownload';
+import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
+import { getBrandOverlayUrl } from '@/lib/brandOverlays';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 

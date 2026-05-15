@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { validateToken } from './_assistant-token';
+import { validateToken } from './_assistant-token.js';
 
 describe('validateToken', () => {
   const ORIGINAL = process.env.VITE_ASSISTANT_TOKENS;

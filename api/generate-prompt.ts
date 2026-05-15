@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { BRAND_PALETTES, BRAND_SCENE_MANDATES } from './_brand-rules';
+import { BRAND_PALETTES, BRAND_SCENE_MANDATES } from './_brand-rules.js';
 
 /**
  * generate-prompt — matches the n8n "Prod - Prompt Generator" workflow exactly.

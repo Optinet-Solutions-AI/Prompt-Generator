@@ -29,6 +29,7 @@ interface GeneratedImage {
 
 import { BRANDS } from '@/types/prompt';
 import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, replaceStoredImage, storeImage } from '@/lib/imageStore';
+import { downloadImageRounded, ROUNDED_CORNER_RADIUS } from '@/lib/imageDownload';
 
 // Brand colors for badges
 const BRAND_BADGE: Record<string, string> = {

@@ -1101,7 +1101,7 @@ function Lightbox({
                   <ChevronDown className="w-4 h-4 opacity-80" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 z-[1200]">
                 <DropdownMenuItem onClick={handleDownload} className="gap-2">
                   <Download className="w-4 h-4" /> Normal
                 </DropdownMenuItem>

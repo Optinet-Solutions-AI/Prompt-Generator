@@ -51,6 +51,18 @@ export async function downloadImageRounded(
       : radiusOrOptions;
   const radius = opts.radius ?? DEFAULT_CORNER_RADIUS;
   const mirror = !!opts.mirror;
+  const overlayUrl = opts.overlayUrl || null;
+
+  // Pre-load the overlay before touching the main image so we can throw
+  // a friendly error if the brand hasn't uploaded one yet.
+  let overlayImg: HTMLImageElement | null = null;
+  if (overlayUrl) {
+    try {
+      overlayImg = await loadImage(overlayUrl);
+    } catch {
+      throw new BrandOverlayMissingError(overlayUrl);
+    }
+  }
 
   const res = await fetch(url);
   const blob = await res.blob();
@@ -65,18 +77,27 @@ export async function downloadImageRounded(
     if (!ctx) throw new Error('canvas 2d context unavailable');
 
     // Clip in pixel space first so the rounded shape isn't affected by the
-    // mirror transform. Clamp radius to half the shorter side.
+    // mirror transform AND the overlay sits inside the rounded silhouette.
     if (radius > 0) {
       const r = Math.max(0, Math.min(radius, Math.min(canvas.width, canvas.height) / 2));
       roundedRectPath(ctx, 0, 0, canvas.width, canvas.height, r);
       ctx.clip();
     }
 
+    // Base image (with mirror transform if requested).
+    ctx.save();
     if (mirror) {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
     ctx.drawImage(img, 0, 0);
+    ctx.restore();
+
+    // Brand overlay sits on top of the base, stretched to fit the banner.
+    // It's still inside the rounded clip so the shadow follows the curve.
+    if (overlayImg) {
+      ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
+    }
 
     const outBlob: Blob | null = await new Promise(resolve =>
       canvas.toBlob(b => resolve(b), 'image/png'),
@@ -87,6 +108,7 @@ export async function downloadImageRounded(
     const tagParts: string[] = [];
     if (mirror) tagParts.push('mirrored');
     if (radius > 0) tagParts.push(`rounded${radius}`);
+    if (overlayImg) tagParts.push('shadow');
     const tag = tagParts.length ? `-${tagParts.join('-')}` : '';
     const outName = baseName.replace(/(\.[^.]+)?$/, `${tag}.png`);
     triggerBlobDownload(outBlob, outName);

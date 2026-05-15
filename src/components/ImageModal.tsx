@@ -233,6 +233,34 @@ export function ImageModal({
     } catch { window.open(current.displayUrl, '_blank'); }
   };
 
+  // Brand shadow variants — overlay a per-brand PNG mask on top of the image
+  // before saving. Each variant pairs the shadow with the same transforms as
+  // the four base variants above.
+  const overlayUrl = getBrandOverlayUrl(brand);
+  const handleDownloadWithShadow = (opts: { radius?: number; mirror?: boolean }) => async () => {
+    if (!overlayUrl) {
+      alert('No brand selected — brand shadow needs a brand context.');
+      return;
+    }
+    try {
+      await downloadImageRounded(
+        current.displayUrl,
+        `image-${current.provider}-${Date.now()}.png`,
+        { ...opts, overlayUrl },
+      );
+    } catch (err) {
+      if (err instanceof BrandOverlayMissingError) {
+        alert(
+          `No brand shadow overlay found for "${brand}".\n\n` +
+          `Upload a transparent PNG to:\n${overlayUrl}\n\n` +
+          `See public/brand-overlays/README.md for the filename convention.`,
+        );
+      } else {
+        window.open(current.displayUrl, '_blank');
+      }
+    }
+  };
+
   const handleEditImage = async () => {
     if (!editInstructions.trim()) return;
     setIsEditing(true); setEditError(null);

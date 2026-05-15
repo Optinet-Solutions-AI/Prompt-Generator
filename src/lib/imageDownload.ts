@@ -28,8 +28,16 @@ export async function downloadImageBlob(url: string, filename: string) {
 // Rounded corners stay transparent (no fill). Falls back to opening the
 // original in a new tab if anything fails (e.g. canvas tainted by CORS).
 export interface DownloadTransformOptions {
-  radius?: number;   // 0 = square corners; >0 = rounded with that px radius
-  mirror?: boolean;  // horizontally flip (for Arabic RTL layouts)
+  radius?: number;     // 0 = square corners; >0 = rounded with that px radius
+  mirror?: boolean;    // horizontally flip (for Arabic RTL layouts)
+  overlayUrl?: string; // optional PNG composited on top, stretched to fit
+}
+
+export class BrandOverlayMissingError extends Error {
+  constructor(url: string) {
+    super(`Brand overlay not found at ${url}`);
+    this.name = 'BrandOverlayMissingError';
+  }
 }
 
 export async function downloadImageRounded(

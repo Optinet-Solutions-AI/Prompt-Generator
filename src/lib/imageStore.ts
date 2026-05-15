@@ -48,6 +48,7 @@ export function storeImage(params: {
   aspect_ratio: string;
   resolution:   string;
   filename:     string;
+  brand?:       string;
 }): StoredImage {
   const newImg: StoredImage = {
     id:           `img-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,

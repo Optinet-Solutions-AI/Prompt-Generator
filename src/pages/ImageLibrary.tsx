@@ -549,26 +549,20 @@ function Lightbox({
     finally { setIsDownloading(false); }
   };
 
+  // Brand shadow is auto-baked into the rounded download when the current
+  // image's brand has an overlay file. Missing overlay falls back to plain
+  // rounded silently — no user-visible error.
+  const overlayUrl = getBrandOverlayUrl(image.brand_name);
   const handleDownloadRounded = async () => {
     setIsDownloading(true);
-    try { await downloadImageRounded(displayUrl, image.filename, ROUNDED_CORNER_RADIUS); }
-    catch { window.open(displayUrl, '_blank'); }
-    finally { setIsDownloading(false); }
-  };
-
-  const overlayUrl = getBrandOverlayUrl(image.brand_name);
-  const handleDownloadWithShadow = (radius: number) => async () => {
-    if (!overlayUrl) return;
-    setIsDownloading(true);
+    const baseOpts = { radius: ROUNDED_CORNER_RADIUS };
     try {
-      await downloadImageRounded(displayUrl, image.filename, { radius, overlayUrl });
+      await downloadImageRounded(displayUrl, image.filename, overlayUrl ? { ...baseOpts, overlayUrl } : baseOpts);
     } catch (err) {
       if (err instanceof BrandOverlayMissingError) {
-        alert(
-          `No brand shadow overlay found for "${image.brand_name}".\n\n` +
-          `Upload a transparent PNG to:\n${overlayUrl}\n\n` +
-          `See public/brand-overlays/README.md for the filename convention.`,
-        );
+        console.warn(`Brand overlay missing for "${image.brand_name}", falling back to plain rounded.`);
+        try { await downloadImageRounded(displayUrl, image.filename, baseOpts); }
+        catch { window.open(displayUrl, '_blank'); }
       } else {
         window.open(displayUrl, '_blank');
       }

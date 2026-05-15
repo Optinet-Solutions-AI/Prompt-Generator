@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { chat } from './_llm';
+import { chat } from './_llm.js';
 
 const originalFetch = global.fetch;
 

@@ -8,6 +8,7 @@ import { FavoriteHeart } from './FavoriteHeart';
 
 import { storeImage, deleteStoredImage } from '@/lib/imageStore';
 import { extractDominantColors } from '@/utils/extractColors';
+import { downloadImageRounded, ROUNDED_CORNER_RADIUS } from '@/lib/imageDownload';
 
 export interface GalleryImage {
   displayUrl: string;

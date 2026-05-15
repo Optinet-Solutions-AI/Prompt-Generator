@@ -557,18 +557,18 @@ function Lightbox({
     finally { setIsDownloading(false); }
   };
 
-  // Brand shadow is auto-baked into the rounded download when the current
-  // image's brand has an overlay file. Missing overlay falls back to plain
-  // rounded silently — no user-visible error.
-  const overlayUrl = getBrandOverlayUrl(image.brand_name || image.brand);
-  const handleDownloadRounded = async () => {
+  // Brand shadow is picked explicitly by the user at download time via a
+  // submenu in the dropdown. Pass `null` to download plain rounded with no
+  // overlay. If the brand's overlay file is missing, fall back silently.
+  const handleDownloadRounded = async (brandForOverlay: string | null) => {
     setIsDownloading(true);
     const baseOpts = { radius: ROUNDED_CORNER_RADIUS };
+    const overlayUrl = brandForOverlay ? getBrandOverlayUrl(brandForOverlay) : null;
     try {
       await downloadImageRounded(displayUrl, image.filename, overlayUrl ? { ...baseOpts, overlayUrl } : baseOpts);
     } catch (err) {
       if (err instanceof BrandOverlayMissingError) {
-        console.warn(`Brand overlay missing for "${image.brand_name}", falling back to plain rounded.`);
+        console.warn(`Brand overlay missing for "${brandForOverlay}", falling back to plain rounded.`);
         try { await downloadImageRounded(displayUrl, image.filename, baseOpts); }
         catch { window.open(displayUrl, '_blank'); }
       } else {

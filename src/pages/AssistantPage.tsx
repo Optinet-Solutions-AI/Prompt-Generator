@@ -35,6 +35,18 @@ export default function AssistantPage() {
   const [generated, setGenerated] = useState<(GeneratedFields & { brand: string }) | null>(null);
   const [generating, setGenerating] = useState(false);
 
+  async function onPick(c: AssistantConcept) {
+    setError(null); setGenerating(true); setGenerated(null);
+    try {
+      const r = await requestGenerate({ token: token!, brand, task, description, model, pickedConcept: c });
+      setGenerated(r.metadata);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   async function onSuggest() {
     setError(null); setLoading(true); setConcepts(null);
     try {

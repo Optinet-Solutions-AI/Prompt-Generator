@@ -801,7 +801,7 @@ export function ImageModal({
                     <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 z-[1200]">
+                <DropdownMenuContent align="end" className="w-72 z-[1200]">
                   <DropdownMenuItem onClick={handleDownload} className="gap-2">
                     <Download className="w-3.5 h-3.5" /> Normal
                   </DropdownMenuItem>
@@ -814,6 +814,23 @@ export function ImageModal({
                   <DropdownMenuItem onClick={handleDownloadMirroredRounded} className="gap-2">
                     <Download className="w-3.5 h-3.5" /> Arabic + Rounded corners
                   </DropdownMenuItem>
+                  {overlayUrl && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleDownloadWithShadow({ radius: 0 })} className="gap-2">
+                        <Download className="w-3.5 h-3.5" /> With brand shadow
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadWithShadow({ radius: ROUNDED_CORNER_RADIUS })} className="gap-2">
+                        <Download className="w-3.5 h-3.5" /> Rounded + brand shadow
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadWithShadow({ radius: 0, mirror: true })} className="gap-2">
+                        <Download className="w-3.5 h-3.5" /> Arabic + brand shadow
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDownloadWithShadow({ radius: ROUNDED_CORNER_RADIUS, mirror: true })} className="gap-2">
+                        <Download className="w-3.5 h-3.5" /> Arabic + Rounded + brand shadow
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

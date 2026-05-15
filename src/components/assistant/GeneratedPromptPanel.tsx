@@ -148,11 +148,6 @@ export function GeneratedPromptPanel({
     setCurrentFields({ ...refined, brand: currentFields.brand });
   }
 
-  // Pull image URLs out of the chat history for the Save row.
-  const allImageUrls = chatTurns
-    .map(t => t.imageUrl)
-    .filter((u): u is string => Boolean(u));
-
   async function onLike() {
     setSaveError(null);
     try {

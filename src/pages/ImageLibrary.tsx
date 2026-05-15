@@ -1093,6 +1093,16 @@ function Lightbox({
               {isDownloading ? 'Downloading…' : editedImgUrl ? 'Download Edited' : 'Download Image'}
             </button>
 
+            <button
+              onClick={handleDownloadRounded}
+              disabled={isDownloading}
+              title={`Download with ${ROUNDED_CORNER_RADIUS}px rounded corners`}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors disabled:opacity-60"
+            >
+              <Download className="w-4 h-4" />
+              {isDownloading ? 'Downloading…' : `Rounded (${ROUNDED_CORNER_RADIUS}px)`}
+            </button>
+
             {!confirmDelete ? (
               <button
                 onClick={() => setConfirmDelete(true)}

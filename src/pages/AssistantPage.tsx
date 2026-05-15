@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ModelSelect } from '@/components/assistant/ModelSelect';
 import { requestConcepts, requestGenerate } from '@/lib/assistant-client';
-import type { AssistantProvider, AssistantConcept, GeneratedFields } from '@/lib/assistant-types';
+import type { AssistantProvider, AssistantConcept, AssistantUsage, GeneratedFields } from '@/lib/assistant-types';
 import { GeneratedPromptPanel } from '@/components/assistant/GeneratedPromptPanel';
 
 function isAllowed(token: string | undefined): boolean {

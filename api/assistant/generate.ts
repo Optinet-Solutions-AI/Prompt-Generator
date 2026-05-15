@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { validateToken } from '../_assistant-token';
-import { chat } from '../_llm';
-import { buildGenerateSystemPrompt, GENERATE_JSON_SCHEMA } from '../_assistant-prompts';
+import { validateToken } from '../_assistant-token.js';
+import { chat } from '../_llm.js';
+import { buildGenerateSystemPrompt, GENERATE_JSON_SCHEMA } from '../_assistant-prompts.js';
 
 const GENERATE_MODEL: Record<'openai' | 'gemini', string> = {
   openai: 'gpt-4o',

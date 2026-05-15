@@ -557,7 +557,7 @@ function Lightbox({
   // Brand shadow is auto-baked into the rounded download when the current
   // image's brand has an overlay file. Missing overlay falls back to plain
   // rounded silently — no user-visible error.
-  const overlayUrl = getBrandOverlayUrl(image.brand_name);
+  const overlayUrl = getBrandOverlayUrl(image.brand_name || image.brand);
   const handleDownloadRounded = async () => {
     setIsDownloading(true);
     const baseOpts = { radius: ROUNDED_CORNER_RADIUS };
@@ -1457,7 +1457,7 @@ function ImageCard({
 
   // Brand shadow is auto-baked into the Rounded download when this image's
   // brand has an overlay file. Missing overlay falls back to plain rounded.
-  const cardOverlayUrl = getBrandOverlayUrl(image.brand_name);
+  const cardOverlayUrl = getBrandOverlayUrl(image.brand_name || image.brand);
   const handleCardDownloadRounded = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const baseOpts = { radius: ROUNDED_CORNER_RADIUS };

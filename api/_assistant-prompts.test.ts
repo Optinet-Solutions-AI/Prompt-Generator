@@ -12,7 +12,7 @@ describe('buildConceptsSystemPrompt', () => {
   it('includes the brand palette and mandate', () => {
     const out = buildConceptsSystemPrompt('RocketSpin');
     expect(out).toMatch(/champagne gold/i);
-    expect(out).toMatch(/arc reactor/i);
+    expect(out).toMatch(/chest reactor/i);
   });
 
   it('instructs the model to return exactly 3 visually distinct concepts as JSON', () => {

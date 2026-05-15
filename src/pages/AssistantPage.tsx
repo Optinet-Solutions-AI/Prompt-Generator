@@ -117,7 +117,7 @@ export default function AssistantPage() {
         </section>
       )}
 
-      {generated && <GeneratedPromptPanel fields={generated} />}
+      {generated && <GeneratedPromptPanel fields={generated} token={token!} />}
     </main>
   );
 }

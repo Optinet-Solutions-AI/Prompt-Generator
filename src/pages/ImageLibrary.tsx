@@ -21,7 +21,11 @@ interface GeneratedImage {
   resolution: string;
   storage_path: string;
   public_url: string;
-  // Optional — only set for favorites
+  // Brand context — `brand` is set for newly generated images stored in
+  // localStorage. `brand_name` is set for images that came from the
+  // `liked_images` Supabase table (favorites). Either is fine for the
+  // brand-shadow overlay lookup.
+  brand?: string;
   brand_name?: string;
   record_id?: string;
   _isFavorite?: boolean;

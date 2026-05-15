@@ -2,14 +2,21 @@ import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { Copy } from 'lucide-react';
+import { Copy, Heart } from 'lucide-react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import type { GeneratedFields } from '@/lib/assistant-types';
+import type { AssistantConcept, AssistantUsage, GeneratedFields } from '@/lib/assistant-types';
 import { useAssistantImageGen } from '@/hooks/useAssistantImageGen';
+import { saveAssistantPrompt } from '@/lib/assistant-storage';
 
 interface Props {
   fields: GeneratedFields & { brand: string };
   token: string;
+  task: string;
+  description?: string;
+  pickedConcept: AssistantConcept;
+  allConcepts: AssistantConcept[];
+  usage: AssistantUsage;
 }
 
 const FIELD_ORDER: (keyof GeneratedFields)[] = [

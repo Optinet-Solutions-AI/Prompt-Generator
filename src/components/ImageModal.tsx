@@ -14,7 +14,8 @@ import { FavoriteHeart } from './FavoriteHeart';
 
 import { storeImage, deleteStoredImage } from '@/lib/imageStore';
 import { extractDominantColors } from '@/utils/extractColors';
-import { downloadImageRounded, ROUNDED_CORNER_RADIUS } from '@/lib/imageDownload';
+import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
+import { getBrandOverlayUrl } from '@/lib/brandOverlays';
 
 export interface GalleryImage {
   displayUrl: string;

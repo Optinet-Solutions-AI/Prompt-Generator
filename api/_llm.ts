@@ -83,8 +83,21 @@ async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
   }
 
   const data = await res.json();
+  const candidate = data.candidates?.[0];
+  const finishReason = candidate?.finishReason;
+  const text = candidate?.content?.parts?.[0]?.text ?? '';
+
+  // Truncated outputs are a leading source of bad JSON downstream — fail loudly.
+  if (finishReason && finishReason !== 'STOP') {
+    throw new Error(
+      `Gemini stopped early (finishReason=${finishReason}). ` +
+      `Output was ${text.length} chars. ` +
+      `Raise maxTokens or check for safety filters. Raw text preview: ${text.slice(0, 120)}`
+    );
+  }
+
   return {
-    text: data.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+    text,
     usage: {
       input_tokens: data.usageMetadata?.promptTokenCount ?? 0,
       cached_input_tokens: 0,

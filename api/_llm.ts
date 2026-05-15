@@ -98,11 +98,11 @@ async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
     generationConfig,
   };
 
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, 'Gemini');
 
   if (!res.ok) {
     const errText = await res.text();

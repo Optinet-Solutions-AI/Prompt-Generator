@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
 import { useState } from 'react';
+import { downloadImageRounded, ROUNDED_CORNER_RADIUS } from '@/lib/imageDownload';
 
 interface LikedImageViewModalProps {
   isOpen: boolean;

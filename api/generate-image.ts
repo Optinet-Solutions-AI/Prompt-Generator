@@ -386,6 +386,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // Make public so server-side fetches (edit, variations) work without auth
           await makeFilePublic(fileId, accessToken);
 
+          await logAssistantImageGen(req, fileId, 'openai', 'gpt-image-1', outputSize, outputQuality);
+
           // Return Drive URL so frontend stores Drive link (not temp OpenAI URL)
           const driveUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
           return res.status(200).json({

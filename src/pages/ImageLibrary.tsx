@@ -1127,13 +1127,25 @@ function Lightbox({
                   <ChevronDown className="w-4 h-4 opacity-80" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 z-[1200]">
+              <DropdownMenuContent align="end" className="w-60 z-[1200]">
                 <DropdownMenuItem onClick={handleDownload} className="gap-2">
                   <Download className="w-4 h-4" /> Normal
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadRounded} className="gap-2">
-                  <Download className="w-4 h-4" /> Rounded corners
+                <DropdownMenuItem onClick={() => handleDownloadRounded(null)} className="gap-2">
+                  <Download className="w-4 h-4" /> Rounded corners (no shadow)
                 </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2">
+                    <Download className="w-4 h-4" /> Rounded + brand shadow
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-44 z-[1200]">
+                    {BRANDS.map(b => (
+                      <DropdownMenuItem key={b} onClick={() => handleDownloadRounded(b)}>
+                        {b}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
 

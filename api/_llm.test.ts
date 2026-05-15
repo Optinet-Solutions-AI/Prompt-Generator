@@ -109,4 +109,47 @@ describe('_llm.chat — Gemini', () => {
     expect(result.text).toBe('{"concepts":[]}');
     expect(result.usage).toEqual({ input_tokens: 120, cached_input_tokens: 0, output_tokens: 30 });
   });
+
+  it('strips additionalProperties from the schema before sending to Gemini', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{}' }] } }],
+        usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 10 },
+      }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await chat({
+      provider: 'gemini',
+      model: 'gemini-2.5-flash',
+      system: 's',
+      user: 'u',
+      maxTokens: 100,
+      json: true,
+      jsonSchema: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['concepts'],
+        properties: {
+          concepts: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: { title: { type: 'string' } },
+            },
+          },
+        },
+      },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(init.body as string);
+    const json = JSON.stringify(sent.generationConfig.responseSchema);
+    expect(json).not.toContain('additionalProperties');
+    // Verify the surrounding schema survived the strip:
+    expect(sent.generationConfig.responseSchema.required).toEqual(['concepts']);
+    expect(sent.generationConfig.responseSchema.properties.concepts.items.properties.title.type).toBe('string');
+  });
 });

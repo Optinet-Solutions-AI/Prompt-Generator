@@ -36,3 +36,14 @@ export interface GenerateResponse {
   metadata: GeneratedFields & { brand: string };
   usage: AssistantUsage;
 }
+
+export interface ChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface RefineResponse {
+  message: string;
+  refinedFields: GeneratedFields;
+  usage: AssistantUsage;
+}

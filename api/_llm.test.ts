@@ -66,3 +66,47 @@ describe('_llm.chat — OpenAI', () => {
     ).rejects.toThrow(/OpenAI/);
   });
 });
+
+describe('_llm.chat — Gemini', () => {
+  beforeEach(() => {
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+  });
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('calls the Gemini generateContent endpoint with system + user content', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{"concepts":[]}' }] } }],
+        usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 30 },
+      }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await chat({
+      provider: 'gemini',
+      model: 'gemini-2.5-flash',
+      system: 'sys',
+      user: 'usr',
+      maxTokens: 600,
+      json: true,
+      jsonSchema: { type: 'object', properties: { concepts: { type: 'array' } }, required: ['concepts'] },
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('models/gemini-2.5-flash:generateContent');
+    expect(url).toContain('key=test-gemini-key');
+
+    const body = JSON.parse(init.body as string);
+    expect(body.systemInstruction.parts[0].text).toBe('sys');
+    expect(body.contents[0].parts[0].text).toBe('usr');
+    expect(body.generationConfig.maxOutputTokens).toBe(600);
+    expect(body.generationConfig.responseMimeType).toBe('application/json');
+    expect(body.generationConfig.responseSchema).toBeDefined();
+
+    expect(result.text).toBe('{"concepts":[]}');
+    expect(result.usage).toEqual({ input_tokens: 120, cached_input_tokens: 0, output_tokens: 30 });
+  });
+});

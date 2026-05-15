@@ -2359,7 +2359,42 @@ export function useCostTracker(testUserId: string) {
 }
 ```
 
-- [ ] **Step 2: Create the panel**
+- [ ] **Step 2: Create a frontend-side mirror of the pricing tables**
+
+The Vite frontend should not reach into the `api/` directory (different tsconfig
+project, different build output). Create `src/lib/pricing.ts` that mirrors
+`api/_pricing.ts`:
+
+```ts
+// MUST be kept in sync with api/_pricing.ts.
+// Both files define the same constants so frontend (Cost Tracker) and
+// backend (cost-at-write-time logging) compute the same numbers.
+
+export interface ModelPrice {
+  input_per_million: number | null;
+  cached_input_per_million: number | null;
+  output_per_million: number | null;
+  last_updated: string | null;
+  source: string;
+}
+
+export const LLM_PRICING: Record<string, ModelPrice> = {
+  'gemini-2.5-flash': { input_per_million: 0.30, cached_input_per_million: null, output_per_million: 2.50, last_updated: '2026-05-14', source: 'ai.google.dev/pricing' },
+  'gemini-2.5-pro':   { input_per_million: 1.25, cached_input_per_million: null, output_per_million: 10.00, last_updated: '2026-05-14', source: 'ai.google.dev/pricing' },
+  'gpt-4o':           { input_per_million: null, cached_input_per_million: null, output_per_million: null, last_updated: null, source: 'openai.com/api/pricing — TODO fill in before going live' },
+  'gpt-4o-mini':      { input_per_million: null, cached_input_per_million: null, output_per_million: null, last_updated: null, source: 'openai.com/api/pricing — TODO fill in before going live' },
+};
+
+export function computeLlmCost(model: string, usage: { input_tokens: number; cached_input_tokens: number; output_tokens: number }): number | null {
+  const p = LLM_PRICING[model];
+  if (!p || p.input_per_million === null || p.output_per_million === null) return null;
+  const billableInput = usage.input_tokens - usage.cached_input_tokens;
+  const cachedRate = p.cached_input_per_million ?? p.input_per_million;
+  return (billableInput * p.input_per_million + usage.cached_input_tokens * cachedRate + usage.output_tokens * p.output_per_million) / 1_000_000;
+}
+```
+
+- [ ] **Step 3: Create the panel**
 
 Create `src/components/assistant/CostTrackerPanel.tsx`:
 ```tsx
@@ -2367,10 +2402,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button';
 import { Wallet } from 'lucide-react';
 import { useCostTracker, type LlmCall, type ImageGen } from '@/hooks/useCostTracker';
-import { LLM_PRICING, computeLlmCost, IMAGE_PRICING } from '../../../api/_pricing';
-
-// Note: importing _pricing.ts directly is fine because it has no Node-only imports.
-// If the bundler complains, copy the pricing tables into src/lib/pricing.ts.
+import { LLM_PRICING, computeLlmCost } from '@/lib/pricing';
 
 function llmCostFor(c: LlmCall): number | null {
   if (!c.model || c.input_tokens === null || c.output_tokens === null) return null;

@@ -1,4 +1,4 @@
-import { buildBrandRules } from './_brand-rules';
+import { buildBrandRules } from './_brand-rules.js';
 
 const PERSONALITY = `
 You are a senior visual concept partner working with a creative director.

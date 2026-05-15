@@ -105,9 +105,12 @@ export default function AssistantPage() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {concepts.map((c, i) => (
-              <article key={i} className="rounded-lg border p-4 bg-card">
+              <article key={i} className="rounded-lg border p-4 bg-card flex flex-col">
                 <h3 className="font-medium">{c.title}</h3>
-                <p className="text-sm text-muted-foreground mt-2">{c.description}</p>
+                <p className="text-sm text-muted-foreground mt-2 flex-1">{c.description}</p>
+                <Button className="mt-4" size="sm" disabled={generating} onClick={() => onPick(c)}>
+                  {generating ? 'Generating…' : 'Pick →'}
+                </Button>
               </article>
             ))}
           </div>

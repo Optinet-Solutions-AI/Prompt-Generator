@@ -163,7 +163,7 @@ function insertNewImage(editedUrl: string, original: GeneratedImage): GeneratedI
     aspect_ratio: original.aspect_ratio || 'edited',
     resolution:   original.resolution   || '',
     filename:     `edited-${Date.now()}.png`,
-    brand:        original.brand_name || (original as GeneratedImage & { brand?: string }).brand,
+    brand:        original.brand_name || original.brand,
   }) as GeneratedImage;
 }
 

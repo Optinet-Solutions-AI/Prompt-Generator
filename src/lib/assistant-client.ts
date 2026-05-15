@@ -1,8 +1,11 @@
 import type {
   AssistantConcept,
   AssistantProvider,
+  ChatTurn,
   ConceptsResponse,
+  GeneratedFields,
   GenerateResponse,
+  RefineResponse,
 } from './assistant-types';
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {

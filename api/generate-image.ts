@@ -505,6 +505,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // Make public so server-side fetches (edit, variations) work without auth
                 await makeFilePublic(geminiFileId, geminiAccessToken);
 
+                await logAssistantImageGen(req, geminiFileId, 'gemini', 'imagen', aspectRatio || '1:1', null);
+
                 const driveUrl = `https://lh3.googleusercontent.com/d/${geminiFileId}`;
                 // Return Drive URL so Image Library always gets a persistent link
                 return res.status(200).json({

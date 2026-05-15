@@ -771,7 +771,7 @@ export function ImageModal({
                     <ChevronDown className="w-3.5 h-3.5 opacity-80" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 z-[1200]">
+                <DropdownMenuContent align="end" className="w-64 z-[1200]">
                   <DropdownMenuItem onClick={handleDownload} className="gap-2">
                     <Download className="w-3.5 h-3.5" /> Normal
                   </DropdownMenuItem>
@@ -780,6 +780,9 @@ export function ImageModal({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDownloadMirrored} className="gap-2">
                     <Download className="w-3.5 h-3.5" /> Arabic (RTL, mirrored)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadMirroredRounded} className="gap-2">
+                    <Download className="w-3.5 h-3.5" /> Arabic + Rounded ({ROUNDED_CORNER_RADIUS}px)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

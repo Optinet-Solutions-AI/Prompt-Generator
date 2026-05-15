@@ -69,7 +69,10 @@ export default function AssistantPage() {
     <main className="min-h-screen p-6 max-w-4xl mx-auto">
       <header className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">AI Concept Assistant</h1>
-        <ModelSelect value={model} onChange={setModel} />
+        <div className="flex items-center gap-2">
+          <CostTrackerPanel testUserId={token!} />
+          <ModelSelect value={model} onChange={setModel} />
+        </div>
       </header>
 
       <section className="space-y-4 rounded-lg border p-6 bg-card">

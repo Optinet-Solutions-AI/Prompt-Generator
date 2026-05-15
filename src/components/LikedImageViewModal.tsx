@@ -121,22 +121,23 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: Liked
             <Mail className="w-4 h-4" />
             Convert to Email
           </Button>
-          <Button
-            className="gap-2 gradient-primary"
-            onClick={handleDownload}
-          >
-            <Download className="w-4 h-4" />
-            Download Image
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={handleDownloadRounded}
-            title={`Download with ${ROUNDED_CORNER_RADIUS}px rounded corners`}
-          >
-            <Download className="w-4 h-4" />
-            Rounded ({ROUNDED_CORNER_RADIUS}px)
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2 gradient-primary">
+                <Download className="w-4 h-4" />
+                Download Image
+                <ChevronDown className="w-4 h-4 opacity-80" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={handleDownload} className="gap-2">
+                <Download className="w-4 h-4" /> Normal
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadRounded} className="gap-2">
+                <Download className="w-4 h-4" /> Rounded ({ROUNDED_CORNER_RADIUS}px)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

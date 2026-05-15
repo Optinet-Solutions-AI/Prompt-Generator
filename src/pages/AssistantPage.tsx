@@ -11,6 +11,7 @@ import { CostTrackerPanel } from '@/components/assistant/CostTrackerPanel';
 import { requestConcepts, requestGenerate } from '@/lib/assistant-client';
 import type { AssistantProvider, AssistantConcept, AssistantUsage, GeneratedFields } from '@/lib/assistant-types';
 import { GeneratedPromptPanel } from '@/components/assistant/GeneratedPromptPanel';
+import { SavedPromptsPanel } from '@/components/assistant/SavedPromptsPanel';
 
 function isAllowed(token: string | undefined): boolean {
   if (!token) return false;

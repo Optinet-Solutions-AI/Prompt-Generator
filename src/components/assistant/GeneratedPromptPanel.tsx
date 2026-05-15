@@ -79,8 +79,12 @@ export function GeneratedPromptPanel({
   // The "live" fields — start with what generate produced; refine swaps these.
   const [currentFields, setCurrentFields] = useState(fields);
 
-  // Chat history (text + images). Empty until first image gen.
+  // Seed turns for the chat — the initial AI greeting + first image. Once
+  // RefineChat mounts it manages its own thread state from this seed.
   const [chatTurns, setChatTurns] = useState<ChatTurnWithImage[]>([]);
+  // All image URLs ever generated (initial + every refine). Tracked here so
+  // Save can include the full image set regardless of chat-internal state.
+  const [allImageUrls, setAllImageUrls] = useState<string[]>([]);
   const [lastImageProvider, setLastImageProvider] = useState<ImageProvider>('chatgpt');
   const [imageBusy, setImageBusy] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);

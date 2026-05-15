@@ -32,6 +32,8 @@ export default function AssistantPage() {
   const [recommendation, setRecommendation] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generated, setGenerated] = useState<(GeneratedFields & { brand: string }) | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   async function onSuggest() {
     setError(null); setLoading(true); setConcepts(null);

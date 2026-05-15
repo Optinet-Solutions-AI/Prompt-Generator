@@ -111,6 +111,24 @@ describe('_llm.chat — Gemini', () => {
     expect(result.usage).toEqual({ input_tokens: 120, cached_input_tokens: 0, output_tokens: 30 });
   });
 
+  it('omits thinkingConfig for Pro models (Pro requires thinking mode)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{}' }] } }],
+        usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
+      }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await chat({ provider: 'gemini', model: 'gemini-2.5-pro', system: 's', user: 'u', maxTokens: 4000 });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(init.body as string);
+    expect(sent.generationConfig.thinkingConfig).toBeUndefined();
+    expect(sent.generationConfig.maxOutputTokens).toBe(4000);
+  });
+
   it('throws when finishReason is not STOP (truncation guard)', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

@@ -40,8 +40,8 @@ export const BRAND_SCENE_MANDATES: Record<string, string> = {
     'god rays and lens flare. ' +
     'MOOD: Premium, aspirational, optimistic, victorious, cinematic. ' +
     'SAFETY: Never name any real person, celebrity, actor, athlete, or public figure. ' +
-    'Never reference copyrighted franchises, characters, films, or brands (Marvel, ' +
-    'DC, Iron Man, MCU, etc.). Use descriptive features only.',
+    'Never reference copyrighted franchises, characters, films, or brand names. ' +
+    'Use descriptive features only.',
 };
 
 export interface BrandRules {

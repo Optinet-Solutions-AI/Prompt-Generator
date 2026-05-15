@@ -41,3 +41,14 @@ export function requestGenerate(args: {
 }) {
   return postJson<GenerateResponse>('/api/assistant/generate', args);
 }
+
+export function requestRefine(args: {
+  token: string;
+  brand: string;
+  currentFields: GeneratedFields;
+  chatHistory: ChatTurn[];
+  userMessage: string;
+  model: AssistantProvider;
+}) {
+  return postJson<RefineResponse>('/api/assistant/refine', args);
+}

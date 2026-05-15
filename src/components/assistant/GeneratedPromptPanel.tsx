@@ -129,12 +129,14 @@ export function GeneratedPromptPanel({
   // Called by RefineChat after a successful refine — regenerate with the same provider.
   async function onRegenerate(refined: GeneratedFields): Promise<string | null> {
     try {
-      return await callImageGen({
+      const url = await callImageGen({
         positivePrompt: refined.positive_prompt,
         brand: currentFields.brand,
         provider: lastImageProvider,
         token,
       });
+      setAllImageUrls(prev => [...prev, url]);
+      return url;
     } catch (e) {
       setImageError(e instanceof Error ? e.message : String(e));
       return null;

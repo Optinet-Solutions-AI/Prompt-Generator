@@ -18,6 +18,10 @@ export interface StoredImage {
   resolution:   string;
   storage_path: string;
   public_url:   string;
+  // Brand context — used by the Image Library to apply the per-brand shadow
+  // overlay when rounded-corner downloads are requested. Optional because
+  // images saved before this field was added won't have it.
+  brand?:       string;
 }
 
 function loadAll(): StoredImage[] {

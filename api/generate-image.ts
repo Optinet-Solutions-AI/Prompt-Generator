@@ -16,7 +16,7 @@ export async function logAssistantImageGen(
   if (body.source !== 'assistant' || !body.test_user_id) return;
   try {
     const { createClient } = await import('@supabase/supabase-js');
-    const { computeImageCost } = await import('./_pricing');
+    const { computeImageCost } = await import('./_pricing.js');
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,

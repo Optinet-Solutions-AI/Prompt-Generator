@@ -152,11 +152,11 @@ async function chatOpenAI(opts: ChatOptions): Promise<ChatResult> {
       : { type: 'json_object' };
   }
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const res = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify(body),
-  });
+  }, 'OpenAI');
 
   if (!res.ok) {
     const errText = await res.text();

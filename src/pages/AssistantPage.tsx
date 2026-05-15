@@ -137,6 +137,8 @@ export default function AssistantPage() {
           usage={generatedUsage!}
         />
       )}
+
+      <SavedPromptsPanel testUserId={token!} />
     </main>
   );
 }

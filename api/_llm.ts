@@ -54,12 +54,15 @@ async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
 
   const generationConfig: Record<string, unknown> = {
     maxOutputTokens: opts.maxTokens,
-    // Gemini 2.5 Flash/Pro enable "thinking" by default, which spends output
-    // tokens on internal reasoning before emitting the answer. For our
-    // schema-constrained JSON tasks (concepts, structured prompt) we want all
-    // the budget to land in the actual output, so we disable thinking.
-    thinkingConfig: { thinkingBudget: 0 },
   };
+  // Gemini 2.5 Flash allows disabling thinking (saves tokens on simple JSON
+  // tasks). Gemini 2.5 Pro REQUIRES thinking — rejects thinkingBudget=0. So we
+  // only disable thinking for Flash models; for Pro we leave the default on
+  // and rely on the caller giving us enough maxTokens to cover both thinking
+  // and output.
+  if (opts.model.includes('flash')) {
+    generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  }
   if (opts.json) {
     generationConfig.responseMimeType = 'application/json';
     if (opts.jsonSchema) generationConfig.responseSchema = sanitizeSchemaForGemini(opts.jsonSchema);

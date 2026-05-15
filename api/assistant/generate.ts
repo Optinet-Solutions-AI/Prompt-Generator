@@ -55,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       user,
       json: true,
       jsonSchema: GENERATE_JSON_SCHEMA,
-      maxTokens: 1200,
+      maxTokens: MAX_TOKENS[model],
     });
 
     const fields = JSON.parse(result.text);

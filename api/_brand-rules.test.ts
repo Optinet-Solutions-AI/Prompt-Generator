@@ -3,7 +3,7 @@ import {
   BRAND_PALETTES,
   BRAND_SCENE_MANDATES,
   buildBrandRules,
-} from './_brand-rules';
+} from './_brand-rules.js';
 
 describe('_brand-rules', () => {
   it('keeps the existing 9 brand palette entries verbatim (distinctive substrings)', () => {

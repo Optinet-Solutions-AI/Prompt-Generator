@@ -722,6 +722,7 @@ function Lightbox({
         aspect_ratio: image.aspect_ratio || '',
         resolution:   image.resolution   || '1K',
         filename:     buildVariationFilename(vidx, variationEngines[vidx]),
+        brand:        image.brand_name || (image as GeneratedImage & { brand?: string }).brand,
       }) as GeneratedImage;
       onNewImageAdded(newImg);
       setSavedVariationIdxs(prev => new Set([...prev, vidx]));

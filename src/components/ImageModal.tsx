@@ -210,33 +210,25 @@ export function ImageModal({
     } catch { window.open(current.displayUrl, '_blank'); }
   };
 
-  // Downloads a horizontally flipped (mirrored) copy for Arabic RTL layouts
+  // Downloads a horizontally flipped (mirrored) copy for Arabic RTL layouts,
+  // optionally with rounded corners (transparent corner pixels).
   const handleDownloadMirrored = async () => {
     try {
-      const res = await fetch(current.displayUrl);
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d')!;
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob((mirroredBlob) => {
-          if (!mirroredBlob) return;
-          const mirrorUrl = window.URL.createObjectURL(mirroredBlob);
-          const a = document.createElement('a');
-          a.href = mirrorUrl;
-          a.download = `image-arabic-mirrored-${Date.now()}.png`;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          window.URL.revokeObjectURL(mirrorUrl);
-          window.URL.revokeObjectURL(blobUrl);
-        }, 'image/png');
-      };
-      img.src = blobUrl;
+      await downloadImageRounded(
+        current.displayUrl,
+        `image-${current.provider}-${Date.now()}.png`,
+        { radius: 0, mirror: true },
+      );
+    } catch { window.open(current.displayUrl, '_blank'); }
+  };
+
+  const handleDownloadMirroredRounded = async () => {
+    try {
+      await downloadImageRounded(
+        current.displayUrl,
+        `image-${current.provider}-${Date.now()}.png`,
+        { radius: ROUNDED_CORNER_RADIUS, mirror: true },
+      );
     } catch { window.open(current.displayUrl, '_blank'); }
   };
 

@@ -15,6 +15,7 @@ function saveImageToLibrary(params: {
   aspectRatio: string;
   resolution: string;
   filename: string;
+  brand?: string;
 }) {
   if (!params.publicUrl) return;
   try {
@@ -24,6 +25,7 @@ function saveImageToLibrary(params: {
       aspect_ratio: params.aspectRatio,
       resolution:   params.resolution || '1K',
       filename:     params.filename,
+      brand:        params.brand,
     });
   } catch (err) {
     console.error('[saveImageToLibrary] failed:', err);

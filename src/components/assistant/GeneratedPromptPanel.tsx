@@ -108,6 +108,10 @@ export function GeneratedPromptPanel({
 
   // First image generation — kicks off the chat.
   async function onFirstGenerate(provider: ImageProvider) {
+    // Double-click guard: if we're already mid-flight (button disable hasn't
+    // propagated yet, or user clicked the OTHER provider while one is busy),
+    // bail. The button is also `disabled={imageBusy}` for the visual signal.
+    if (imageBusy) return;
     setImageError(null);
     setImageBusy(true);
     setLastImageProvider(provider);

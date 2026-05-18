@@ -71,6 +71,7 @@ export function RefineChat({
         userMessage,
         model,
       });
+      recordLlmCall(token, 'refine', refineResult.usage);
 
       // Push the AI's text reply into the chat.
       const assistantTurn: TurnWithImage = { role: 'assistant', content: refineResult.message };

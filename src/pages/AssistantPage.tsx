@@ -46,7 +46,6 @@ export default function AssistantPage() {
       const r = await requestGenerate({ token: token!, brand, task, description, model, pickedConcept: c });
       setGenerated(r.metadata);
       setGeneratedUsage(r.usage);
-      recordLlmCall(token!, 'generate', r.usage);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

@@ -90,8 +90,16 @@ export function GeneratedPromptPanel({
   const [imageError, setImageError] = useState<string | null>(null);
 
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [liked, setLiked] = useState(false);
+  // Save button state: track when the user last saved, and whether anything
+  // has changed since. After Save, the button shows "Saved" and disables; if
+  // they refine or generate more images, it re-enables with "Save update".
+  const [savedSignature, setSavedSignature] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  function currentSignature(): string {
+    return JSON.stringify({ fields: currentFields, images: allImageUrls });
+  }
+  const liked = savedSignature !== null && savedSignature === currentSignature();
 
   function copyAll() {
     navigator.clipboard.writeText(currentFields.positive_prompt);

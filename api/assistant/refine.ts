@@ -130,6 +130,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const parsed = JSON.parse(result.text);
+    await logLlmCall(auth.test_user_id, 'refine', {
+      provider: model, model: chosenModel, ...result.usage,
+    });
     return res.status(200).json({
       message: parsed.message,
       refinedFields: parsed.refinedFields,

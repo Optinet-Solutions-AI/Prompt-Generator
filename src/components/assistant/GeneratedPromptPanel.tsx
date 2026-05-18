@@ -203,7 +203,7 @@ export function GeneratedPromptPanel({
           </Button>
           <Button variant="outline" size="sm" onClick={onLike} disabled={liked}>
             <Heart className={`h-4 w-4 mr-1 ${liked ? 'fill-current' : ''}`} />
-            {liked ? 'Saved' : 'Save'}
+            {liked ? 'Saved' : savedSignature ? 'Save update' : 'Save'}
           </Button>
         </div>
       </header>

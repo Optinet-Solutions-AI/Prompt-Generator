@@ -52,7 +52,7 @@ export async function saveAssistantPrompt(args: SaveArgs) {
   };
   const res = await fetch(`${SUPABASE_URL}/rest/v1/assistant_prompts`, {
     method: 'POST',
-    headers: SB_HEADERS,
+    headers: headersFor(args.test_user_id),
     body: JSON.stringify(row),
   });
   if (!res.ok) {

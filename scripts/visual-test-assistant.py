@@ -20,6 +20,15 @@ with sync_playwright() as p:
 
     page.goto(URL)
     page.wait_for_load_state("networkidle")
+    # Wait for the GitNexus splash (if present) to clear, then for the
+    # real page form to render.
+    try:
+        page.wait_for_selector('#ax-task', timeout=20_000)
+    except Exception as e:
+        print(f"WARN ax-task didn't appear: {e}")
+        # Dump HTML for debugging
+        Path(OUT / 'debug.html').write_text(page.content(), encoding='utf-8')
+        print('Saved page HTML to', OUT / 'debug.html')
 
     # Stage 1 — empty page
     page.screenshot(path=str(OUT / "ax-1-empty.png"), full_page=True)

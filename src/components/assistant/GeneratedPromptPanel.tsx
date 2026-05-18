@@ -137,13 +137,6 @@ export function GeneratedPromptPanel({
         provider: lastImageProvider,
         token,
       });
-      recordImageGen(token, {
-        provider: lastImageProvider,
-        model: lastImageProvider === 'chatgpt' ? 'gpt-image-1' : 'imagen',
-        size: '1024x1024',
-        quality: lastImageProvider === 'chatgpt' ? 'standard' : null,
-        image_count: 1,
-      });
       setAllImageUrls(prev => [...prev, url]);
       return url;
     } catch (e) {

@@ -12,6 +12,7 @@ import type {
   GeneratedFields,
 } from '@/lib/assistant-types';
 import { saveAssistantPrompt } from '@/lib/assistant-storage';
+import { recordImageGen } from '@/lib/cost-store';
 import { RefineChat } from './RefineChat';
 import { ImageLightbox } from './ImageLightbox';
 

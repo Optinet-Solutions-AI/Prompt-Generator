@@ -28,6 +28,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Claude provider is not yet available' });
   }
 
+  const cap = await checkSpendCap(auth.test_user_id);
+  if (!cap.allowed) {
+    return res.status(429).json({ error: cap.reason, spent_today_usd: cap.spent_today_usd, cap_usd: cap.cap_usd });
+  }
+
   const chosenModel = CONCEPTS_MODEL[model];
 
   try {

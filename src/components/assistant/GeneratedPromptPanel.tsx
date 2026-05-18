@@ -183,7 +183,9 @@ export function GeneratedPromptPanel({
         image_drive_ids: allImageUrls,
         liked: true,
       });
-      setLiked(true);
+      // Snapshot what we just saved so the button stays "Saved" until the
+      // user refines or generates more images.
+      setSavedSignature(currentSignature());
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
     }

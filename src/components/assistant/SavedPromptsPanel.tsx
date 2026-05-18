@@ -4,10 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 const SUPABASE_URL  = (import.meta.env.VITE_SUPABASE_URL      as string) || '';
 const SUPABASE_ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
 
-const SB_HEADERS = {
-  apikey: SUPABASE_ANON,
-  Authorization: `Bearer ${SUPABASE_ANON}`,
-};
+function headersFor(token: string) {
+  return {
+    apikey: SUPABASE_ANON,
+    Authorization: `Bearer ${SUPABASE_ANON}`,
+    // RLS policy scopes reads to this tester only.
+    'x-assistant-token': token,
+  };
+}
 
 interface SavedRow {
   id: string;

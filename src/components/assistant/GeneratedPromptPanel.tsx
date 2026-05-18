@@ -111,6 +111,13 @@ export function GeneratedPromptPanel({
         provider,
         token,
       });
+      recordImageGen(token, {
+        provider,
+        model: provider === 'chatgpt' ? 'gpt-image-1' : 'imagen',
+        size: '1024x1024',
+        quality: provider === 'chatgpt' ? 'standard' : null,
+        image_count: 1,
+      });
       setChatTurns(prev => [
         ...prev,
         {

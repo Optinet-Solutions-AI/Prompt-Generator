@@ -3,7 +3,6 @@ import { Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { requestRefine } from '@/lib/assistant-client';
-import { recordLlmCall } from '@/lib/cost-store';
 import type {
   AssistantProvider,
   ChatTurn,

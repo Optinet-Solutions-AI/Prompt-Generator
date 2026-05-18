@@ -1,8 +1,4 @@
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Button } from '@/components/ui/button';
-import { Copy, Heart } from 'lucide-react';
+import { Copy, Heart, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type {
@@ -23,14 +19,8 @@ interface Props {
   pickedConcept: AssistantConcept;
   allConcepts: AssistantConcept[];
   usage: AssistantUsage;
-  /** The model selected in the page header — used for refine calls. */
   refineModel: AssistantProvider;
 }
-
-const FIELD_ORDER: (keyof GeneratedFields)[] = [
-  'format_layout', 'primary_object', 'subject', 'lighting',
-  'mood', 'background', 'positive_prompt', 'negative_prompt',
-];
 
 type ImageProvider = 'chatgpt' | 'gemini';
 type ChatTurnWithImage = { role: 'user' | 'assistant'; content: string; imageUrl?: string };
@@ -76,26 +66,20 @@ export function GeneratedPromptPanel({
 }: Props) {
   const { toast } = useToast();
 
-  // The "live" fields — start with what generate produced; refine swaps these.
   const [currentFields, setCurrentFields] = useState(fields);
-
-  // Seed turns for the chat — the initial AI greeting + first image. Once
-  // RefineChat mounts it manages its own thread state from this seed.
   const [chatTurns, setChatTurns] = useState<ChatTurnWithImage[]>([]);
-  // All image URLs ever generated (initial + every refine). Tracked here so
-  // Save can include the full image set regardless of chat-internal state.
   const [allImageUrls, setAllImageUrls] = useState<string[]>([]);
   const [lastImageProvider, setLastImageProvider] = useState<ImageProvider>('chatgpt');
   const [imageBusy, setImageBusy] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  // Save button state: track when the user last saved, and whether anything
-  // has changed since. After Save, the button shows "Saved" and disables; if
-  // they refine or generate more images, it re-enables with "Save update".
+  // Power-user toggle for inspecting the full structured prompt the AI built.
+  // Hidden by default — the non-technical tester never needs to see it.
+  const [showPromptDetails, setShowPromptDetails] = useState(false);
+
+  // Save / re-enable-after-changes signature
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-
   function currentSignature(): string {
     return JSON.stringify({ fields: currentFields, images: allImageUrls });
   }
@@ -103,14 +87,10 @@ export function GeneratedPromptPanel({
 
   function copyAll() {
     navigator.clipboard.writeText(currentFields.positive_prompt);
-    toast({ title: 'Copied positive prompt' });
+    toast({ title: 'Copied prompt to clipboard' });
   }
 
-  // First image generation — kicks off the chat.
   async function onFirstGenerate(provider: ImageProvider) {
-    // Double-click guard: if we're already mid-flight (button disable hasn't
-    // propagated yet, or user clicked the OTHER provider while one is busy),
-    // bail. The button is also `disabled={imageBusy}` for the visual signal.
     if (imageBusy) return;
     setImageError(null);
     setImageBusy(true);
@@ -122,13 +102,11 @@ export function GeneratedPromptPanel({
         provider,
         token,
       });
-      // Server logs the image gen to assistant_image_gens automatically
-      // (opt-in path in /api/generate-image).
       setChatTurns(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: `Here is your ${provider === 'chatgpt' ? 'ChatGPT' : 'Gemini'} take on "${task}". Tell me what you would change.`,
+          content: `Here is the ${provider === 'chatgpt' ? 'ChatGPT' : 'Gemini'} take. Tell me what to change.`,
         },
         { role: 'assistant', content: '', imageUrl: url },
       ]);
@@ -140,7 +118,6 @@ export function GeneratedPromptPanel({
     }
   }
 
-  // Called by RefineChat after a successful refine — regenerate with the same provider.
   async function onRegenerate(refined: GeneratedFields): Promise<string | null> {
     try {
       const url = await callImageGen({
@@ -157,7 +134,6 @@ export function GeneratedPromptPanel({
     }
   }
 
-  // Synced from RefineChat each time fields are refined.
   function onFieldsRefined(refined: GeneratedFields) {
     setCurrentFields({ ...refined, brand: currentFields.brand });
   }
@@ -183,8 +159,6 @@ export function GeneratedPromptPanel({
         image_drive_ids: allImageUrls,
         liked: true,
       });
-      // Snapshot what we just saved so the button stays "Saved" until the
-      // user refines or generates more images.
       setSavedSignature(currentSignature());
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
@@ -194,42 +168,61 @@ export function GeneratedPromptPanel({
   const chatStarted = chatTurns.length > 0;
 
   return (
-    <section className="mt-8 rounded-lg border p-6 bg-card">
-      <header className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Generated prompt ({currentFields.brand})</h2>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={copyAll}>
-            <Copy className="h-4 w-4 mr-1" />Copy positive prompt
-          </Button>
-          <Button variant="outline" size="sm" onClick={onLike} disabled={liked}>
-            <Heart className={`h-4 w-4 mr-1 ${liked ? 'fill-current' : ''}`} />
-            {liked ? 'Saved' : savedSignature ? 'Save update' : 'Save'}
-          </Button>
+    <section className="mt-14 ax-fade-up">
+      <div className="flex items-baseline justify-between mb-6 gap-4 flex-wrap">
+        <div>
+          <span className="ax-eyebrow">Selected · {pickedConcept.title}</span>
+          <h2 className="ax-display text-3xl mt-1">
+            <em>The shot.</em>
+          </h2>
         </div>
-      </header>
-
-      <Accordion type="multiple" defaultValue={['positive_prompt']}>
-        {FIELD_ORDER.map(key => (
-          <AccordionItem key={key} value={key}>
-            <AccordionTrigger className="capitalize">{key.replace(/_/g, ' ')}</AccordionTrigger>
-            <AccordionContent>
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentFields[key]}</p>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-
-      <div className="mt-6 flex gap-2">
-        <Button onClick={() => onFirstGenerate('chatgpt')} disabled={imageBusy}>
-          {imageBusy && lastImageProvider === 'chatgpt' ? 'Generating…' : 'ChatGPT 🎨'}
-        </Button>
-        <Button variant="secondary" onClick={() => onFirstGenerate('gemini')} disabled={imageBusy}>
-          {imageBusy && lastImageProvider === 'gemini' ? 'Generating…' : 'Gemini 🎨'}
-        </Button>
+        <div className="flex gap-2">
+          <button onClick={copyAll} className="ax-btn-ghost">
+            <Copy className="h-4 w-4" />
+            Copy prompt
+          </button>
+          <button onClick={onLike} disabled={liked} className="ax-btn-ghost">
+            <Heart className={`h-4 w-4 ${liked ? 'fill-current text-[var(--ax-gold-bright)]' : ''}`} />
+            {liked ? 'Saved' : savedSignature ? 'Save update' : 'Save'}
+          </button>
+        </div>
       </div>
 
-      {imageError && <p className="text-sm text-destructive mt-2">{imageError}</p>}
+      {/* Image-gen action row — primary action, big and obvious */}
+      {!chatStarted && (
+        <div className="ax-card p-8 mb-6">
+          <div className="flex flex-col items-start gap-4">
+            <div>
+              <span className="ax-eyebrow">Render</span>
+              <h3 className="ax-display text-2xl mt-1 leading-tight">Which engine should compose this shot?</h3>
+              <p className="text-sm text-[var(--ax-ink-dim)] mt-2 max-w-md">
+                ChatGPT and Gemini have different visual sensibilities. Pick either to start — you can re-roll or refine from the chat after.
+              </p>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <button onClick={() => onFirstGenerate('chatgpt')} disabled={imageBusy} className="ax-btn-primary">
+                {imageBusy && lastImageProvider === 'chatgpt' ? (
+                  <span className="ax-thinking" style={{ color: 'inherit' }}>
+                    <span className="ax-thinking-dot" /><span className="ax-thinking-dot" /><span className="ax-thinking-dot" />
+                    Rendering
+                  </span>
+                ) : 'Render with ChatGPT'}
+              </button>
+              <button onClick={() => onFirstGenerate('gemini')} disabled={imageBusy} className="ax-btn-ghost" style={{ padding: '12px 22px', fontSize: 14 }}>
+                {imageBusy && lastImageProvider === 'gemini' ? (
+                  <span className="ax-thinking">
+                    <span className="ax-thinking-dot" /><span className="ax-thinking-dot" /><span className="ax-thinking-dot" />
+                    Rendering
+                  </span>
+                ) : 'Render with Gemini'}
+              </button>
+            </div>
+            {imageError && <p className="text-sm text-red-400">{imageError}</p>}
+          </div>
+        </div>
+      )}
 
+      {/* Chat starts here once the first image has rendered */}
       {chatStarted && (
         <RefineChat
           token={token}
@@ -243,7 +236,32 @@ export function GeneratedPromptPanel({
         />
       )}
 
-      {saveError && <p className="text-sm text-destructive mt-2">{saveError}</p>}
+      {saveError && <p className="text-sm text-red-400 mt-3">{saveError}</p>}
+
+      {/* Power-user: full structured prompt, collapsed by default. Most users
+          never need this — kept available for debugging / inspection. */}
+      <div className="mt-8 flex justify-center">
+        <button
+          onClick={() => setShowPromptDetails(s => !s)}
+          className="text-xs text-[var(--ax-ink-fade)] hover:text-[var(--ax-ink-dim)] flex items-center gap-1.5 transition-colors"
+        >
+          {showPromptDetails ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          {showPromptDetails ? 'Hide prompt details' : 'View prompt details'}
+        </button>
+      </div>
+
+      {showPromptDetails && (
+        <div className="ax-card p-6 mt-4 text-sm space-y-3">
+          <PromptField label="Positive prompt"  value={currentFields.positive_prompt} />
+          <PromptField label="Negative prompt"  value={currentFields.negative_prompt} />
+          <PromptField label="Subject"          value={currentFields.subject} />
+          <PromptField label="Lighting"         value={currentFields.lighting} />
+          <PromptField label="Mood"             value={currentFields.mood} />
+          <PromptField label="Background"       value={currentFields.background} />
+          <PromptField label="Primary object"   value={currentFields.primary_object} />
+          <PromptField label="Format layout"    value={currentFields.format_layout} />
+        </div>
+      )}
 
       <ImageLightbox
         src={lightboxSrc}
@@ -251,5 +269,14 @@ export function GeneratedPromptPanel({
         onClose={() => setLightboxSrc(null)}
       />
     </section>
+  );
+}
+
+function PromptField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="ax-label">{label}</span>
+      <p className="text-[var(--ax-ink-dim)] leading-relaxed whitespace-pre-wrap">{value}</p>
+    </div>
   );
 }

@@ -30,7 +30,7 @@ export async function logAssistantImageGen(
       quality,
       image_count:   1,
       drive_file_id: fileId,
-      cost_usd:      computeImageCost(size, quality, 1),
+      cost_usd:      computeImageCost(provider, size, quality, 1),
     });
   } catch (err) {
     // Non-fatal — cost logging must NEVER break the main flow.

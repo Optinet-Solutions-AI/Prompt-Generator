@@ -23,14 +23,14 @@ with sync_playwright() as p:
 
     # Stage 1 — empty page
     page.screenshot(path=str(OUT / "ax-1-empty.png"), full_page=True)
-    print("✓ Saved", OUT / "ax-1-empty.png")
+    print("OK Saved", OUT / "ax-1-empty.png")
 
     # Stage 2 — type a brief
     page.fill('#ax-task', "new year banner")
     page.fill('#ax-desc', "make it warm and fun, mood of celebration")
     page.wait_for_timeout(300)
     page.screenshot(path=str(OUT / "ax-2-filled.png"), full_page=True)
-    print("✓ Saved", OUT / "ax-2-filled.png")
+    print("OK Saved", OUT / "ax-2-filled.png")
 
     # Stage 3 — submit, wait for concepts to render
     page.click('button:has-text("Draft 3 concepts")')
@@ -41,13 +41,13 @@ with sync_playwright() as p:
     except Exception as e:
         print(f"⚠ Concepts didn't render: {e}")
     page.screenshot(path=str(OUT / "ax-3-concepts.png"), full_page=True)
-    print("✓ Saved", OUT / "ax-3-concepts.png")
+    print("OK Saved", OUT / "ax-3-concepts.png")
 
     # Stage 4 — open the cost tracker drawer
     page.click('button:has-text("Cost")')
     page.wait_for_timeout(400)
     page.screenshot(path=str(OUT / "ax-4-cost.png"), full_page=True)
-    print("✓ Saved", OUT / "ax-4-cost.png")
+    print("OK Saved", OUT / "ax-4-cost.png")
 
     browser.close()
     print("\nAll stages captured.")

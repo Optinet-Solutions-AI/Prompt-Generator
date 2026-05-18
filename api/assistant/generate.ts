@@ -59,6 +59,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const fields = JSON.parse(result.text);
+    await logLlmCall(auth.test_user_id, 'generate', {
+      provider: model, model: chosenModel, ...result.usage,
+    });
     return res.status(200).json({
       success: true,
       prompt: fields.positive_prompt,

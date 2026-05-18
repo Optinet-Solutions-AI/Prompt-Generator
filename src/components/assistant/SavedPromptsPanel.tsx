@@ -39,7 +39,7 @@ export function SavedPromptsPanel({ testUserId }: { testUserId: string }) {
           order: 'created_at.desc',
           limit: '30',
         });
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/assistant_prompts?${qs}`, { headers: SB_HEADERS });
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/assistant_prompts?${qs}`, { headers: headersFor(testUserId) });
         if (!res.ok) throw new Error(`Saved prompts fetch ${res.status}`);
         const data = (await res.json()) as SavedRow[];
         setRows(data);

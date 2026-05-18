@@ -10,7 +10,7 @@ Captures screenshots of the cinematic redesign at three stages:
 from playwright.sync_api import sync_playwright
 from pathlib import Path
 
-URL = "http://localhost:5173/assistant/optinet-rocketspin-test-2026-mvbq-x9k2"
+URL = "http://localhost:5180/assistant/optinet-rocketspin-test-2026-mvbq-x9k2"
 OUT = Path("c:/Users/User/Prompt-Generator/.tmp/screenshots")
 OUT.mkdir(parents=True, exist_ok=True)
 

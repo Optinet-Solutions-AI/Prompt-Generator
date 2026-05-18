@@ -133,9 +133,34 @@ export function RefineChat({
       <header className="flex items-center gap-2 border-b px-4 py-3">
         <Sparkles className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-medium">Refine this image</h3>
-        <span className="ml-auto text-xs text-muted-foreground">
+        <span className="ml-auto text-xs text-muted-foreground hidden md:inline">
           Type a change. AI will ask when it's not sure.
         </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            if (busy) return;
+            setBusy(true);
+            try {
+              const url = await onRegenerate(fields);
+              if (url) {
+                setTurns(prev => [
+                  ...prev,
+                  { kind: 'text', role: 'assistant', content: 'Same prompt, fresh roll.' },
+                  { kind: 'image', role: 'assistant', imageUrl: url },
+                ]);
+              }
+            } finally {
+              setBusy(false);
+            }
+          }}
+          disabled={busy}
+          title="Re-roll the same prompt"
+        >
+          <RotateCw className={`h-4 w-4 mr-1 ${busy ? 'animate-spin' : ''}`} />
+          Regenerate
+        </Button>
       </header>
 
       <div ref={scrollRef} className="max-h-[480px] overflow-y-auto px-4 py-4 space-y-3">

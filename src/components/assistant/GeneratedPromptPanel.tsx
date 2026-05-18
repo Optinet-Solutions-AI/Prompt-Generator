@@ -110,13 +110,8 @@ export function GeneratedPromptPanel({
         provider,
         token,
       });
-      recordImageGen(token, {
-        provider,
-        model: provider === 'chatgpt' ? 'gpt-image-1' : 'imagen',
-        size: '1024x1024',
-        quality: provider === 'chatgpt' ? 'standard' : null,
-        image_count: 1,
-      });
+      // Server logs the image gen to assistant_image_gens automatically
+      // (opt-in path in /api/generate-image).
       setChatTurns(prev => [
         ...prev,
         {

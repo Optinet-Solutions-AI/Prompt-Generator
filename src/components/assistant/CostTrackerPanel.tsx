@@ -99,8 +99,9 @@ export function CostTrackerPanel({ testUserId }: Props) {
           </div>
 
           <p className="text-xs text-muted-foreground pt-2">
-            Tracked locally in your browser. Prices as of {latestPriceDate}.
-            "Price unknown" rows need <code>src/lib/pricing.ts</code> filled in.
+            Logged per call on the server. Visible across browsers and devices.
+            Prices as of {latestPriceDate}. "Price unknown" rows need
+            <code>src/lib/pricing.ts</code> filled in.
           </p>
         </div>
       </SheetContent>

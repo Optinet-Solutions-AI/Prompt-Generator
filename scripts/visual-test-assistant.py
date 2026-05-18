@@ -39,7 +39,7 @@ with sync_playwright() as p:
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(800)  # let the fade-up animation settle
     except Exception as e:
-        print(f"⚠ Concepts didn't render: {e}")
+        print(f"WARN Concepts didn't render: {e}")
     page.screenshot(path=str(OUT / "ax-3-concepts.png"), full_page=True)
     print("OK Saved", OUT / "ax-3-concepts.png")
 

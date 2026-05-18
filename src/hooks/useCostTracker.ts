@@ -62,9 +62,10 @@ export function useCostTracker(testUserId: string) {
           order: 'created_at.desc',
           limit: '100',
         });
+        const headers = headersFor(testUserId);
         const [lRes, iRes] = await Promise.all([
-          fetch(`${SUPABASE_URL}/rest/v1/assistant_llm_calls?${llmQs}`, { headers: SB_HEADERS }),
-          fetch(`${SUPABASE_URL}/rest/v1/assistant_image_gens?${imgQs}`, { headers: SB_HEADERS }),
+          fetch(`${SUPABASE_URL}/rest/v1/assistant_llm_calls?${llmQs}`, { headers }),
+          fetch(`${SUPABASE_URL}/rest/v1/assistant_image_gens?${imgQs}`, { headers }),
         ]);
         if (!lRes.ok) throw new Error(`LLM fetch ${lRes.status}: ${await lRes.text()}`);
         if (!iRes.ok) throw new Error(`Image gens fetch ${iRes.status}: ${await iRes.text()}`);

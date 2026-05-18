@@ -3,10 +3,15 @@ import { useEffect, useState } from 'react';
 const SUPABASE_URL  = (import.meta.env.VITE_SUPABASE_URL      as string) || '';
 const SUPABASE_ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
 
-const SB_HEADERS = {
-  apikey: SUPABASE_ANON,
-  Authorization: `Bearer ${SUPABASE_ANON}`,
-};
+function headersFor(token: string) {
+  return {
+    apikey: SUPABASE_ANON,
+    Authorization: `Bearer ${SUPABASE_ANON}`,
+    // RLS policy on the assistant_* tables checks this header to scope reads
+    // to the current tester. Without it the request returns zero rows.
+    'x-assistant-token': token,
+  };
+}
 
 export interface LlmCall {
   id: string;

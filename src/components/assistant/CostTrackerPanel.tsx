@@ -40,7 +40,7 @@ export function CostTrackerPanel({ testUserId }: Props) {
   const { llm, images, loadError } = useCostTracker(testUserId);
 
   const llmRows = llm.map(c => ({ c, usd: llmCostFor(c) }));
-  const imgRows = images.map(i => ({ i, usd: i.cost_usd }));
+  const imgRows = images.map(i => ({ i, usd: imageCostFor(i) }));
 
   const sum = (xs: { usd: number | null }[]) => xs.reduce((acc, x) => acc + (x.usd ?? 0), 0);
 

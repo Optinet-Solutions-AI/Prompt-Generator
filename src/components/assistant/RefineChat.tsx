@@ -7,23 +7,23 @@ import type {
   AssistantProvider,
   ChatTurn,
   GeneratedFields,
+  RefineOption,
 } from '@/lib/assistant-types';
 
-type TurnWithImage = ChatTurn & { imageUrl?: string };
+type TurnKind =
+  | { kind: 'text';    role: 'user' | 'assistant'; content: string }
+  | { kind: 'image';   role: 'assistant';          imageUrl: string }
+  | { kind: 'options'; role: 'assistant';          message: string; options: RefineOption[] };
 
 interface Props {
   token: string;
   brand: string;
   model: AssistantProvider;
-  /** Current structured fields — updated each time the user refines. */
   fields: GeneratedFields;
   /** Initial AI turn so the chat opens with context (the first generated image). */
-  initialTurns: TurnWithImage[];
-  /** Called by the chat to actually generate an image with the (possibly refined) fields. Returns the new image URL. */
+  initialTurns: { role: 'user' | 'assistant'; content: string; imageUrl?: string }[];
   onRegenerate: (fields: GeneratedFields) => Promise<string | null>;
-  /** Notified when fields are refined so the parent can sync state (e.g. for Save). */
   onFieldsRefined: (fields: GeneratedFields) => void;
-  /** Open the lightbox at the given image URL. */
   onImageClick: (url: string) => void;
 }
 
@@ -37,28 +37,38 @@ export function RefineChat({
   onFieldsRefined,
   onImageClick,
 }: Props) {
-  const [turns, setTurns] = useState<TurnWithImage[]>(initialTurns);
+  // Normalise the seed turns into the new discriminated union.
+  const [turns, setTurns] = useState<TurnKind[]>(() =>
+    initialTurns.map<TurnKind>(t =>
+      t.imageUrl
+        ? { kind: 'image', role: 'assistant', imageUrl: t.imageUrl }
+        : { kind: 'text', role: t.role, content: t.content },
+    ),
+  );
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Keep the chat scrolled to the most recent turn.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [turns]);
 
-  async function onSend() {
-    const userMessage = input.trim();
+  async function sendMessage(rawMessage: string) {
+    const userMessage = rawMessage.trim();
     if (!userMessage || busy) return;
 
     setError(null);
     setBusy(true);
 
-    // Optimistically add the user's turn to the chat.
-    const newUserTurn: TurnWithImage = { role: 'user', content: userMessage };
-    const historyForApi: ChatTurn[] = turns.map(t => ({ role: t.role, content: t.content }));
-    setTurns(prev => [...prev, newUserTurn]);
+    // Add the user's turn locally so they see it immediately.
+    const userTurn: TurnKind = { kind: 'text', role: 'user', content: userMessage };
+    // Build the chat history we send to the API: only text turns (the AI doesn't
+    // need to see image URLs or option lists in the transcript).
+    const historyForApi: ChatTurn[] = turns
+      .filter((t): t is Extract<TurnKind, { kind: 'text' }> => t.kind === 'text')
+      .map(t => ({ role: t.role, content: t.content }));
+    setTurns(prev => [...prev, userTurn]);
     setInput('');
 
     try {
@@ -71,20 +81,27 @@ export function RefineChat({
         model,
       });
 
-      // Push the AI's text reply into the chat.
-      const assistantTurn: TurnWithImage = { role: 'assistant', content: refineResult.message };
-      setTurns(prev => [...prev, assistantTurn]);
+      if (refineResult.action === 'clarify') {
+        // AI is asking a multiple-choice clarifying question instead of refining.
+        setTurns(prev => [
+          ...prev,
+          { kind: 'options', role: 'assistant', message: refineResult.message, options: refineResult.options },
+        ]);
+        return;
+      }
 
-      // Sync refined fields back to the parent (so Save uses the latest version).
+      // action === 'refine'
+      setTurns(prev => [
+        ...prev,
+        { kind: 'text', role: 'assistant', content: refineResult.message },
+      ]);
       onFieldsRefined(refineResult.refinedFields);
 
-      // Now regenerate the image using the refined positive_prompt.
       const newImageUrl = await onRegenerate(refineResult.refinedFields);
-
       if (newImageUrl) {
         setTurns(prev => [
           ...prev,
-          { role: 'assistant', content: '', imageUrl: newImageUrl },
+          { kind: 'image', role: 'assistant', imageUrl: newImageUrl },
         ]);
       }
     } catch (e) {
@@ -94,10 +111,20 @@ export function RefineChat({
     }
   }
 
+  async function onSendFromInput() {
+    await sendMessage(input);
+  }
+
+  function onPickOption(option: RefineOption) {
+    // Treat the option as the next user message. The AI will see it as a normal
+    // user reply and (usually) refine on the next round-trip.
+    void sendMessage(`${option.label}: ${option.description}`);
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSend();
+      void onSendFromInput();
     }
   }
 
@@ -106,23 +133,48 @@ export function RefineChat({
       <header className="flex items-center gap-2 border-b px-4 py-3">
         <Sparkles className="h-4 w-4 text-primary" />
         <h3 className="text-sm font-medium">Refine this image</h3>
-        <span className="ml-auto text-xs text-muted-foreground">Type a change. AI rewrites the prompt and regenerates.</span>
+        <span className="ml-auto text-xs text-muted-foreground">
+          Type a change. AI will ask when it's not sure.
+        </span>
       </header>
 
       <div ref={scrollRef} className="max-h-[480px] overflow-y-auto px-4 py-4 space-y-3">
         {turns.map((t, i) => {
-          if (t.imageUrl) {
+          if (t.kind === 'image') {
             return (
               <div key={i} className="flex">
                 <img
                   src={t.imageUrl}
                   alt={`refined v${i}`}
                   className="max-w-full cursor-zoom-in rounded border transition hover:brightness-95"
-                  onClick={() => onImageClick(t.imageUrl!)}
+                  onClick={() => onImageClick(t.imageUrl)}
                 />
               </div>
             );
           }
+          if (t.kind === 'options') {
+            return (
+              <div key={i} className="flex flex-col gap-2">
+                <div className="self-start max-w-[80%] rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed">
+                  {t.message}
+                </div>
+                <div className="flex flex-col gap-2 pl-2">
+                  {t.options.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => onPickOption(opt)}
+                      disabled={busy}
+                      className="text-left rounded-lg border bg-background px-3 py-2 transition hover:bg-accent disabled:opacity-50"
+                    >
+                      <div className="text-sm font-medium">{opt.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{opt.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          // kind === 'text'
           return (
             <div
               key={i}
@@ -157,12 +209,12 @@ export function RefineChat({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder='e.g. "I don’t want it like that — put him on a beach at sunset, shrink the rockets"'
+          placeholder='Tell me what to change ("smaller rockets", "make it nighttime"). If it could go a few ways, I’ll ask.'
           rows={2}
           className="resize-none"
           disabled={busy}
         />
-        <Button onClick={onSend} disabled={busy || !input.trim()} size="icon">
+        <Button onClick={onSendFromInput} disabled={busy || !input.trim()} size="icon">
           <Send className="h-4 w-4" />
         </Button>
       </div>

@@ -16,17 +16,36 @@ const MAX_TOKENS: Record<'openai' | 'gemini', number> = {
 
 const PERSONALITY = `You are a senior visual concept partner working with a creative director.
 You already generated a structured prompt for them. They have now seen the image and
-want to iterate. Read their feedback, acknowledge it in one short conversational sentence,
-then return updated structured prompt fields reflecting the change.
+want to iterate.
 
 Speak in first person. Be direct. No filler ("Great", "Sure", "I'd be happy to").
 Output the work, not commentary about the work.`;
 
+// Two-mode JSON output — same as how Claude / I (in this very chat) handle
+// ambiguous requests. The model picks "clarify" when the user's intent could
+// reasonably go several different ways, otherwise it picks "refine" and just
+// updates the prompt directly.
 const REFINE_JSON_SCHEMA = {
   type: 'object',
-  required: ['message', 'refinedFields'],
+  required: ['action', 'message'],
   properties: {
+    action: {
+      type: 'string',
+      enum: ['clarify', 'refine'],
+    },
     message: { type: 'string' },
+    options: {
+      type: 'array',
+      maxItems: 3,
+      items: {
+        type: 'object',
+        required: ['label', 'description'],
+        properties: {
+          label:       { type: 'string' },
+          description: { type: 'string' },
+        },
+      },
+    },
     refinedFields: {
       type: 'object',
       required: [
@@ -98,10 +117,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'CURRENT STRUCTURED PROMPT (the basis for the image the user just saw):',
     JSON.stringify(currentFields, null, 2),
     '',
-    'Return strict JSON: {"message": "...", "refinedFields": { all 8 fields }}.',
-    'message: 1-2 sentences acknowledging the change and confirming what you are adjusting.',
-    'refinedFields: every key from the current prompt, with edits applied. Keep brand rules.',
-    'positive_prompt must be a single rich paragraph the image model can use directly.',
+    'YOU HAVE TWO POSSIBLE ACTIONS:',
+    '',
+    '1) action="refine" — when the user\'s feedback is clear and specific enough',
+    '   to act on directly (e.g. "make rockets smaller", "put him on a beach",',
+    '   "change to night time"). Return:',
+    '   { action: "refine",',
+    '     message: "<1-2 sentence acknowledgement>",',
+    '     refinedFields: { all 8 keys, updated with edits applied } }',
+    '',
+    '2) action="clarify" — when the feedback is vague or could reasonably go',
+    '   multiple distinct ways (e.g. "make it better", "different vibe", "not',
+    '   what I wanted"). Return:',
+    '   { action: "clarify",',
+    '     message: "<1 short sentence framing the question>",',
+    '     options: [',
+    '       { label: "<3-6 word option name>", description: "<1 sentence>" },',
+    '       ... 2 or 3 options total, visually/conceptually distinct',
+    '     ] }',
+    '',
+    'CHOOSE INTELLIGENTLY. Don\'t ask for clarification when the intent is clear.',
+    'Don\'t just refine when the user is being vague — three options helps them think.',
+    'When refining: positive_prompt must be a single rich paragraph the image model can use directly.',
     '',
     'IMAGE-GEN SAFETY (HARD RULES — image generators reject prompts that violate these):',
     '- Never name any real person, celebrity, actor, athlete, musician, or public figure.',
@@ -133,7 +170,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await logLlmCall(auth.test_user_id, 'refine', {
       provider: model, model: chosenModel, ...result.usage,
     });
+
+    if (parsed.action === 'clarify') {
+      return res.status(200).json({
+        action: 'clarify',
+        message: parsed.message,
+        options: parsed.options ?? [],
+        usage: { provider: model, model: chosenModel, ...result.usage },
+      });
+    }
+
+    // Default to refine. Validate the fields are present.
+    if (!parsed.refinedFields) {
+      throw new Error('Model returned action=refine but no refinedFields');
+    }
     return res.status(200).json({
+      action: 'refine',
       message: parsed.message,
       refinedFields: parsed.refinedFields,
       usage: { provider: model, model: chosenModel, ...result.usage },

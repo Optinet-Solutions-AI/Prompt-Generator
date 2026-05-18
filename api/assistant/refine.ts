@@ -3,6 +3,7 @@ import { validateToken } from '../_assistant-token.js';
 import { chat } from '../_llm.js';
 import { buildBrandRules } from '../_brand-rules.js';
 import { logLlmCall } from '../_assistant-log.js';
+import { checkSpendCap } from '../_spend-cap.js';
 
 const REFINE_MODEL: Record<'openai' | 'gemini', string> = {
   openai: 'gpt-4o',

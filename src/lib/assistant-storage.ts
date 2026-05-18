@@ -3,12 +3,17 @@ import type { AssistantConcept, GeneratedFields, AssistantUsage } from './assist
 const SUPABASE_URL  = (import.meta.env.VITE_SUPABASE_URL      as string) || '';
 const SUPABASE_ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
 
-const SB_HEADERS = {
-  apikey: SUPABASE_ANON,
-  Authorization: `Bearer ${SUPABASE_ANON}`,
-  'Content-Type': 'application/json',
-  Prefer: 'return=representation',
-};
+function headersFor(token: string) {
+  return {
+    apikey: SUPABASE_ANON,
+    Authorization: `Bearer ${SUPABASE_ANON}`,
+    'Content-Type': 'application/json',
+    Prefer: 'return=representation',
+    // RLS policy on assistant_prompts requires this header to match
+    // test_user_id on the row being inserted.
+    'x-assistant-token': token,
+  };
+}
 
 export interface SaveArgs {
   test_user_id: string;

@@ -42,8 +42,21 @@ export interface ChatTurn {
   content: string;
 }
 
-export interface RefineResponse {
-  message: string;
-  refinedFields: GeneratedFields;
-  usage: AssistantUsage;
+export interface RefineOption {
+  label: string;
+  description: string;
 }
+
+export type RefineResponse =
+  | {
+      action: 'refine';
+      message: string;
+      refinedFields: GeneratedFields;
+      usage: AssistantUsage;
+    }
+  | {
+      action: 'clarify';
+      message: string;
+      options: RefineOption[];
+      usage: AssistantUsage;
+    };

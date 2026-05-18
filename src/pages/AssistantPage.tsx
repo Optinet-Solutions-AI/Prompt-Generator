@@ -61,6 +61,7 @@ export default function AssistantPage() {
       const r = await requestConcepts({ token: token!, brand, task, description, model });
       setConcepts(r.concepts);
       setRecommendation(r.recommendation);
+      recordLlmCall(token!, 'concepts', r.usage);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

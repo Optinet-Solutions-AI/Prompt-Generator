@@ -1,17 +1,35 @@
-// @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Minimal localStorage + window mocks so this test runs in the default Node env
+// without requiring jsdom. The cost-store only uses these three globals.
+const store: Map<string, string> = new Map();
+(globalThis as any).localStorage = {
+  getItem: (k: string) => store.get(k) ?? null,
+  setItem: (k: string, v: string) => { store.set(k, v); },
+  removeItem: (k: string) => { store.delete(k); },
+  clear: () => { store.clear(); },
+};
+(globalThis as any).window = {
+  dispatchEvent: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+};
+if (!(globalThis as any).crypto?.randomUUID) {
+  (globalThis as any).crypto = { randomUUID: () => Math.random().toString(36).slice(2) + Date.now() };
+}
+
+const {
   recordLlmCall,
   recordImageGen,
   getCostEntries,
   clearCostEntries,
-} from './cost-store';
+} = await import('./cost-store');
 
 describe('cost-store', () => {
   const USER = 'tester-her-x9k2';
 
   beforeEach(() => {
-    clearCostEntries(USER);
+    store.clear();
   });
 
   it('records and reads LLM calls scoped by test_user_id', () => {

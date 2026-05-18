@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
-import {
-  getCostEntries,
-  subscribeCostStore,
-  type CostEntry,
-  type LlmCallEntry,
-  type ImageGenEntry,
-} from '@/lib/cost-store';
 
-/** Backwards-compatible reshape so the existing CostTrackerPanel keeps working. */
+const SUPABASE_URL  = (import.meta.env.VITE_SUPABASE_URL      as string) || '';
+const SUPABASE_ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+
+const SB_HEADERS = {
+  apikey: SUPABASE_ANON,
+  Authorization: `Bearer ${SUPABASE_ANON}`,
+};
+
 export interface LlmCall {
   id: string;
   created_at: string;
+  step: string | null;
   provider: string | null;
   model: string | null;
   input_tokens: number | null;
@@ -26,45 +27,69 @@ export interface ImageGen {
   size: string | null;
   quality: string | null;
   image_count: number;
-  cost_usd: number | null;   // unused in browser-only mode; image cost is computed on read
+  cost_usd: number | null;
 }
 
-function isLlm(e: CostEntry): e is LlmCallEntry { return e.kind === 'llm'; }
-function isImg(e: CostEntry): e is ImageGenEntry { return e.kind === 'image'; }
-
 export function useCostTracker(testUserId: string) {
-  const [entries, setEntries] = useState<CostEntry[]>(() => getCostEntries(testUserId));
+  const [llm, setLlm] = useState<LlmCall[]>([]);
+  const [images, setImages] = useState<ImageGen[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    // Re-read on mount in case entries landed before the hook subscribed.
-    setEntries(getCostEntries(testUserId));
-    const unsub = subscribeCostStore(() => setEntries(getCostEntries(testUserId)));
-    return unsub;
-  }, [testUserId]);
+    let cancelled = false;
 
-  // Newest-first to match the existing panel order.
-  const sorted = [...entries].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    async function load() {
+      if (!SUPABASE_URL || !SUPABASE_ANON) {
+        setLoadError('VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY missing');
+        return;
+      }
+      try {
+        const llmQs = new URLSearchParams({
+          select: 'id,created_at,step,provider,model,input_tokens,cached_input_tokens,output_tokens',
+          test_user_id: `eq.${testUserId}`,
+          order: 'created_at.desc',
+          limit: '100',
+        });
+        const imgQs = new URLSearchParams({
+          select: 'id,created_at,provider,model,size,quality,image_count,cost_usd',
+          test_user_id: `eq.${testUserId}`,
+          order: 'created_at.desc',
+          limit: '100',
+        });
+        const [lRes, iRes] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/assistant_llm_calls?${llmQs}`, { headers: SB_HEADERS }),
+          fetch(`${SUPABASE_URL}/rest/v1/assistant_image_gens?${imgQs}`, { headers: SB_HEADERS }),
+        ]);
+        if (!lRes.ok) throw new Error(`LLM fetch ${lRes.status}: ${await lRes.text()}`);
+        if (!iRes.ok) throw new Error(`Image gens fetch ${iRes.status}: ${await iRes.text()}`);
+        const l = (await lRes.json()) as LlmCall[];
+        const i = (await iRes.json()) as ImageGen[];
+        if (cancelled) return;
+        setLlm(l);
+        setImages(i);
+        setLoadError(null);
+      } catch (e) {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e));
+      }
+    }
 
-  const llm: LlmCall[] = sorted.filter(isLlm).map(e => ({
-    id: e.id,
-    created_at: e.created_at,
-    provider: e.provider,
-    model: e.model,
-    input_tokens: e.input_tokens,
-    cached_input_tokens: e.cached_input_tokens,
-    output_tokens: e.output_tokens,
-  }));
+    load();
 
-  const images: ImageGen[] = sorted.filter(isImg).map(e => ({
-    id: e.id,
-    created_at: e.created_at,
-    provider: e.provider,
-    model: e.model,
-    size: e.size,
-    quality: e.quality,
-    image_count: e.image_count,
-    cost_usd: null,
-  }));
+    // Auto-refresh every 10s so newly-logged calls land in the tracker
+    // without the user having to close/reopen the panel.
+    const interval = setInterval(load, 10_000);
 
-  return { llm, images, loadError: null as string | null };
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [testUserId, refreshKey]);
+
+  return {
+    llm,
+    images,
+    loadError,
+    refresh: () => setRefreshKey(k => k + 1),
+  };
 }

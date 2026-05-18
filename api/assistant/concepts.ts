@@ -43,6 +43,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const parsed = JSON.parse(result.text);
+    await logLlmCall(auth.test_user_id, 'concepts', {
+      provider: model, model: chosenModel, ...result.usage,
+    });
     return res.status(200).json({
       concepts: parsed.concepts,
       recommendation: parsed.recommendation,

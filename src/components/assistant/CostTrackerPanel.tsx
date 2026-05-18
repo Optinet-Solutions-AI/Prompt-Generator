@@ -1,8 +1,8 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Wallet } from 'lucide-react';
-import { useCostTracker, type LlmCall } from '@/hooks/useCostTracker';
-import { LLM_PRICING, computeLlmCost } from '@/lib/pricing';
+import { useCostTracker, type LlmCall, type ImageGen } from '@/hooks/useCostTracker';
+import { LLM_PRICING, computeLlmCost, computeImageCost } from '@/lib/pricing';
 
 function llmCostFor(c: LlmCall): number | null {
   if (!c.model || c.input_tokens === null || c.output_tokens === null) return null;
@@ -11,6 +11,13 @@ function llmCostFor(c: LlmCall): number | null {
     cached_input_tokens: c.cached_input_tokens ?? 0,
     output_tokens: c.output_tokens,
   });
+}
+
+function imageCostFor(i: ImageGen): number | null {
+  // Prefer the cost_usd that was computed and stored at write time. If absent
+  // (older rows or backend couldn't price it), recompute from pricing.ts.
+  if (i.cost_usd !== null && i.cost_usd !== undefined) return Number(i.cost_usd);
+  return computeImageCost(i.provider, i.size, i.quality, i.image_count ?? 1);
 }
 
 function isToday(iso: string) {

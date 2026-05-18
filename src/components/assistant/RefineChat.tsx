@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, RotateCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Send, RotateCw } from 'lucide-react';
 import { requestRefine } from '@/lib/assistant-client';
 import type {
   AssistantProvider,
@@ -20,7 +18,6 @@ interface Props {
   brand: string;
   model: AssistantProvider;
   fields: GeneratedFields;
-  /** Initial AI turn so the chat opens with context (the first generated image). */
   initialTurns: { role: 'user' | 'assistant'; content: string; imageUrl?: string }[];
   onRegenerate: (fields: GeneratedFields) => Promise<string | null>;
   onFieldsRefined: (fields: GeneratedFields) => void;
@@ -37,7 +34,6 @@ export function RefineChat({
   onFieldsRefined,
   onImageClick,
 }: Props) {
-  // Normalise the seed turns into the new discriminated union.
   const [turns, setTurns] = useState<TurnKind[]>(() =>
     initialTurns.map<TurnKind>(t =>
       t.imageUrl
@@ -61,10 +57,7 @@ export function RefineChat({
     setError(null);
     setBusy(true);
 
-    // Add the user's turn locally so they see it immediately.
     const userTurn: TurnKind = { kind: 'text', role: 'user', content: userMessage };
-    // Build the chat history we send to the API: only text turns (the AI doesn't
-    // need to see image URLs or option lists in the transcript).
     const historyForApi: ChatTurn[] = turns
       .filter((t): t is Extract<TurnKind, { kind: 'text' }> => t.kind === 'text')
       .map(t => ({ role: t.role, content: t.content }));
@@ -82,7 +75,6 @@ export function RefineChat({
       });
 
       if (refineResult.action === 'clarify') {
-        // AI is asking a multiple-choice clarifying question instead of refining.
         setTurns(prev => [
           ...prev,
           { kind: 'options', role: 'assistant', message: refineResult.message, options: refineResult.options },
@@ -90,7 +82,6 @@ export function RefineChat({
         return;
       }
 
-      // action === 'refine'
       setTurns(prev => [
         ...prev,
         { kind: 'text', role: 'assistant', content: refineResult.message },
@@ -111,137 +102,140 @@ export function RefineChat({
     }
   }
 
-  async function onSendFromInput() {
-    await sendMessage(input);
+  function onPickOption(option: RefineOption) {
+    void sendMessage(`${option.label}: ${option.description}`);
   }
 
-  function onPickOption(option: RefineOption) {
-    // Treat the option as the next user message. The AI will see it as a normal
-    // user reply and (usually) refine on the next round-trip.
-    void sendMessage(`${option.label}: ${option.description}`);
+  async function onRegenSame() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const url = await onRegenerate(fields);
+      if (url) {
+        setTurns(prev => [
+          ...prev,
+          { kind: 'text', role: 'assistant', content: 'Same brief, fresh roll.' },
+          { kind: 'image', role: 'assistant', imageUrl: url },
+        ]);
+      }
+    } finally {
+      setBusy(false);
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      void onSendFromInput();
+      void sendMessage(input);
     }
   }
 
   return (
-    <section className="mt-6 rounded-lg border bg-card">
-      <header className="flex items-center gap-2 border-b px-4 py-3">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-medium">Refine this image</h3>
-        <span className="ml-auto text-xs text-muted-foreground hidden md:inline">
-          Type a change. AI will ask when it's not sure.
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={async () => {
-            if (busy) return;
-            setBusy(true);
-            try {
-              const url = await onRegenerate(fields);
-              if (url) {
-                setTurns(prev => [
-                  ...prev,
-                  { kind: 'text', role: 'assistant', content: 'Same prompt, fresh roll.' },
-                  { kind: 'image', role: 'assistant', imageUrl: url },
-                ]);
-              }
-            } finally {
-              setBusy(false);
-            }
-          }}
+    <section className="ax-card overflow-hidden">
+      {/* Header — director's slate */}
+      <header className="flex items-center gap-3 border-b border-[var(--ax-line)] px-6 py-4">
+        <div className="ax-reactor" style={{ width: 18, height: 18 }} aria-hidden />
+        <div className="flex-1">
+          <span className="ax-eyebrow" style={{ fontSize: 10 }}>The shoot</span>
+          <h3 className="text-sm font-medium text-[var(--ax-ink)] mt-0.5">Refine in chat</h3>
+        </div>
+        <button
+          onClick={onRegenSame}
           disabled={busy}
-          title="Re-roll the same prompt"
+          className="ax-btn-ghost"
+          title="Re-roll with the same brief"
         >
-          <RotateCw className={`h-4 w-4 mr-1 ${busy ? 'animate-spin' : ''}`} />
-          Regenerate
-        </Button>
+          <RotateCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+          Re-roll
+        </button>
       </header>
 
-      <div ref={scrollRef} className="max-h-[480px] overflow-y-auto px-4 py-4 space-y-3">
+      {/* Chat body */}
+      <div ref={scrollRef} className="ax-chat px-6 py-6 max-h-[640px] overflow-y-auto">
         {turns.map((t, i) => {
           if (t.kind === 'image') {
             return (
-              <div key={i} className="flex">
-                <img
-                  src={t.imageUrl}
-                  alt={`refined v${i}`}
-                  className="max-w-full cursor-zoom-in rounded border transition hover:brightness-95"
-                  onClick={() => onImageClick(t.imageUrl)}
-                />
+              <div
+                key={i}
+                className="ax-image-frame ax-fade-up self-stretch"
+                onClick={() => onImageClick(t.imageUrl)}
+                role="button"
+                tabIndex={0}
+              >
+                <span className="ax-image-corner tl" aria-hidden />
+                <span className="ax-image-corner tr" aria-hidden />
+                <span className="ax-image-corner bl" aria-hidden />
+                <span className="ax-image-corner br" aria-hidden />
+                <img src={t.imageUrl} alt={`Generated frame v${i}`} />
               </div>
             );
           }
           if (t.kind === 'options') {
             return (
-              <div key={i} className="flex flex-col gap-2">
-                <div className="self-start max-w-[80%] rounded-lg bg-muted px-3 py-2 text-sm leading-relaxed">
-                  {t.message}
-                </div>
-                <div className="flex flex-col gap-2 pl-2">
+              <div key={i} className="ax-fade-up space-y-3">
+                <div className="ax-bubble-ai">{t.message}</div>
+                <div className="space-y-2 pl-3">
                   {t.options.map((opt, idx) => (
                     <button
                       key={idx}
                       onClick={() => onPickOption(opt)}
                       disabled={busy}
-                      className="text-left rounded-lg border bg-background px-3 py-2 transition hover:bg-accent disabled:opacity-50"
+                      className="ax-option-chip"
                     >
-                      <div className="text-sm font-medium">{opt.label}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{opt.description}</div>
+                      <span className="ax-option-label">{opt.label}</span>
+                      <span className="ax-option-desc">{opt.description}</span>
                     </button>
                   ))}
                 </div>
               </div>
             );
           }
-          // kind === 'text'
           return (
             <div
               key={i}
-              className={`flex ${t.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`ax-fade-up ${t.role === 'user' ? 'self-end' : 'self-start'}`}
+              style={{ alignSelf: t.role === 'user' ? 'flex-end' : 'flex-start' }}
             >
-              <div
-                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
-                  t.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground'
-                }`}
-              >
+              <div className={t.role === 'user' ? 'ax-bubble-user' : 'ax-bubble-ai'}>
                 {t.content}
               </div>
             </div>
           );
         })}
         {busy && (
-          <div className="flex justify-start">
-            <div className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-              Thinking…
-            </div>
+          <div className="self-start ax-bubble-ai">
+            <span className="ax-thinking">
+              <span className="ax-thinking-dot" />
+              <span className="ax-thinking-dot" />
+              <span className="ax-thinking-dot" />
+              Composing…
+            </span>
           </div>
         )}
-        {error && (
-          <p className="text-xs text-destructive">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-400">{error}</p>}
       </div>
 
-      <div className="flex items-end gap-2 border-t px-4 py-3">
-        <Textarea
+      {/* Composer */}
+      <div className="border-t border-[var(--ax-line)] px-6 py-4 flex items-end gap-3">
+        <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder='Tell me what to change ("smaller rockets", "make it nighttime"). If it could go a few ways, I’ll ask.'
+          placeholder='Tell me what to change. "Put him on a beach", "more dramatic", "shrink the rockets"…'
           rows={2}
-          className="resize-none"
+          className="ax-textarea"
           disabled={busy}
+          style={{ minHeight: 56 }}
         />
-        <Button onClick={onSendFromInput} disabled={busy || !input.trim()} size="icon">
+        <button
+          onClick={() => void sendMessage(input)}
+          disabled={busy || !input.trim()}
+          className="ax-btn-primary"
+          style={{ padding: '14px 18px' }}
+          aria-label="Send"
+        >
           <Send className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
     </section>
   );

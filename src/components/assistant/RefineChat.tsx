@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, RotateCw } from 'lucide-react';
+import { Send, RotateCw, Sparkles, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { requestRefine } from '@/lib/assistant-client';
 import type {
   AssistantProvider,
@@ -25,14 +28,7 @@ interface Props {
 }
 
 export function RefineChat({
-  token,
-  brand,
-  model,
-  fields,
-  initialTurns,
-  onRegenerate,
-  onFieldsRefined,
-  onImageClick,
+  token, brand, model, fields, initialTurns, onRegenerate, onFieldsRefined, onImageClick,
 }: Props) {
   const [turns, setTurns] = useState<TurnKind[]>(() =>
     initialTurns.map<TurnKind>(t =>
@@ -53,7 +49,6 @@ export function RefineChat({
   async function sendMessage(rawMessage: string) {
     const userMessage = rawMessage.trim();
     if (!userMessage || busy) return;
-
     setError(null);
     setBusy(true);
 
@@ -66,12 +61,7 @@ export function RefineChat({
 
     try {
       const refineResult = await requestRefine({
-        token,
-        brand,
-        currentFields: fields,
-        chatHistory: historyForApi,
-        userMessage,
-        model,
+        token, brand, currentFields: fields, chatHistory: historyForApi, userMessage, model,
       });
 
       if (refineResult.action === 'clarify') {
@@ -114,7 +104,7 @@ export function RefineChat({
       if (url) {
         setTurns(prev => [
           ...prev,
-          { kind: 'text', role: 'assistant', content: 'Same brief, fresh roll.' },
+          { kind: 'text', role: 'assistant', content: 'Same prompt, fresh roll.' },
           { kind: 'image', role: 'assistant', imageUrl: url },
         ]);
       }
@@ -131,112 +121,95 @@ export function RefineChat({
   }
 
   return (
-    <section className="ax-card overflow-hidden">
-      {/* Header — director's slate */}
-      <header className="flex items-center gap-3 border-b border-[var(--ax-line)] px-6 py-4">
-        <div className="ax-reactor" style={{ width: 18, height: 18 }} aria-hidden />
-        <div className="flex-1">
-          <span className="ax-eyebrow" style={{ fontSize: 10 }}>The shoot</span>
-          <h3 className="text-sm font-medium text-[var(--ax-ink)] mt-0.5">Refine in chat</h3>
-        </div>
-        <button
-          onClick={onRegenSame}
-          disabled={busy}
-          className="ax-btn-ghost"
-          title="Re-roll with the same brief"
-        >
-          <RotateCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+    <Card className="shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <MessageSquare className="w-4 h-4 text-primary" />
+          Refine in chat
+        </CardTitle>
+        <Button variant="outline" size="sm" onClick={onRegenSame} disabled={busy} className="gap-2">
+          <RotateCw className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
           Re-roll
-        </button>
-      </header>
+        </Button>
+      </CardHeader>
 
-      {/* Chat body */}
-      <div ref={scrollRef} className="ax-chat px-6 py-6 max-h-[640px] overflow-y-auto">
-        {turns.map((t, i) => {
-          if (t.kind === 'image') {
+      <CardContent className="space-y-4 px-0">
+        <div ref={scrollRef} className="max-h-[560px] overflow-y-auto px-6 space-y-3">
+          {turns.map((t, i) => {
+            if (t.kind === 'image') {
+              return (
+                <div key={i} className="flex">
+                  <img
+                    src={t.imageUrl}
+                    alt={`refined v${i}`}
+                    onClick={() => onImageClick(t.imageUrl)}
+                    className="rounded-lg border border-border shadow-md cursor-zoom-in max-w-full transition hover:shadow-lg"
+                  />
+                </div>
+              );
+            }
+            if (t.kind === 'options') {
+              return (
+                <div key={i} className="space-y-2">
+                  <div className="bg-muted text-foreground rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[85%] text-sm leading-relaxed inline-flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <span>{t.message}</span>
+                  </div>
+                  <div className="space-y-2 ml-6">
+                    {t.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => onPickOption(opt)}
+                        disabled={busy}
+                        className="text-left w-full rounded-lg border bg-background hover:bg-accent hover:border-primary/30 disabled:opacity-50 px-4 py-3 transition-colors"
+                      >
+                        <div className="font-medium text-sm">{opt.label}</div>
+                        <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{opt.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
             return (
-              <div
-                key={i}
-                className="ax-image-frame ax-fade-up self-stretch"
-                onClick={() => onImageClick(t.imageUrl)}
-                role="button"
-                tabIndex={0}
-              >
-                <span className="ax-image-corner tl" aria-hidden />
-                <span className="ax-image-corner tr" aria-hidden />
-                <span className="ax-image-corner bl" aria-hidden />
-                <span className="ax-image-corner br" aria-hidden />
-                <img src={t.imageUrl} alt={`Generated frame v${i}`} />
-              </div>
-            );
-          }
-          if (t.kind === 'options') {
-            return (
-              <div key={i} className="ax-fade-up space-y-3">
-                <div className="ax-bubble-ai">{t.message}</div>
-                <div className="space-y-2 pl-3">
-                  {t.options.map((opt, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => onPickOption(opt)}
-                      disabled={busy}
-                      className="ax-option-chip"
-                    >
-                      <span className="ax-option-label">{opt.label}</span>
-                      <span className="ax-option-desc">{opt.description}</span>
-                    </button>
-                  ))}
+              <div key={i} className={`flex ${t.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    t.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-br-sm'
+                      : 'bg-muted text-foreground rounded-bl-sm'
+                  }`}
+                >
+                  {t.content}
                 </div>
               </div>
             );
-          }
-          return (
-            <div
-              key={i}
-              className={`ax-fade-up ${t.role === 'user' ? 'self-end' : 'self-start'}`}
-              style={{ alignSelf: t.role === 'user' ? 'flex-end' : 'flex-start' }}
-            >
-              <div className={t.role === 'user' ? 'ax-bubble-user' : 'ax-bubble-ai'}>
-                {t.content}
+          })}
+          {busy && (
+            <div className="flex">
+              <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm text-muted-foreground italic">
+                Thinking…
               </div>
             </div>
-          );
-        })}
-        {busy && (
-          <div className="self-start ax-bubble-ai">
-            <span className="ax-thinking">
-              <span className="ax-thinking-dot" />
-              <span className="ax-thinking-dot" />
-              <span className="ax-thinking-dot" />
-              Composing…
-            </span>
-          </div>
-        )}
-        {error && <p className="text-xs text-red-400">{error}</p>}
-      </div>
+          )}
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
 
-      {/* Composer */}
-      <div className="border-t border-[var(--ax-line)] px-6 py-4 flex items-end gap-3">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder='Tell me what to change. "Put him on a beach", "more dramatic", "shrink the rockets"…'
-          rows={2}
-          className="ax-textarea"
-          disabled={busy}
-          style={{ minHeight: 56 }}
-        />
-        <button
-          onClick={() => void sendMessage(input)}
-          disabled={busy || !input.trim()}
-          className="ax-btn-primary"
-          style={{ padding: '14px 18px' }}
-          aria-label="Send"
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </div>
-    </section>
+        <div className="border-t flex items-end gap-2 px-6 pt-4">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder='Tell me what to change. ("Smaller rockets", "make it nighttime", or just "different vibe" — I’ll ask if I’m not sure.)'
+            rows={2}
+            className="resize-none"
+            disabled={busy}
+          />
+          <Button onClick={() => void sendMessage(input)} disabled={busy || !input.trim()} size="icon" aria-label="Send">
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

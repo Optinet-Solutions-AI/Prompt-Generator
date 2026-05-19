@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Bookmark } from 'lucide-react';
 
 const SUPABASE_URL  = (import.meta.env.VITE_SUPABASE_URL      as string) || '';
 const SUPABASE_ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
@@ -48,30 +50,34 @@ export function SavedPromptsPanel({ testUserId }: { testUserId: string }) {
     load();
   }, [testUserId]);
 
-  if (error) return <p className="mt-12 text-xs text-red-400">{error}</p>;
+  if (error) return <p className="mt-12 text-sm text-destructive">{error}</p>;
   if (rows.length === 0) return null;
 
   return (
-    <section className="mt-20 ax-fade-up">
-      <div className="mb-6">
-        <span className="ax-eyebrow">Your archive</span>
-        <h2 className="ax-display text-3xl mt-1">Saved frames.</h2>
+    <section className="mt-12">
+      <div className="flex items-center gap-2 mb-4">
+        <Bookmark className="w-5 h-5 text-primary" />
+        <h2 className="text-2xl font-semibold">Your saved prompts</h2>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {rows.map(r => (
-          <article key={r.id} className="ax-card p-5 hover:border-[var(--ax-gold)] transition-colors">
-            <span className="ax-eyebrow" style={{ fontSize: 10 }}>
-              {r.brand} · {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-            </span>
-            <h3 className="ax-display text-lg mt-2 leading-tight text-[var(--ax-ink)]">
-              {r.picked_concept?.title ?? r.task}
-            </h3>
+          <Card key={r.id} className="hover:shadow-md hover:border-primary/30 transition-all">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                {r.brand} · {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </div>
+              <CardTitle className="text-base leading-snug">
+                {r.picked_concept?.title ?? r.task}
+              </CardTitle>
+            </CardHeader>
             {r.picked_concept?.description && (
-              <p className="text-xs text-[var(--ax-ink-dim)] mt-2 leading-relaxed line-clamp-3">
-                {r.picked_concept.description}
-              </p>
+              <CardContent>
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                  {r.picked_concept.description}
+                </p>
+              </CardContent>
             )}
-          </article>
+          </Card>
         ))}
       </div>
     </section>

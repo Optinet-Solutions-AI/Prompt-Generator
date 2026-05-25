@@ -36,6 +36,7 @@ const Index = () => {
     handlePromptChange,
     handleMetadataChange,
     handleAddGeneratedImage,
+    handleAppendEditedImage,
     handleRemoveGeneratedImage,
     handleSubmitWithData,
   } = usePromptGenerator();

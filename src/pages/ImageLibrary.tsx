@@ -279,8 +279,8 @@ function SaveEditedModal({
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4">
           <div>
-            <h2 className="text-white font-semibold text-base">Save Edited Image</h2>
-            <p className="text-white/40 text-sm mt-0.5">Choose how to save your edit</p>
+            <h2 className="text-white font-semibold text-base">Save edit to library</h2>
+            <p className="text-white/40 text-sm mt-0.5">The original stays in the library — your edit is added as a new entry.</p>
           </div>
           <button onClick={onClose} disabled={isSaving}
             className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/50 transition-colors ml-3 mt-0.5">
@@ -299,36 +299,15 @@ function SaveEditedModal({
           </div>
         </div>
 
-        {/* Option buttons */}
-        <div className="px-6 pb-4 grid grid-cols-2 gap-3">
-          {/* Replace original */}
-          <button
-            onClick={handleReplace}
-            disabled={isSaving}
-            className="flex flex-col items-center gap-3 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-amber-500/10 hover:border-amber-500/35 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
-          >
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center group-hover:bg-amber-500/25 transition-colors self-start">
-              <RefreshCw className="w-4.5 h-4.5 text-amber-400" style={{ width: 18, height: 18 }} />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-xs leading-tight">Replace Original</p>
-              <p className="text-white/40 text-[10px] mt-1 leading-relaxed">Overwrites the current image in the library</p>
-            </div>
-          </button>
-
-          {/* Save as new */}
+        {/* Single Save action — always saves as a new entry, original is preserved */}
+        <div className="px-6 pb-4">
           <button
             onClick={handleSaveNew}
             disabled={isSaving}
-            className="flex flex-col items-center gap-3 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-primary/10 hover:border-primary/35 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-primary/35 bg-primary/10 hover:bg-primary/20 hover:border-primary/55 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors self-start">
-              <Plus className="w-4.5 h-4.5 text-primary" style={{ width: 18, height: 18 }} />
-            </div>
-            <div>
-              <p className="text-white font-semibold text-xs leading-tight">Save as New</p>
-              <p className="text-white/40 text-[10px] mt-1 leading-relaxed">Keeps the original and adds a new entry</p>
-            </div>
+            <Plus className="w-4 h-4 text-primary" />
+            <span className="text-white font-semibold text-sm">Save edit</span>
           </button>
         </div>
 

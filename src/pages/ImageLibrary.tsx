@@ -703,13 +703,6 @@ function Lightbox({
     }
   };
 
-  const handleReplaced = (updated: GeneratedImage) => {
-    setShowSaveModal(false);
-    setEditedImgUrl(null);
-    setEditInstructions('');
-    onImageUpdated(image.id, updated);
-  };
-
   const handleSavedNew = (newImg: GeneratedImage) => {
     setShowSaveModal(false);
     setEditedImgUrl(null);

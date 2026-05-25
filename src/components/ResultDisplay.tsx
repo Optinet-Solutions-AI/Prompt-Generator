@@ -315,16 +315,27 @@ export function ResultDisplay({
     setEditablePrompt(prompt);
   }, [prompt]);
 
-  // Called when an image is edited inside the modal — tracks the new URL so the
-  // thumbnail strip shows the edited version even after the modal closes.
+  // Called when an image is edited inside the modal. Appends the edited
+  // version as a brand-new tile so the ORIGINAL stays visible alongside it —
+  // user can see both versions side-by-side. ImageModal has already auto-saved
+  // the edit to the Image Library; onAppendEditedImage skips the save to avoid
+  // duplicating the entry.
   const handleImageUpdated = useCallback((newDisplay: string, newEdit: string, imageId?: string) => {
     if (!imageId) return;
-    setImageUpdates(prev => {
-      const next = new Map(prev);
-      next.set(imageId, { displayUrl: newDisplay, editUrl: newEdit });
-      return next;
+    // imageId format: `${provider}-${originalIndex}-${displayUrl}`
+    const m = imageId.match(/^(chatgpt|gemini)-(\d+)-(.+)$/);
+    if (!m) return;
+    const provider = m[1] as 'chatgpt' | 'gemini';
+    const idx = parseInt(m[2], 10);
+    const original = generatedImages[provider]?.[idx];
+    if (!original) return;
+    onAppendEditedImage?.(provider, {
+      displayUrl:     newDisplay,
+      editUrl:        newEdit,
+      referenceLabel: original.referenceLabel,
+      generatedBrand: original.generatedBrand,
     });
-  }, []);
+  }, [generatedImages, onAppendEditedImage]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(editablePrompt);

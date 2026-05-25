@@ -104,14 +104,17 @@ async function uploadImageToDrive(params: {
 const BRAND_STYLES: Record<string, string> = {
   roosterbet:
     '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
-    'A single unified body of fire MUST wrap around and engulf the subject ' +
-    '(athlete and ball) as one continuous burning aura — the fire conforms to ' +
-    'their silhouette, embracing their form like an outer layer of flame. ' +
-    'The subject must look like the SOURCE of the fire — as if they themselves ' +
-    'are burning from within — with the flame reading as ONE explosive mass, ' +
-    'NOT multiple separate fire streams, NOT scattered jets, NOT individual ' +
-    'flame trails from limbs. Embers and glowing heat shimmer may radiate ' +
-    'outward, but the core fire body is one integrated, character-hugging flame.',
+    'Fire MUST come FROM the player and FROM the ball — the player is the ' +
+    'source of the fire, with flames emerging from their body and engulfing ' +
+    'them, AND the ball must be on fire as part of the same continuous burning ' +
+    'mass. The fire MUST attach to the player and the ball — NOT to the ' +
+    'stadium, NOT to the floor, NOT to the background. Render this fire as ' +
+    'ONE unified wrapping flame around the player and ball — one continuous ' +
+    'connected burning body, NOT multiple separate fire jets, NOT scattered ' +
+    'streams from limbs, NOT background-only flames detached from the subject. ' +
+    'The flame conforms to the player\'s silhouette and ignites the ball as ' +
+    'part of the same fire. Embers and heat shimmer may radiate outward, but ' +
+    'the core fire body lives ON the player and ball, as one integrated flame.',
   fortuneplay:
     '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
     'Luxurious aesthetics are required: prominent gold accents, warm gold lighting, and floating gold dust particles ' +

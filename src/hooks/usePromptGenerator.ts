@@ -359,6 +359,7 @@ export function usePromptGenerator() {
     handlePromptChange,
     handleMetadataChange,
     handleAddGeneratedImage,
+    handleAppendEditedImage,
     handleRemoveGeneratedImage,
     handleSubmitWithData,
   };

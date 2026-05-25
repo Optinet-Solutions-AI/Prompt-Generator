@@ -77,6 +77,7 @@ export function ResultDisplay({
   onPromptChange,
   onMetadataChange,
   onAddGeneratedImage,
+  onAppendEditedImage,
   onRemoveGeneratedImage,
   persistedVariations: persistedVariationsProp = [],
   onVariationsChange,

@@ -1237,7 +1237,6 @@ function Lightbox({
         <SaveEditedModal
           editedUrl={editedImgUrl}
           original={image}
-          onReplaced={handleReplaced}
           onSavedNew={handleSavedNew}
           onClose={() => setShowSaveModal(false)}
         />

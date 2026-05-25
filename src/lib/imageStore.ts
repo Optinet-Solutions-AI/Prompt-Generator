@@ -107,25 +107,3 @@ export function deleteStoredImage(id: string): void {
   saveAll(loadAll().filter(i => i.id !== id));
 }
 
-/** Overwrite an existing image's URL in-place (for "Replace Original" edits). */
-export function replaceStoredImage(
-  id: string,
-  editedUrl: string,
-  original: StoredImage
-): StoredImage {
-  const images = loadAll();
-  const idx    = images.findIndex(i => i.id === id);
-  const updated: StoredImage = {
-    ...original,
-    public_url: editedUrl,
-    provider:   'edit',
-    filename:   `edited-${Date.now()}.png`,
-  };
-  if (idx !== -1) {
-    images[idx] = updated;
-  } else {
-    images.unshift(updated); // Fallback: prepend if not found
-  }
-  saveAll(images);
-  return updated;
-}

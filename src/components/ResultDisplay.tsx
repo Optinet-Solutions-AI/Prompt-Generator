@@ -981,8 +981,8 @@ export function ResultDisplay({
                               </span>
                             </div>
                           )}
-                          {/* Edited badge — shown when this image has been edited in the modal */}
-                          {update && (
+                          {/* Edited badge — this tile is an in-modal edit of an earlier image */}
+                          {img.isEdit && (
                             <div className="absolute bottom-1 right-1 z-10">
                               <span className="bg-amber-500/90 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded">
                                 Edited

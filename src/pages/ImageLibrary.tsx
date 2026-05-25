@@ -240,31 +240,19 @@ function DeleteConfirm({ onConfirm, onCancel, isDeleting }: {
 function SaveEditedModal({
   editedUrl,
   original,
-  onReplaced,
   onSavedNew,
   onClose,
 }: {
   editedUrl: string;
   original: GeneratedImage;
-  onReplaced: (updated: GeneratedImage) => void;
   onSavedNew: (newImg: GeneratedImage) => void;
   onClose: () => void;
 }) {
   const [isSaving,   setIsSaving]   = useState(false);
   const [saveError,  setSaveError]  = useState<string | null>(null);
 
-  const handleReplace = async () => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const updated = await replaceImage(original.id, editedUrl, original);
-      onReplaced(updated);
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to save');
-      setIsSaving(false);
-    }
-  };
-
+  // Edits are always saved as a new library entry — the original is never
+  // overwritten, so both versions stay viewable side-by-side in the library.
   const handleSaveNew = async () => {
     setIsSaving(true);
     setSaveError(null);

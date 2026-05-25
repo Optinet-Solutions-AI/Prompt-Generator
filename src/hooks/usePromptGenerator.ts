@@ -258,6 +258,16 @@ export function usePromptGenerator() {
     });
   }, [promptMetadata]);
 
+  // Append an edited image as a NEW tile to the result-view gallery without
+  // touching the original tile. ImageModal already auto-saved the edit to
+  // localStorage, so we skip saveImageToLibrary here to avoid duplicating it.
+  const handleAppendEditedImage = useCallback((provider: 'chatgpt' | 'gemini', image: { displayUrl: string; editUrl: string; referenceLabel: string; generatedBrand: string }) => {
+    setGeneratedImages(prev => ({
+      ...prev,
+      [provider]: [...prev[provider], { ...image, provider, isEdit: true }]
+    }));
+  }, []);
+
   const handleRemoveGeneratedImage = useCallback((provider: 'chatgpt' | 'gemini', index: number) => {
     setGeneratedImages(prev => ({
       ...prev,

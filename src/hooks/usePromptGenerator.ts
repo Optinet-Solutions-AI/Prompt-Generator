@@ -98,6 +98,9 @@ export type GeneratedImage = {
   referenceLabel: string;
   provider: 'chatgpt' | 'gemini';
   generatedBrand: string;
+  // True when this tile was created from an in-modal edit of another image.
+  // Render an "Edited" badge so the user can tell originals and edits apart.
+  isEdit?: boolean;
 };
 
 export type GeneratedImages = { 

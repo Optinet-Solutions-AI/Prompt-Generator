@@ -187,12 +187,6 @@ export function ResultDisplay({
   const [refSaveError, setRefSaveError] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  // Clear image-edit overrides whenever a fresh set of images is generated.
-  // NOTE: persistedVariations is owned by Index.tsx — do NOT clear it here.
-  useEffect(() => {
-    setImageUpdates(new Map());
-  }, [generatedImages]);
-
   const handleSaveAsRef = async () => {
     if (!refTitle.trim()) { setRefSaveError('Please enter a title.'); return; }
     if (!metadata) return;

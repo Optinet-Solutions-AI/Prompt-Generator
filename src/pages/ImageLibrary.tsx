@@ -32,7 +32,7 @@ interface GeneratedImage {
 }
 
 import { BRANDS } from '@/types/prompt';
-import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, replaceStoredImage, storeImage } from '@/lib/imageStore';
+import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, storeImage } from '@/lib/imageStore';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
 import { getBrandOverlayUrl } from '@/lib/brandOverlays';
 import {

@@ -272,6 +272,7 @@ const Index = () => {
                       onPromptChange={handlePromptChange}
                       onMetadataChange={handleMetadataChange}
                       onAddGeneratedImage={handleAddGeneratedImage}
+                      onAppendEditedImage={handleAppendEditedImage}
                       onRemoveGeneratedImage={handleRemoveGeneratedImage}
                       onOpenFavorites={() => setShowLikedPanel(true)}
                       persistedVariations={persistedVariations}

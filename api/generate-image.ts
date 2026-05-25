@@ -104,9 +104,14 @@ async function uploadImageToDrive(params: {
 const BRAND_STYLES: Record<string, string> = {
   roosterbet:
     '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
-    'Intense fire elements and flames MUST be clearly visible throughout the scene. ' +
-    'Flames, embers, and fiery glow are NON-NEGOTIABLE regardless of the outfit, sport, or match depicted. ' +
-    'The fire must feel dramatic and integrated into the composition — not a subtle overlay.',
+    'A single unified body of fire MUST wrap around and engulf the subject ' +
+    '(athlete and ball) as one continuous burning aura — the fire conforms to ' +
+    'their silhouette, embracing their form like an outer layer of flame. ' +
+    'The subject must look like the SOURCE of the fire — as if they themselves ' +
+    'are burning from within — with the flame reading as ONE explosive mass, ' +
+    'NOT multiple separate fire streams, NOT scattered jets, NOT individual ' +
+    'flame trails from limbs. Embers and glowing heat shimmer may radiate ' +
+    'outward, but the core fire body is one integrated, character-hugging flame.',
   fortuneplay:
     '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
     'Luxurious aesthetics are required: prominent gold accents, warm gold lighting, and floating gold dust particles ' +

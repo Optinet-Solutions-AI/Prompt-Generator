@@ -178,8 +178,7 @@ export function ResultDisplay({
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState(prompt);
 
-  // Track URL overrides from in-modal edits so the thumbnail strip reflects edits after closing
-  const [imageUpdates, setImageUpdates] = useState<Map<string, { displayUrl: string; editUrl: string }>>(new Map());
+  // Edits no longer overwrite the original tile — see handleImageUpdated below.
 
   // Save as New Reference dialog state (triggered by the 💾 toolbar button)
   const [saveAsRefOpen, setSaveAsRefOpen] = useState(false);

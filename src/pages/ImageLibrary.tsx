@@ -155,10 +155,6 @@ function deleteImage(id: string): void {
   deleteStoredImage(id);
 }
 
-function replaceImage(id: string, editedUrl: string, original: GeneratedImage): GeneratedImage {
-  return replaceStoredImage(id, editedUrl, original) as GeneratedImage;
-}
-
 function insertNewImage(editedUrl: string, original: GeneratedImage): GeneratedImage {
   return storeImage({
     public_url:   editedUrl,

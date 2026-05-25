@@ -304,7 +304,9 @@ export function usePromptGenerator() {
     setAppState('PROCESSING');
     setElapsedTime(0);
     setErrorMessage('');
-    setGeneratedImages({ chatgpt: [], gemini: [] });
+    // Generated images intentionally NOT cleared here — when the user returns
+    // to the wizard to adjust settings and regenerate, the previous batch
+    // should remain so they can compare/choose across runs.
 
     try {
       const startTime = Date.now();

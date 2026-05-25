@@ -118,7 +118,27 @@ export function usePromptGenerator() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [generatedTimestamp, setGeneratedTimestamp] = useState('');
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImages>({ chatgpt: [], gemini: [] });
+  // Hydrate generatedImages from localStorage so the result-view gallery survives
+  // page reloads / Vercel redeploys. Previously the gallery was purely React state
+  // and any refresh wiped the user's working set.
+  const GENERATED_IMAGES_KEY = 'pg_result_generated_images';
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImages>(() => {
+    try {
+      const raw = localStorage.getItem(GENERATED_IMAGES_KEY);
+      if (!raw) return { chatgpt: [], gemini: [] };
+      const parsed = JSON.parse(raw) as GeneratedImages;
+      // Defensive: make sure both arrays exist
+      return {
+        chatgpt: Array.isArray(parsed?.chatgpt) ? parsed.chatgpt : [],
+        gemini:  Array.isArray(parsed?.gemini)  ? parsed.gemini  : [],
+      };
+    } catch { return { chatgpt: [], gemini: [] }; }
+  });
+  // Persist on every change
+  useEffect(() => {
+    try { localStorage.setItem(GENERATED_IMAGES_KEY, JSON.stringify(generatedImages)); }
+    catch { /* ignore quota errors */ }
+  }, [generatedImages]);
   const [isRegeneratingPrompt, setIsRegeneratingPrompt] = useState(false);
 
   const timerRef = useRef<number | null>(null);

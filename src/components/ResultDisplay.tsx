@@ -924,9 +924,7 @@ export function ResultDisplay({
                   <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-3 md:grid-cols-4">
                     {images.map((img, index) => {
                       const imageId = `${img.provider}-${img.originalIndex}-${img.displayUrl}`;
-                      // Apply any URL updates from in-modal edits
-                      const update = imageUpdates.get(imageId);
-                      const thumbUrl = update?.displayUrl ?? img.displayUrl;
+                      const thumbUrl = img.displayUrl;
                       // Register the brand stored at generation time
                       if (img.generatedBrand && !imageBrandRef.current.has(imageId)) {
                         imageBrandRef.current.set(imageId, img.generatedBrand);

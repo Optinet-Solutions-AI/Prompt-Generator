@@ -896,10 +896,9 @@ export function ResultDisplay({
               const allImages = [...chatgptWithIndex, ...geminiWithIndex];
               const flatGallery: GalleryImage[] = allImages.map(img => {
                 const imageId = `${img.provider}-${img.originalIndex}-${img.displayUrl}`;
-                const update = imageUpdates.get(imageId);
                 return {
-                  displayUrl: update?.displayUrl ?? img.displayUrl,
-                  editUrl:    update?.editUrl    ?? img.editUrl,
+                  displayUrl: img.displayUrl,
+                  editUrl:    img.editUrl,
                   provider:   img.provider,
                   imageId,
                 };

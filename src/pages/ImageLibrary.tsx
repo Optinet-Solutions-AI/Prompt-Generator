@@ -528,7 +528,12 @@ function Lightbox({
   // overlay. If the brand's overlay file is missing, fall back silently.
   const handleDownloadRounded = async (brandForOverlay: string | null) => {
     setIsDownloading(true);
-    const baseOpts = { radius: ROUNDED_CORNER_RADIUS };
+    // Crop the rounded download to the size the image was generated at.
+    const baseOpts = {
+      radius: ROUNDED_CORNER_RADIUS,
+      bannerDimensions: image.dimensions,
+      aspectRatio: image.aspect_ratio && image.aspect_ratio !== 'edited' ? image.aspect_ratio : undefined,
+    };
     const overlayUrl = brandForOverlay ? getBrandOverlayUrl(brandForOverlay) : null;
     try {
       await downloadImageRounded(displayUrl, image.filename, overlayUrl ? { ...baseOpts, overlayUrl } : baseOpts);

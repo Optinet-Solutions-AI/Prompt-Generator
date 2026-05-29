@@ -217,9 +217,18 @@ export function ImageModal({
   // without the shadow.
   const overlayUrl = getBrandOverlayUrl(brand);
 
+  // Exact output size for this image's downloads. Per-image values (gallery /
+  // variations) win, then the modal-level props. "1200 × 600" → exact pixels;
+  // else the aspect ratio is cropped to correct proportions. Cover-crop keeps
+  // the corners transparent at the requested size.
+  const downloadTarget = {
+    bannerDimensions: current.bannerDimensions ?? bannerDimensions,
+    aspectRatio: current.aspectRatio ?? aspectRatio,
+  };
+
   const downloadRoundedVariant = async (opts: { mirror?: boolean }) => {
     const filename = `image-${current.provider}-${Date.now()}.png`;
-    const baseOpts = { radius: ROUNDED_CORNER_RADIUS, mirror: !!opts.mirror };
+    const baseOpts = { radius: ROUNDED_CORNER_RADIUS, mirror: !!opts.mirror, ...downloadTarget };
     try {
       await downloadImageRounded(current.displayUrl, filename, overlayUrl ? { ...baseOpts, overlayUrl } : baseOpts);
     } catch (err) {
@@ -227,9 +236,11 @@ export function ImageModal({
         // Overlay file missing — fall back to plain rounded so the click still works.
         console.warn(`Brand overlay missing for "${brand}", falling back to plain rounded.`);
         try { await downloadImageRounded(current.displayUrl, filename, baseOpts); }
-        catch { window.open(current.displayUrl, '_blank'); }
+        catch (err2) { reportDownloadFailure(err2); }
       } else {
-        window.open(current.displayUrl, '_blank');
+        // Surface the failure instead of silently saving the raw, square,
+        // white-cornered original — that's the "white background" bug.
+        reportDownloadFailure(err);
       }
     }
   };
@@ -243,9 +254,9 @@ export function ImageModal({
       await downloadImageRounded(
         current.displayUrl,
         `image-${current.provider}-${Date.now()}.png`,
-        { radius: 0, mirror: true },
+        { radius: 0, mirror: true, ...downloadTarget },
       );
-    } catch { window.open(current.displayUrl, '_blank'); }
+    } catch (err) { reportDownloadFailure(err); }
   };
 
   const handleDownloadMirroredRounded = () => downloadRoundedVariant({ mirror: true });

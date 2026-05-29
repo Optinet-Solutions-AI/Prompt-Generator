@@ -530,8 +530,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               if (cloudRunImageUrl && !cloudRunImageUrl.startsWith('data:')) {
                 const geminiAccessToken = await getGoogleAccessToken();
                 const imgRes  = await fetch(cloudRunImageUrl);
-                const imgMime = imgRes.headers.get('content-type')?.split(';')[0] || 'image/png';
-                const imgBuf  = Buffer.from(await imgRes.arrayBuffer());
+                const rawMime = imgRes.headers.get('content-type')?.split(';')[0] || 'image/png';
+                const rawBuf  = Buffer.from(await imgRes.arrayBuffer());
+
+                // Crop/resize to the exact requested size before saving, so the
+                // stored Drive image and preview match the request (e.g. 1200×600).
+                const exact   = await resizeToExact(rawBuf, bannerDimensions);
+                const imgBuf  = exact.buffer;
+                const imgMime = exact.resized ? exact.mime : rawMime;
                 const ext     = imgMime.split('/')[1] || 'png';
 
                 const geminiFileId = await uploadImageToDrive({

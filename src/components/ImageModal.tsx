@@ -57,6 +57,10 @@ interface ImageModalProps {
   likedImages?: Set<string>;
   resolution?: string;
   brand?: string;
+  // Exact output size for downloads (single-image mode). "1200 × 600" wins;
+  // else aspectRatio "16:9". Gallery images carry their own on GalleryImage.
+  bannerDimensions?: string;
+  aspectRatio?: string;
   // Structured prompt fields from the reference that created the source image.
   // Passed to the variation endpoint so the AI knows exactly what to preserve.
   sourceRecipe?: SourceRecipe;

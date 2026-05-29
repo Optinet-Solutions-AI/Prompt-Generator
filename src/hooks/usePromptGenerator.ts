@@ -13,6 +13,7 @@ function saveImageToLibrary(params: {
   publicUrl: string;
   provider: string;
   aspectRatio: string;
+  bannerDimensions?: string;
   resolution: string;
   filename: string;
   brand?: string;
@@ -23,6 +24,7 @@ function saveImageToLibrary(params: {
       public_url:   params.publicUrl,
       provider:     params.provider,
       aspect_ratio: params.aspectRatio,
+      dimensions:   params.bannerDimensions,
       resolution:   params.resolution || '1K',
       filename:     params.filename,
       brand:        params.brand,

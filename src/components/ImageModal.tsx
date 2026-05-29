@@ -217,6 +217,19 @@ export function ImageModal({
   // without the shadow.
   const overlayUrl = getBrandOverlayUrl(brand);
 
+  // A rounded/transparent download failed (CORS taint, fetch error, etc.). Tell
+  // the user rather than quietly handing back the raw square image with a white
+  // background — they'd otherwise think the corners just aren't transparent.
+  const reportDownloadFailure = (err: unknown) => {
+    console.error('[ImageModal] rounded download failed:', err);
+    window.alert(
+      'Could not prepare the rounded, transparent download for this image. ' +
+        'The original image opened in a new tab instead — note its corners are not transparent. ' +
+        'Please try again, or re-generate the image.',
+    );
+    window.open(current.displayUrl, '_blank');
+  };
+
   // Exact output size for this image's downloads. Per-image values (gallery /
   // variations) win, then the modal-level props. "1200 × 600" → exact pixels;
   // else the aspect ratio is cropped to correct proportions. Cover-crop keeps

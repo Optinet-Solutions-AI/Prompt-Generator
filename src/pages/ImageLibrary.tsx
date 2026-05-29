@@ -1435,7 +1435,11 @@ function ImageCard({
 
   // User picks the brand shadow at download time. Pass null for plain rounded.
   const handleCardDownloadRounded = async (brandForOverlay: string | null) => {
-    const baseOpts = { radius: ROUNDED_CORNER_RADIUS };
+    const baseOpts = {
+      radius: ROUNDED_CORNER_RADIUS,
+      bannerDimensions: image.dimensions,
+      aspectRatio: image.aspect_ratio && image.aspect_ratio !== 'edited' ? image.aspect_ratio : undefined,
+    };
     const overlayUrl = brandForOverlay ? getBrandOverlayUrl(brandForOverlay) : null;
     try {
       await downloadImageRounded(image.public_url, image.filename, overlayUrl ? { ...baseOpts, overlayUrl } : baseOpts);

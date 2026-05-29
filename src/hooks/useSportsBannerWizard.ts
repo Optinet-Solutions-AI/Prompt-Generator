@@ -123,6 +123,7 @@ export function useSportsBannerWizard() {
       reference: `Sports Banner (${wizardData.sport})`,
       subjectPosition: wizardData.subjectPosition,
       aspectRatio: wizardData.aspectRatio,
+      bannerDimensions: wizardData.bannerDimensions,
       theme: `${wizardData.sport} sports banner — ${
         wizardData.occasion === 'custom'
           ? wizardData.occasionMood

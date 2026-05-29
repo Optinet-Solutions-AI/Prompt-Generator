@@ -320,7 +320,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
       const outputQuality = qualityMap[resolution] || 'medium';
 
-      console.log(`[generate-image] aspectRatio=${aspectRatio} → size=${outputSize}, resolution=${resolution} → quality=${outputQuality}`);
+      console.log(`[generate-image] aspectRatio=${aspectRatio} bannerDimensions=${bannerDimensions || '-'} requestedRatio=${requestedRatio.toFixed(3)} → size=${outputSize}, resolution=${resolution} → quality=${outputQuality}`);
 
       const resp = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',

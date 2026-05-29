@@ -144,11 +144,24 @@ export async function downloadImageRounded(
     const srcW = img.naturalWidth;
     const srcH = img.naturalHeight;
 
-    // Output size: exact target px when both provided, else the source size
-    // (original behaviour). This is what makes the saved PNG e.g. exactly 1200×600.
-    const hasTarget = !!(opts.targetWidth && opts.targetHeight);
-    const outW = hasTarget ? Math.round(opts.targetWidth!) : srcW;
-    const outH = hasTarget ? Math.round(opts.targetHeight!) : srcH;
+    // Output size: explicit target px wins; otherwise resolve from
+    // bannerDimensions / aspectRatio against the source; otherwise keep the
+    // source size (original behaviour). This is what makes the saved PNG e.g.
+    // exactly 1200×600.
+    const explicit =
+      opts.targetWidth && opts.targetHeight
+        ? { width: Math.round(opts.targetWidth), height: Math.round(opts.targetHeight) }
+        : null;
+    const target =
+      explicit ??
+      resolveTargetDims({
+        bannerDimensions: opts.bannerDimensions,
+        aspectRatio: opts.aspectRatio,
+        sourceWidth: srcW,
+        sourceHeight: srcH,
+      });
+    const outW = target ? target.width : srcW;
+    const outH = target ? target.height : srcH;
     const fit = opts.fit ?? 'cover';
 
     const canvas = document.createElement('canvas');

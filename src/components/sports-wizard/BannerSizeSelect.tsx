@@ -17,6 +17,25 @@ type Props = {
   ) => void;
 };
 
+// Supported --ar tokens (must match api/generate-prompt.ts rule 6). A free-text
+// custom size is snapped to the closest one so the generated prompt's --ar flag
+// actually reflects the dimensions the user typed (e.g. 1200×600 → 2:1).
+const SUPPORTED_RATIOS: Array<{ token: string; value: number }> = [
+  { token: '1:2', value: 0.5 }, { token: '6:11', value: 6 / 11 }, { token: '9:16', value: 9 / 16 },
+  { token: '2:3', value: 2 / 3 }, { token: '3:4', value: 0.75 }, { token: '4:5', value: 0.8 },
+  { token: '5:6', value: 5 / 6 }, { token: '1:1', value: 1 }, { token: '6:5', value: 1.2 },
+  { token: '5:4', value: 1.25 }, { token: '4:3', value: 4 / 3 }, { token: '3:2', value: 1.5 },
+  { token: '16:9', value: 16 / 9 }, { token: '2:1', value: 2 }, { token: '21:9', value: 21 / 9 },
+];
+
+function nearestAspectToken(w: number, h: number): string {
+  if (!w || !h) return '16:9';
+  const r = w / h;
+  return SUPPORTED_RATIOS.reduce((best, cur) =>
+    Math.abs(cur.value - r) < Math.abs(best.value - r) ? cur : best
+  ).token;
+}
+
 function AspectPreview({ ratio, selected }: { ratio: number; selected: boolean }) {
   const clampedRatio = Math.min(ratio, 4);
   const width = Math.min(clampedRatio * 28, 80);

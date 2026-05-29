@@ -18,6 +18,9 @@ interface GeneratedImage {
   filename: string;
   provider: string;
   aspect_ratio: string;
+  // Exact pixel size "1200 × 600" when known (banner wizard) — preferred over
+  // aspect_ratio for cropping the rounded download to the requested size.
+  dimensions?: string;
   resolution: string;
   storage_path: string;
   public_url: string;

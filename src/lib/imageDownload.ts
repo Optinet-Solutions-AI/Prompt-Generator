@@ -31,6 +31,71 @@ export interface DownloadTransformOptions {
   radius?: number;     // 0 = square corners; >0 = rounded with that px radius
   mirror?: boolean;    // horizontally flip (for Arabic RTL layouts)
   overlayUrl?: string; // optional PNG composited on top, stretched to fit
+  // Exact output size. When BOTH are set the saved PNG is rendered at exactly
+  // this pixel size (e.g. 1200×600 for a CRM email banner). The source image
+  // is mapped into the frame using `fit` below. When omitted, the canvas keeps
+  // the source image's natural size (original behaviour — no resize).
+  targetWidth?: number;
+  targetHeight?: number;
+  // How the source maps into the target frame when proportions differ.
+  //   'cover'   (default) — fill the frame, cropping overflow. No bars/distortion.
+  //   'contain'           — fit the whole image, leaving transparent bars.
+  //   'stretch'           — stretch to fill exactly (may distort).
+  fit?: 'cover' | 'contain' | 'stretch';
+}
+
+// Parse a dimension string like "1200 × 600", "1200x600" or "1200 x 600".
+function parseDimensions(s?: string): { width: number; height: number } | null {
+  if (!s) return null;
+  // Split on x / × / * with optional surrounding spaces.
+  const m = s.trim().match(/^(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)$/i);
+  if (!m) return null;
+  const width = Math.round(parseFloat(m[1]));
+  const height = Math.round(parseFloat(m[2]));
+  if (!width || !height) return null;
+  return { width, height };
+}
+
+// Resolve the exact output size for a download from whatever the caller knows:
+//   1. An explicit pixel string ("1200 × 600") — used verbatim (source of truth).
+//   2. An aspect-ratio string ("16:9") applied to the source image — produces a
+//      correctly-proportioned target at the source's resolution (no upscaling).
+// Returns null when there's nothing reliable to resize to (caller keeps source size).
+export function resolveTargetDims(input: {
+  bannerDimensions?: string;
+  aspectRatio?: string;
+  sourceWidth?: number;
+  sourceHeight?: number;
+}): { width: number; height: number } | null {
+  // 1. Explicit pixels win.
+  const exact = parseDimensions(input.bannerDimensions);
+  if (exact) return exact;
+
+  // 2. Derive from aspect ratio + source resolution (cover fit, no upscaling).
+  const { aspectRatio, sourceWidth, sourceHeight } = input;
+  if (aspectRatio && sourceWidth && sourceHeight) {
+    const parts = aspectRatio.split(':');
+    if (parts.length === 2) {
+      const rw = parseFloat(parts[0]);
+      const rh = parseFloat(parts[1]);
+      if (!isNaN(rw) && !isNaN(rh) && rw > 0 && rh > 0) {
+        const targetRatio = rw / rh;
+        const srcRatio = sourceWidth / sourceHeight;
+        // Inscribe the target ratio inside the source so we never upscale.
+        let width: number;
+        let height: number;
+        if (targetRatio >= srcRatio) {
+          width = sourceWidth;
+          height = Math.round(sourceWidth / targetRatio);
+        } else {
+          height = sourceHeight;
+          width = Math.round(sourceHeight * targetRatio);
+        }
+        if (width > 0 && height > 0) return { width, height };
+      }
+    }
+  }
+  return null;
 }
 
 export class BrandOverlayMissingError extends Error {

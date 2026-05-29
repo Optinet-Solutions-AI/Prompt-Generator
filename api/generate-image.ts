@@ -289,30 +289,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('[generate-image] Using OpenAI direct generation');
 
       // OpenAI gpt-image-1 only supports 3 pixel sizes:
-      //   1024x1024 (square), 1536x1024 (landscape), 1024x1536 (portrait)
-      // Map ANY user-selected ratio to the closest supported size by orientation.
-      function resolveOpenAISize(ratio: string): string {
-        // Exact matches first
-        const exact: Record<string, string> = {
-          '1:1': '1024x1024',
-        };
-        if (exact[ratio]) return exact[ratio];
-
-        // Parse "W:H" and decide by orientation
-        const parts = ratio.split(':');
-        if (parts.length === 2) {
-          const w = parseFloat(parts[0]);
-          const h = parseFloat(parts[1]);
-          if (!isNaN(w) && !isNaN(h) && h !== 0) {
-            const r = w / h;
-            if (r > 1) return '1536x1024'; // landscape
-            if (r < 1) return '1024x1536'; // portrait
-            return '1024x1024';            // square
-          }
-        }
-        return '1536x1024'; // safe fallback
+      //   1024x1024 (square, 1.0), 1536x1024 (landscape, 1.5), 1024x1536 (portrait, 0.667)
+      // We can't emit the user's exact size here, so pick the supported size whose
+      // aspect ratio is *numerically closest* to what was requested — that minimises
+      // how much the client-side cover-crop has to trim when forcing the exact size.
+      // Prefer the ratio derived from explicit pixel dimensions ("1200 × 600"),
+      // since preset aspectRatio strings are sometimes inaccurate.
+      function ratioFromString(s: unknown): number | null {
+        if (typeof s !== 'string') return null;
+        const m = s.match(/(\d+(?:\.\d+)?)\s*[:x×*]\s*(\d+(?:\.\d+)?)/i);
+        if (!m) return null;
+        const w = parseFloat(m[1]);
+        const h = parseFloat(m[2]);
+        if (!w || !h) return null;
+        return w / h;
       }
-      const outputSize = resolveOpenAISize(aspectRatio);
+      const requestedRatio = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1.5;
+      const SUPPORTED: Array<{ size: string; ratio: number }> = [
+        { size: '1024x1024', ratio: 1 },
+        { size: '1536x1024', ratio: 1536 / 1024 },
+        { size: '1024x1536', ratio: 1024 / 1536 },
+      ];
+      const outputSize = SUPPORTED.reduce((best, cur) =>
+        Math.abs(cur.ratio - requestedRatio) < Math.abs(best.ratio - requestedRatio) ? cur : best
+      ).size;
 
       // Map resolution to quality
       const qualityMap: Record<string, 'low' | 'medium' | 'high'> = {

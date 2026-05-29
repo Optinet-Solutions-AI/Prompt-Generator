@@ -28,6 +28,10 @@ export interface GalleryImage {
   variationIndex?: number;
   // Which AI engine generated this variation — 'openai' (gpt-image-1) or 'imagen' (Vertex AI)
   variationEngine?: 'openai' | 'imagen';
+  // Exact output target for downloads — "1200 × 600" wins; else aspectRatio "16:9".
+  // Lets the rounded download crop/resize to the dimensions the user requested.
+  bannerDimensions?: string;
+  aspectRatio?: string;
 }
 
 export interface SourceRecipe {

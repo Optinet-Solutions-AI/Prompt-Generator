@@ -276,6 +276,9 @@ export interface PromptMetadata {
   reference: string;
   subjectPosition?: string;
   aspectRatio?: string;
+  // Exact pixel size "1200 × 600" (banner wizard) — preferred over aspectRatio
+  // for cropping downloads to the requested dimensions.
+  bannerDimensions?: string;
   theme: string;
   description: string;
   format_layout?: string;

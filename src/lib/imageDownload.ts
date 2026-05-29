@@ -135,27 +135,59 @@ export async function downloadImageRounded(
 
   try {
     const img = await loadImage(objectUrl);
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('canvas 2d context unavailable');
+    const srcW = img.naturalWidth;
+    const srcH = img.naturalHeight;
 
-    // Clip in pixel space first so the rounded shape isn't affected by the
-    // mirror transform AND the overlay sits inside the rounded silhouette.
+    // Output size: exact target px when both provided, else the source size
+    // (original behaviour). This is what makes the saved PNG e.g. exactly 1200×600.
+    const hasTarget = !!(opts.targetWidth && opts.targetHeight);
+    const outW = hasTarget ? Math.round(opts.targetWidth!) : srcW;
+    const outH = hasTarget ? Math.round(opts.targetHeight!) : srcH;
+    const fit = opts.fit ?? 'cover';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = outW;
+    canvas.height = outH;
+    // alpha:true keeps the canvas transparent so the rounded corners (and any
+    // 'contain' bars) stay see-through instead of filling white.
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) throw new Error('canvas 2d context unavailable');
+    ctx.clearRect(0, 0, outW, outH); // explicit transparent base
+
+    // Clip in target pixel space first so the rounded shape isn't affected by the
+    // mirror transform AND the overlay sits inside the rounded silhouette. Radius
+    // now scales relative to the final banner size.
     if (radius > 0) {
-      const r = Math.max(0, Math.min(radius, Math.min(canvas.width, canvas.height) / 2));
-      roundedRectPath(ctx, 0, 0, canvas.width, canvas.height, r);
+      const r = Math.max(0, Math.min(radius, Math.min(outW, outH) / 2));
+      roundedRectPath(ctx, 0, 0, outW, outH, r);
       ctx.clip();
     }
 
-    // Base image (with mirror transform if requested).
+    // Map the source image into the target frame (cover / contain / stretch).
+    // dw/dh = drawn size, dx/dy = top-left offset (centered).
+    let dw = outW;
+    let dh = outH;
+    let dx = 0;
+    let dy = 0;
+    if (fit !== 'stretch') {
+      const scale =
+        fit === 'cover'
+          ? Math.max(outW / srcW, outH / srcH)  // fill, crop overflow
+          : Math.min(outW / srcW, outH / srcH); // fit, leave transparent bars
+      dw = srcW * scale;
+      dh = srcH * scale;
+      dx = (outW - dw) / 2;
+      dy = (outH - dh) / 2;
+    }
+
+    // Base image (with mirror transform if requested). Mirror composes on top of
+    // the cover/contain geometry by flipping the whole target frame horizontally.
     ctx.save();
     if (mirror) {
-      ctx.translate(canvas.width, 0);
+      ctx.translate(outW, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, dx, dy, dw, dh);
     ctx.restore();
 
     // Brand overlay sits on top of the base, stretched to fit the banner.

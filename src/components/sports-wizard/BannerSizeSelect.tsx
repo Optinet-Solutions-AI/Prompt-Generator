@@ -75,6 +75,9 @@ export function BannerSizeSelect({ bannerSizeId, occasion, onChange }: Props) {
     setCustomWidth(w);
     setCustomHeight(h);
     onChange('bannerDimensions', w && h ? `${w} × ${h}` : '');
+    // Keep the aspect ratio in sync with the typed size so the generated
+    // prompt's --ar flag matches (e.g. 1200×600 → "2:1", not the 16:9 default).
+    if (w && h) onChange('aspectRatio', nearestAspectToken(Number(w), Number(h)));
   };
 
   const handleOccasionSelect = (occ: typeof OCCASIONS[0]) => {

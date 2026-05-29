@@ -351,7 +351,12 @@ export function usePromptGenerator() {
       const response = await generatePrompt(mergedData);
       const endTime = Date.now();
       setGeneratedPrompt(response.prompt);
-      setPromptMetadata(response.metadata);
+      // Carry the requested size/ratio so downloads can be cropped to it.
+      setPromptMetadata({
+        ...response.metadata,
+        aspectRatio: response.metadata?.aspectRatio || mergedData.aspectRatio,
+        bannerDimensions: response.metadata?.bannerDimensions || mergedData.bannerDimensions,
+      });
       setProcessingTime((endTime - startTime) / 1000);
       setGeneratedTimestamp(new Date().toISOString());
       setAppState('RESULT');

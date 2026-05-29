@@ -42,6 +42,12 @@ export interface DownloadTransformOptions {
   //   'contain'           — fit the whole image, leaving transparent bars.
   //   'stretch'           — stretch to fill exactly (may distort).
   fit?: 'cover' | 'contain' | 'stretch';
+  // Convenience inputs — when targetWidth/Height aren't given explicitly, these
+  // are resolved into a target size once the source image is loaded:
+  //   bannerDimensions "1200 × 600" → exact pixels (source of truth)
+  //   aspectRatio      "16:9"       → correct proportions at source resolution
+  bannerDimensions?: string;
+  aspectRatio?: string;
 }
 
 // Parse a dimension string like "1200 × 600", "1200x600" or "1200 x 600".

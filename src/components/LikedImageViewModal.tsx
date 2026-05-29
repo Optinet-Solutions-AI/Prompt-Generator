@@ -60,9 +60,14 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId, bannerD
       await downloadImageRounded(
         imgUrl,
         recordId || `liked-image-${Date.now()}.png`,
-        ROUNDED_CORNER_RADIUS,
+        { radius: ROUNDED_CORNER_RADIUS, bannerDimensions, aspectRatio },
       );
-    } catch {
+    } catch (err) {
+      console.error('[LikedImageViewModal] rounded download failed:', err);
+      window.alert(
+        'Could not prepare the rounded, transparent download. The original opened ' +
+          'in a new tab instead (its corners are not transparent).',
+      );
       window.open(imgUrl, '_blank');
     }
   };

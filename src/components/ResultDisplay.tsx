@@ -1069,6 +1069,8 @@ export function ResultDisplay({
             onImageUpdated={handleImageUpdated}
             resolution={resolution}
             brand={metadata?.brand}
+            bannerDimensions={metadata?.bannerDimensions}
+            aspectRatio={metadata?.aspectRatio}
             sourceRecipe={metadata ? {
               lighting:   metadata.lighting   || undefined,
               mood:       metadata.mood       || undefined,

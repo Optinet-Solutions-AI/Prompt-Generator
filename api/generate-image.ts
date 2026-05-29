@@ -253,7 +253,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand } = req.body;
+    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions } = req.body;
 
     if (!prompt || !provider) {
       return res.status(400).json({ error: 'Prompt and provider are required' });

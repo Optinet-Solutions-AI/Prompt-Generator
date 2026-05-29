@@ -368,6 +368,7 @@ export function ResultDisplay({
           prompt: editablePrompt,
           provider,
           aspectRatio: metadata?.aspectRatio || "16:9",
+          bannerDimensions: metadata?.bannerDimensions,
           backend: "cloud-run",
           resolution,
           brand: metadata?.brand || "",

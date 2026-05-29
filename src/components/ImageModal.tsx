@@ -199,16 +199,19 @@ export function ImageModal({
     if (isOpen) { document.addEventListener('keydown', handleKeyDown); return () => document.removeEventListener('keydown', handleKeyDown); }
   }, [isOpen, handleKeyDown]);
 
+  // "Square corners" download — same exact-size cover-crop as the rounded one,
+  // just without the rounding (radius 0 = no clip, opaque corners). This makes
+  // the requested dimensions respected on EVERY download option, not only the
+  // rounded one. downloadTarget/reportDownloadFailure are defined below; they're
+  // only read when the user clicks, by which point they're initialised.
   const handleDownload = async () => {
     try {
-      const res = await fetch(current.displayUrl);
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `image-${current.provider}-${Date.now()}.png`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch { window.open(current.displayUrl, '_blank'); }
+      await downloadImageRounded(
+        current.displayUrl,
+        `image-${current.provider}-${Date.now()}.png`,
+        { radius: 0, ...downloadTarget },
+      );
+    } catch (err) { reportDownloadFailure(err); }
   };
 
   // Brand shadow is auto-baked into the rounded-corners variants when the

@@ -5,6 +5,9 @@ export interface FormData {
   reference: string;
   subjectPosition: string;
   aspectRatio: string;
+  // Exact pixel size "1200 × 600" when the user requested one (banner wizard).
+  // Used to crop/resize downloads to the exact requested dimensions.
+  bannerDimensions?: string;
   theme: string;
   description: string;
   format_layout: string;

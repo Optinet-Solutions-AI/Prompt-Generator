@@ -820,7 +820,7 @@ export function ImageModal({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64 z-[1200]">
                   <DropdownMenuItem onClick={handleDownload} className="gap-2">
-                    <Download className="w-3.5 h-3.5" /> Normal
+                    <Download className="w-3.5 h-3.5" /> Square corners
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleDownloadRounded} className="gap-2">
                     <Download className="w-3.5 h-3.5" /> Rounded corners

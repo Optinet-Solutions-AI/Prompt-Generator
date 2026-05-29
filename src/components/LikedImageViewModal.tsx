@@ -17,9 +17,13 @@ interface LikedImageViewModalProps {
   onClose: () => void;
   imgUrl: string;
   recordId: string;
+  // Exact output target for the rounded download — "1200 × 600" wins, else the
+  // aspect ratio "16:9" is cropped to correct proportions.
+  bannerDimensions?: string;
+  aspectRatio?: string;
 }
 
-export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId }: LikedImageViewModalProps) {
+export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId, bannerDimensions, aspectRatio }: LikedImageViewModalProps) {
   const [showHtmlModal, setShowHtmlModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
 

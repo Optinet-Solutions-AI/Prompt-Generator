@@ -50,6 +50,7 @@ export function storeImage(params: {
   public_url:   string;
   provider:     string;
   aspect_ratio: string;
+  dimensions?:  string;
   resolution:   string;
   filename:     string;
   brand?:       string;

@@ -84,6 +84,8 @@ export function ImageModal({
   likedImages,
   resolution = '1K',
   brand,
+  bannerDimensions,
+  aspectRatio,
   sourceRecipe,
   persistedVariations = [],
   onVariationsChange,

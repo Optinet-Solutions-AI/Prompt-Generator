@@ -15,6 +15,10 @@ export interface StoredImage {
   filename:     string;
   provider:     string;  // 'chatgpt' | 'gemini' | 'edit' | 'variation'
   aspect_ratio: string;
+  // Exact pixel size "1200 × 600" when known (banner wizard). Preferred over
+  // aspect_ratio when cropping rounded downloads to the requested size.
+  // Optional — images saved before this field was added won't have it.
+  dimensions?:  string;
   resolution:   string;
   storage_path: string;
   public_url:   string;

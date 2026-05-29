@@ -254,7 +254,13 @@ export function usePromptGenerator() {
         const data = await response.json();
         const endTime = Date.now();
         setGeneratedPrompt(data.prompt);
-        setPromptMetadata(data.metadata);
+        // Preserve the requested size/ratio across a prompt regenerate — the API
+        // response doesn't echo bannerDimensions, so keep the previous values.
+        setPromptMetadata({
+          ...data.metadata,
+          aspectRatio: data.metadata?.aspectRatio || promptMetadata.aspectRatio,
+          bannerDimensions: data.metadata?.bannerDimensions || promptMetadata.bannerDimensions,
+        });
         setProcessingTime((endTime - startTime) / 1000);
         setGeneratedTimestamp(new Date().toISOString());
       } catch (error) {

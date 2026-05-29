@@ -406,6 +406,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             imageBuffer  = Buffer.from(await imgRes.arrayBuffer());
           }
 
+          // Crop/resize to the exact requested size (e.g. 1200×600) before saving,
+          // so the stored Drive image — and the in-app preview — match the request.
+          const exact   = await resizeToExact(imageBuffer, bannerDimensions);
+          imageBuffer   = exact.buffer;
+          imageMime     = exact.mime;
+
           const ext      = imageMime.split('/')[1] || 'png';
           const filename = `chatgpt-${Date.now()}.${ext}`;
 

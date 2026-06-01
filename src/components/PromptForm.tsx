@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";
 import { PositionAndRatioSelector } from "./PositionAndRatioSelector";
+import { SizePresetSelect } from "./SizePresetSelect";
 import { ReferencePromptDataDisplay } from "./ReferencePromptDataDisplay";
 import { CreateBlendedPromptDialog } from "./CreateBlendedPromptDialog";
 import { Archive, Heart, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";

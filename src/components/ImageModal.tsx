@@ -242,6 +242,18 @@ export function ImageModal({
     aspectRatio: current.aspectRatio ?? aspectRatio,
   };
 
+  // CSS aspect-ratio for the gallery-strip thumbnails so they reflect the real
+  // shape (e.g. wide 2:1) instead of a forced square. Falls back to square.
+  const stripAspect = (() => {
+    const parts = (downloadTarget.aspectRatio || '').split(':');
+    if (parts.length === 2) {
+      const w = parseFloat(parts[0]);
+      const h = parseFloat(parts[1]);
+      if (w > 0 && h > 0) return `${w} / ${h}`;
+    }
+    return '1 / 1';
+  })();
+
   const downloadRoundedVariant = async (opts: { mirror?: boolean }) => {
     const filename = `image-${current.provider}-${Date.now()}.png`;
     const baseOpts = { radius: ROUNDED_CORNER_RADIUS, mirror: !!opts.mirror, ...downloadTarget };

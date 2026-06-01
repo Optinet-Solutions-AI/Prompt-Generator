@@ -517,7 +517,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             body: JSON.stringify({
               prompt: geminiPrompt,
               provider,
-              aspectRatio: aspectRatio || '1:1',
+              aspectRatio: nativeRatio, // closest Imagen-native ratio (minimises crop)
               resolution:  resolution  || '1K',
             }),
             signal: controller.signal,

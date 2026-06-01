@@ -485,7 +485,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const idToken = await getCloudRunIdToken(cloudRunUrl, req);
 
-      console.log('Sending to Cloud Run:', { provider, aspectRatio, resolution });
+      // Imagen only generates a fixed set of aspect ratios. Sending an
+      // unsupported one (e.g. "2:1") makes it fall back to a near-square, which
+      // then gets heavily cropped (cutting the subject). Snap to the closest
+      // ratio Imagen supports natively so the generation is nearly the right
+      // shape and resizeToExact only trims a little.
+      const reqRatio = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1;
+      const nativeRatio = nearestImagenRatio(reqRatio);
+
+      console.log('Sending to Cloud Run:', { provider, aspectRatio, bannerDimensions, reqRatio, nativeRatio, resolution });
 
       // Retry helper — tries the Cloud Run call up to `maxAttempts` times.
       // Retries on network timeout or 5xx server errors. Gives up on 4xx (bad request).

@@ -898,6 +898,10 @@ export function ResultDisplay({
           </Button>
         </div>
 
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          Tip: Gemini follows the prompt most accurately — recommended for brand-accurate results.
+        </p>
+
         {/* Error Message */}
         {imageError && <p className="text-destructive text-sm text-center mt-3">{imageError}</p>}
 

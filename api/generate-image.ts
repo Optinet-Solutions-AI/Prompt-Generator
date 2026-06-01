@@ -313,11 +313,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions, imageModel } = req.body;
-    // Which OpenAI image model to use for the ChatGPT path. Default keeps the
-    // current gpt-image-1; 'dall-e-3' lets us compare DALL·E 3 (stronger prompt
-    // adherence) without changing default behaviour.
-    const openaiModel = imageModel === 'dall-e-3' ? 'dall-e-3' : 'gpt-image-1';
+    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions } = req.body;
 
     // When an exact pixel size is requested (e.g. 1200×600) we crop+resize the
     // result to that size. To keep it SHARP we must DOWNSCALE a larger native

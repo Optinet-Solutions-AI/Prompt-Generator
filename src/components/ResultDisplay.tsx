@@ -512,6 +512,14 @@ export function ResultDisplay({
               />
             </div>
 
+            <div className="sm:col-span-2">
+              <SizePresetSelect
+                bannerDimensions={metadata.bannerDimensions}
+                onChange={(field, value) => onMetadataChange?.(field, value)}
+                disabled={isRegeneratingPrompt}
+              />
+            </div>
+
             <FormField
               type="text"
               label="Theme"

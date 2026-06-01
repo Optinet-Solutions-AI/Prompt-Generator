@@ -36,6 +36,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Wide-banner composition guidance. Wide outputs (e.g. 1200×600 email banners,
+    // 16:9 and wider) are produced by generating the closest AI size and cropping
+    // top/bottom — so tell the model to frame the subject for a wide strip with
+    // safe margins, otherwise heads/feet/logos get cropped off.
+    let wideBannerRule = '';
+    {
+      const parts = String(body.aspectRatio || '').split(':');
+      const ratio = parts.length === 2 ? parseFloat(parts[0]) / parseFloat(parts[1]) : NaN;
+      if (!isNaN(ratio) && ratio >= 1.7) {
+        wideBannerRule = `\n8) WIDE BANNER COMPOSITION\nThis is a WIDE horizontal banner (aspect ${body.aspectRatio}). Compose for a wide frame: keep the main subject centered with generous clear headroom above and breathing room below, and keep critical elements (faces, logos, key action, text) well away from the top and bottom edges. The final image is cropped to a wide horizontal strip, so nothing important may sit near the top or bottom edge.\n`;
+      }
+    }
+
     // Build the user message sent to GPT.
     // IMPORTANT: Only the positive_prompt is passed as the Base prompt.
     // The negative_prompt must NEVER be concatenated into the Base prompt —

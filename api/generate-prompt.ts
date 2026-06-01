@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Apply scene mandate if this brand has one
       const mandate = BRAND_SCENE_MANDATES[body.brand];
       if (mandate) {
-        brandSceneMandate = `\n7) BRAND SCENE MANDATE (HIGHEST PRIORITY)\n${mandate}\nThis rule OVERRIDES everything else. The brand signature element MUST appear in the final output no matter what.\n`;
+        brandSceneMandate = `\n7) BRAND SCENE MANDATE (HIGH PRIORITY)\n${mandate}\nApply this brand signature exactly as described above, HONORING any conditions it states (only add a signature element when the mandate says it applies). It takes priority over generic styling choices.\n`;
       }
     }
 

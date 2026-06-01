@@ -241,6 +241,11 @@ export function PromptForm({
         onAspectRatioChange={(value) => onFieldChange("aspectRatio", value)}
       />
 
+      <SizePresetSelect
+        bannerDimensions={formData.bannerDimensions}
+        onChange={(field, value) => onFieldChange(field, value)}
+      />
+
       <FormField
         type="text"
         label="Theme"

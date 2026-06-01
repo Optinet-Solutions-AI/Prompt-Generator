@@ -120,27 +120,17 @@ export function usePromptGenerator() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
   const [generatedTimestamp, setGeneratedTimestamp] = useState('');
-  // Hydrate generatedImages from localStorage so the result-view gallery survives
-  // page reloads / Vercel redeploys. Previously the gallery was purely React state
-  // and any refresh wiped the user's working set.
-  const GENERATED_IMAGES_KEY = 'pg_result_generated_images';
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImages>(() => {
-    try {
-      const raw = localStorage.getItem(GENERATED_IMAGES_KEY);
-      if (!raw) return { chatgpt: [], gemini: [] };
-      const parsed = JSON.parse(raw) as GeneratedImages;
-      // Defensive: make sure both arrays exist
-      return {
-        chatgpt: Array.isArray(parsed?.chatgpt) ? parsed.chatgpt : [],
-        gemini:  Array.isArray(parsed?.gemini)  ? parsed.gemini  : [],
-      };
-    } catch { return { chatgpt: [], gemini: [] }; }
-  });
-  // Persist on every change
+  // In-memory only. The result gallery lives purely in React state, so it
+  // survives in-app navigation (tab switches, going back to the form and
+  // returning) while the page stays mounted — but a full page REFRESH starts
+  // fresh. We intentionally do NOT persist to localStorage: a stale working set
+  // lingering for hours/days across reloads is not wanted.
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImages>({ chatgpt: [], gemini: [] });
+  // One-time cleanup: drop the key left behind by the previous persistent
+  // behaviour so old images don't reappear on the first load after this change.
   useEffect(() => {
-    try { localStorage.setItem(GENERATED_IMAGES_KEY, JSON.stringify(generatedImages)); }
-    catch { /* ignore quota errors */ }
-  }, [generatedImages]);
+    try { localStorage.removeItem('pg_result_generated_images'); } catch { /* ignore */ }
+  }, []);
   const [isRegeneratingPrompt, setIsRegeneratingPrompt] = useState(false);
 
   const timerRef = useRef<number | null>(null);

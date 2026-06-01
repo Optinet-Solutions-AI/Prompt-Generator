@@ -163,18 +163,12 @@ async function uploadImageToDrive(params: {
 // ------------------------------------------------------------------
 const BRAND_STYLES: Record<string, string> = {
   roosterbet:
-    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
-    'Fire MUST come FROM the player and FROM the ball — the player is the ' +
-    'source of the fire, with flames emerging from their body and engulfing ' +
-    'them, AND the ball must be on fire as part of the same continuous burning ' +
-    'mass. The fire MUST attach to the player and the ball — NOT to the ' +
-    'stadium, NOT to the floor, NOT to the background. Render this fire as ' +
-    'ONE unified wrapping flame around the player and ball — one continuous ' +
-    'connected burning body, NOT multiple separate fire jets, NOT scattered ' +
-    'streams from limbs, NOT background-only flames detached from the subject. ' +
-    'The flame conforms to the player\'s silhouette and ignites the ball as ' +
-    'part of the same fire. Embers and heat shimmer may radiate outward, but ' +
-    'the core fire body lives ON the player and ball, as one integrated flame.',
+    '[BRAND COLOR SIGNATURE] ' +
+    'Render exactly the subject and setting described below, styled in the ' +
+    'Roosterbet palette: bold red, crimson, fiery orange, black and bold white, ' +
+    'with high-energy, high-contrast dynamic lighting and an intense, premium mood. ' +
+    'Keep the described subject and scene faithful; the prompt text controls whether ' +
+    'fire appears (only when the scene already calls for it or it is a sports/action banner).',
   fortuneplay:
     '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
     'Luxurious aesthetics are required: prominent gold accents, warm gold lighting, and floating gold dust particles ' +

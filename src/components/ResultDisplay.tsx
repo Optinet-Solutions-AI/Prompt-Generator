@@ -11,6 +11,7 @@ import { SavePromptModal } from "./SavePromptModal";
 import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";
 import { PositionAndRatioSelector } from "./PositionAndRatioSelector";
+import { SizePresetSelect } from "./SizePresetSelect";
 import { ReferencePromptDataDisplay } from "./ReferencePromptDataDisplay";
 import { CreateBlendedPromptDialog } from "./CreateBlendedPromptDialog";
 import type { GeneratedImages } from "@/hooks/usePromptGenerator";

@@ -12,6 +12,18 @@ import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";
 import { PositionAndRatioSelector } from "./PositionAndRatioSelector";
 import { SizePresetSelect } from "./SizePresetSelect";
+
+// Parse "16:9" / "2:1" into a CSS aspect-ratio string ("16 / 9") so image
+// previews show their true shape instead of a forced square. Defaults to square.
+function ratioToCss(ar?: string): string {
+  const parts = (ar || "").split(":");
+  if (parts.length === 2) {
+    const w = parseFloat(parts[0]);
+    const h = parseFloat(parts[1]);
+    if (w > 0 && h > 0) return `${w} / ${h}`;
+  }
+  return "1 / 1";
+}
 import { ReferencePromptDataDisplay } from "./ReferencePromptDataDisplay";
 import { CreateBlendedPromptDialog } from "./CreateBlendedPromptDialog";
 import type { GeneratedImages } from "@/hooks/usePromptGenerator";

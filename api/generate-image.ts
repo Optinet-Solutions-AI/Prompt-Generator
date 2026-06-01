@@ -175,10 +175,11 @@ const BRAND_STYLES: Record<string, string> = {
     'MUST be visible in the scene. Every surface should catch golden light. ' +
     'The overall mood must feel opulent, rich, and premium — gold is the defining visual element.',
   luckyvibe:
-    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
-    'Sunset lighting is required with a warm beach-like environment. ' +
-    'Sand MUST be visibly integrated into the scene — even if the setting is a grass stadium, sand must be present. ' +
-    'Palm trees MUST appear in the background. The atmosphere should feel tropical and vibrant.',
+    '[BRAND COLOR SIGNATURE] ' +
+    'Render exactly the subject and setting described below, styled with the LuckyVibe ' +
+    'palette and lighting: warm golden-hour / sunset tones — sunset orange, tropical coral, ' +
+    'soft amber — with warm backlight and a tropical, vibrant mood. Sand and palm trees ' +
+    'belong only when the scene is outdoors or beach-appropriate; the prompt text controls that.',
   spinjo:
     '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
     'The scene MUST have a sci-fi futuristic atmosphere: deep space blacks, electric purple and cyan lighting, ' +

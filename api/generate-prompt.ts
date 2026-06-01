@@ -133,26 +133,12 @@ Return ONLY the final edited prompt text. No explanations, no labels, no extra t
     const data = await openaiRes.json();
     const promptText = data.choices[0].message.content.trim();
 
-    // Some brand mandates carry a non-negotiable visual that the editor LLM
-    // tends to summarise away. Re-assert it directly on the final prompt so it
-    // always reaches the image model. IMPORTANT: phrase POSITIVELY only — image
-    // models (esp. gpt-image-1) mishandle negations and latch onto the literal
-    // words, so we never write "NOT a sports player / NOT made of fire" (that
-    // primed ChatGPT to draw exactly that). Describe the desired result instead.
-    const SCENE_SAFEGUARDS: Record<string, string> = {
-      Roosterbet: 'The main subject stays a solid, real, photorealistic figure with its true surface, material and form fully visible, wrapped in flames that rise and flow off its surface like a glowing fiery aura.',
-    };
-    let finalPrompt = promptText;
-    const safeguard = body.brand ? SCENE_SAFEGUARDS[body.brand] : undefined;
-    if (safeguard && !/wrapped in flames that rise/i.test(finalPrompt)) {
-      // Insert before any trailing --ar flag so the flag stays at the very end.
-      const arMatch = finalPrompt.match(/\s*--ar\s+\S+\s*$/i);
-      if (arMatch && arMatch.index !== undefined) {
-        finalPrompt = finalPrompt.slice(0, arMatch.index).trimEnd() + ' ' + safeguard + ' ' + arMatch[0].trim();
-      } else {
-        finalPrompt = finalPrompt.trimEnd() + ' ' + safeguard;
-      }
-    }
+    // NOTE: we deliberately do NOT append an extra brand "safeguard" clause here.
+    // It duplicated the fire description already produced by the editor, which
+    // over-weighted fire and pushed gpt-image-1 toward its "flaming athlete"
+    // prior (a soccer player). The brand mandate itself now keeps the subject
+    // solid/real with a single fire mention — that's enough.
+    const finalPrompt = promptText;
 
     // Return in the same shape as the n8n workflow response
     return res.status(200).json({

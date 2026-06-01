@@ -385,7 +385,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
       const outputQuality = qualityMap[genResolution] || 'medium';
 
-      console.log(`[generate-image] aspectRatio=${aspectRatio} bannerDimensions=${bannerDimensions || '-'} requestedRatio=${requestedRatio.toFixed(3)} → size=${outputSize}, resolution=${resolution} → quality=${outputQuality}`);
+      // DALL·E 3 supports different sizes (1024², 1792×1024, 1024×1792) and a
+      // different quality scale ('standard'|'hd'). Pick the closest size and
+      // build the model-specific request body.
+      const DALLE_SIZES: Array<{ size: string; ratio: number }> = [
+        { size: '1024x1024', ratio: 1 },
+        { size: '1792x1024', ratio: 1792 / 1024 },
+        { size: '1024x1792', ratio: 1024 / 1792 },
+      ];
+      const dalleSize = DALLE_SIZES.reduce((best, cur) =>
+        Math.abs(cur.ratio - requestedRatio) < Math.abs(best.ratio - requestedRatio) ? cur : best
+      ).size;
+
+      const openaiBody = openaiModel === 'dall-e-3'
+        ? { model: 'dall-e-3', prompt: finalPrompt, n: 1, size: dalleSize, quality: 'hd', response_format: 'b64_json' }
+        : { model: 'gpt-image-1', prompt: finalPrompt, n: 1, size: outputSize, quality: outputQuality };
+
+      console.log(`[generate-image] model=${openaiModel} aspectRatio=${aspectRatio} bannerDimensions=${bannerDimensions || '-'} requestedRatio=${requestedRatio.toFixed(3)} → size=${openaiModel === 'dall-e-3' ? dalleSize : outputSize}, resolution=${resolution}`);
 
       const resp = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
@@ -393,13 +409,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${openaiKey}`,
         },
-        body: JSON.stringify({
-          model: 'gpt-image-1',
-          prompt: finalPrompt,
-          n: 1,
-          size: outputSize,
-          quality: outputQuality,
-        }),
+        body: JSON.stringify(openaiBody),
       });
 
       if (!resp.ok) {

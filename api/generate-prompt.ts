@@ -138,7 +138,7 @@ Return ONLY the final edited prompt text. No explanations, no labels, no extra t
     // always reaches the image model (e.g. Roosterbet: a REAL visible athlete
     // with fire erupting from them — NOT a player made of fire / flame silhouette).
     const SCENE_SAFEGUARDS: Record<string, string> = {
-      Roosterbet: 'The athlete is a REAL photorealistic human with clearly visible skin, a real face, and a team kit; the flames are an effect erupting from the body and the ball is on fire — the player is NOT made of fire, NOT a flame silhouette, and NOT a burning skeleton.',
+      Roosterbet: 'The main subject is REAL and photorealistic with its true surface, form and detail clearly visible; the flames are an effect erupting from that subject — it is NOT made of fire, NOT a flame silhouette, and NOT a burning skeleton. Keep whatever subject the scene is about; do not turn it into a sports player.',
     };
     let finalPrompt = promptText;
     const safeguard = body.brand ? SCENE_SAFEGUARDS[body.brand] : undefined;

@@ -135,14 +135,16 @@ Return ONLY the final edited prompt text. No explanations, no labels, no extra t
 
     // Some brand mandates carry a non-negotiable visual that the editor LLM
     // tends to summarise away. Re-assert it directly on the final prompt so it
-    // always reaches the image model (e.g. Roosterbet: a REAL visible athlete
-    // with fire erupting from them — NOT a player made of fire / flame silhouette).
+    // always reaches the image model. IMPORTANT: phrase POSITIVELY only — image
+    // models (esp. gpt-image-1) mishandle negations and latch onto the literal
+    // words, so we never write "NOT a sports player / NOT made of fire" (that
+    // primed ChatGPT to draw exactly that). Describe the desired result instead.
     const SCENE_SAFEGUARDS: Record<string, string> = {
-      Roosterbet: 'The main subject is REAL and photorealistic with its true surface, form and detail clearly visible; the flames are an effect erupting from that subject — it is NOT made of fire, NOT a flame silhouette, and NOT a burning skeleton. Keep whatever subject the scene is about; do not turn it into a sports player.',
+      Roosterbet: 'The main subject stays a solid, real, photorealistic figure with its true surface, material and form fully visible, wrapped in flames that rise and flow off its surface like a glowing fiery aura.',
     };
     let finalPrompt = promptText;
     const safeguard = body.brand ? SCENE_SAFEGUARDS[body.brand] : undefined;
-    if (safeguard && !/not made of fire/i.test(finalPrompt)) {
+    if (safeguard && !/wrapped in flames that rise/i.test(finalPrompt)) {
       // Insert before any trailing --ar flag so the flag stays at the very end.
       const arMatch = finalPrompt.match(/\s*--ar\s+\S+\s*$/i);
       if (arMatch && arMatch.index !== undefined) {

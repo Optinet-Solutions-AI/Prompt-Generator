@@ -24,7 +24,7 @@ describe('_brand-rules', () => {
   });
 
   it('keeps the existing 3 brand scene mandates verbatim (distinctive substrings)', () => {
-    expect(BRAND_SCENE_MANDATES.Roosterbet).toContain('FIRE IS MANDATORY AND MUST ORIGINATE FROM THE PLAYER');
+    expect(BRAND_SCENE_MANDATES.Roosterbet).toContain('FIRE IS MANDATORY AND MUST ORIGINATE FROM THE MAIN SUBJECT');
     expect(BRAND_SCENE_MANDATES.FortunePlay).toContain('GOLD IS MANDATORY');
     expect(BRAND_SCENE_MANDATES.LuckyVibe).toContain('BEACH/SUNSET IS MANDATORY');
   });

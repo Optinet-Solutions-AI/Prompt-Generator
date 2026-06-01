@@ -18,15 +18,46 @@ async function resizeToExact(
   try {
     const sharp = (await import('sharp')).default;
     const out = await sharp(buffer)
-      .resize(width, height, { fit: 'cover', position: 'centre' }) // fill, crop overflow
+      // Smart crop: focus on the most salient region (subject/face) instead of a
+      // blind center-crop, so the subject isn't sliced when trimming to the
+      // exact ratio. Falls back gracefully if attention can't be computed.
+      .resize(width, height, { fit: 'cover', position: sharp.strategy.attention })
       .png()
       .toBuffer();
-    console.log(`[generate-image] resized to exact ${width}x${height}`);
+    console.log(`[generate-image] resized to exact ${width}x${height} (smart crop)`);
     return { buffer: out, mime: 'image/png', resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);
     return { buffer, mime: 'image/png', resized: false };
   }
+}
+
+// Parse "W:H" / "WxH" / "1200 × 600" → numeric ratio, or null.
+function ratioFromString(s: unknown): number | null {
+  if (typeof s !== 'string') return null;
+  const m = s.match(/(\d+(?:\.\d+)?)\s*[:x×*]\s*(\d+(?:\.\d+)?)/i);
+  if (!m) return null;
+  const w = parseFloat(m[1]);
+  const h = parseFloat(m[2]);
+  if (!w || !h) return null;
+  return w / h;
+}
+
+// Snap any requested ratio to the closest aspect ratio Imagen (Vertex AI, the
+// Gemini path) supports NATIVELY. Sending a supported ratio means the model
+// generates a nearly-correct shape, so the exact-size crop is minimal (e.g. a
+// 2:1 email banner → 16:9, then only ~11% trimmed — vs cropping a square in half).
+function nearestImagenRatio(requestedRatio: number): string {
+  const NATIVE: Array<{ token: string; ratio: number }> = [
+    { token: '9:16', ratio: 9 / 16 },
+    { token: '3:4', ratio: 0.75 },
+    { token: '1:1', ratio: 1 },
+    { token: '4:3', ratio: 4 / 3 },
+    { token: '16:9', ratio: 16 / 9 },
+  ];
+  return NATIVE.reduce((best, cur) =>
+    Math.abs(cur.ratio - requestedRatio) < Math.abs(best.ratio - requestedRatio) ? cur : best
+  ).token;
 }
 
 // ── AI Assistant cost logging (opt-in via request body) ────────────────

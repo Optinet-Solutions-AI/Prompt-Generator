@@ -398,7 +398,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ).size;
 
       const openaiBody = openaiModel === 'dall-e-3'
-        ? { model: 'dall-e-3', prompt: finalPrompt, n: 1, size: dalleSize, quality: 'hd', response_format: 'b64_json' }
+        ? { model: 'dall-e-3', prompt: finalPrompt, n: 1, size: dalleSize, quality: 'hd' }
         : { model: 'gpt-image-1', prompt: finalPrompt, n: 1, size: outputSize, quality: outputQuality };
 
       console.log(`[generate-image] model=${openaiModel} aspectRatio=${aspectRatio} bannerDimensions=${bannerDimensions || '-'} requestedRatio=${requestedRatio.toFixed(3)} → size=${openaiModel === 'dall-e-3' ? dalleSize : outputSize}, resolution=${resolution}`);

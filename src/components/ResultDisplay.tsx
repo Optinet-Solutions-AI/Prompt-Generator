@@ -863,8 +863,8 @@ export function ResultDisplay({
           <Button
             onClick={() => handleGenerateImage("gemini")}
             disabled={generatingImage.gemini}
-            variant="outline"
-            className="gap-2 w-full sm:w-auto sm:min-w-[120px]"
+            variant="default"
+            className="gap-2 gradient-primary w-full sm:w-auto sm:min-w-[140px]"
           >
             {generatingImage.gemini ? (
               <>
@@ -881,8 +881,8 @@ export function ResultDisplay({
           <Button
             onClick={handleGenerateBoth}
             disabled={generatingImage.chatgpt || generatingImage.gemini}
-            variant="default"
-            className="gap-2 gradient-primary w-full sm:w-auto sm:min-w-[140px]"
+            variant="outline"
+            className="gap-2 w-full sm:w-auto sm:min-w-[140px]"
           >
             {generatingImage.chatgpt && generatingImage.gemini ? (
               <>

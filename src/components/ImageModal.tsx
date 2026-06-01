@@ -882,7 +882,7 @@ export function ImageModal({
                             ? 'border-primary/20 hover:border-primary/50 hover:scale-[0.97]'
                             : 'border-transparent hover:border-border/60 hover:scale-[0.97]'
                       }`}
-                      style={{ aspectRatio: '1' }}
+                      style={{ aspectRatio: stripAspect }}
                     >
                       <img src={display.displayUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
                       {/* Badge — provider or variation index + engine */}

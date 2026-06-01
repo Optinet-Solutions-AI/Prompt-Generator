@@ -315,6 +315,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions } = req.body;
 
+    // When an exact pixel size is requested (e.g. 1200×600) we crop+resize the
+    // result to that size. To keep it SHARP we must DOWNSCALE a larger native
+    // generation rather than upscale a small one — so bump the generation
+    // resolution to at least 2K for exact-size requests. (No bump otherwise.)
+    const RES_ORDER = ['1K', '2K', '3K', '4K'];
+    const exactSizeRequested = !!ratioFromString(bannerDimensions);
+    const genResolution = exactSizeRequested
+      ? (RES_ORDER.indexOf(resolution) >= RES_ORDER.indexOf('2K') ? resolution : '2K')
+      : (resolution || '1K');
+
     if (!prompt || !provider) {
       return res.status(400).json({ error: 'Prompt and provider are required' });
     }

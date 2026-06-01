@@ -379,7 +379,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const qualityMap: Record<string, 'low' | 'medium' | 'high'> = {
         '4K': 'high', '3K': 'high', '2K': 'medium', '1K': 'low',
       };
-      const outputQuality = qualityMap[resolution] || 'medium';
+      const outputQuality = qualityMap[genResolution] || 'medium';
 
       console.log(`[generate-image] aspectRatio=${aspectRatio} bannerDimensions=${bannerDimensions || '-'} requestedRatio=${requestedRatio.toFixed(3)} → size=${outputSize}, resolution=${resolution} → quality=${outputQuality}`);
 

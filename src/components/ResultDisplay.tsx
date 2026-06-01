@@ -1033,7 +1033,8 @@ export function ResultDisplay({
                     {persistedVariations.map((v, i) => (
                       <div
                         key={v.imageId}
-                        className="relative group cursor-pointer aspect-square"
+                        className="relative group cursor-pointer"
+                        style={{ aspectRatio: ratioToCss(metadata?.aspectRatio) }}
                         onClick={() => setModalImage({ initialIndex: originalCount + i })}
                       >
                         <div className="absolute inset-0 bg-primary/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">

@@ -355,15 +355,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // how much the client-side cover-crop has to trim when forcing the exact size.
       // Prefer the ratio derived from explicit pixel dimensions ("1200 × 600"),
       // since preset aspectRatio strings are sometimes inaccurate.
-      function ratioFromString(s: unknown): number | null {
-        if (typeof s !== 'string') return null;
-        const m = s.match(/(\d+(?:\.\d+)?)\s*[:x×*]\s*(\d+(?:\.\d+)?)/i);
-        if (!m) return null;
-        const w = parseFloat(m[1]);
-        const h = parseFloat(m[2]);
-        if (!w || !h) return null;
-        return w / h;
-      }
       const requestedRatio = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1.5;
       const SUPPORTED: Array<{ size: string; ratio: number }> = [
         { size: '1024x1024', ratio: 1 },

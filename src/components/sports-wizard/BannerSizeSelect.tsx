@@ -7,6 +7,7 @@ import { BANNER_SIZES, OCCASIONS, BannerSizePreset } from './scene-presets';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { SportsBannerData } from '@/types/prompt';
+import { nearestAspectToken } from '@/lib/aspectRatio';
 
 type Props = {
   bannerSizeId: string;

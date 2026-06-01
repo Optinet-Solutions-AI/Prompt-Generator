@@ -64,21 +64,15 @@ const Index = () => {
 
   const [showLikedPanel, setShowLikedPanel] = useState(false);
 
-  // Variation images generated inside the modal — stored in localStorage so they
-  // survive ANY tab switch, including switching to the Image Library and back.
-  const VARIATIONS_KEY = 'pg_current_variations';
-  const [persistedVariations, setPersistedVariations] = useState<GalleryImage[]>(() => {
-    try {
-      const raw = localStorage.getItem(VARIATIONS_KEY);
-      return raw ? (JSON.parse(raw) as GalleryImage[]) : [];
-    } catch { return []; }
-  });
+  // Variation images generated inside the modal — in-memory only, like the main
+  // gallery. They survive in-app tab switches (the component stays mounted) but
+  // a full page refresh clears them so each session starts fresh.
+  const [persistedVariations, setPersistedVariations] = useState<GalleryImage[]>([]);
 
-  // Keep localStorage in sync whenever variations change
+  // One-time cleanup of the key left behind by the previous persistent behaviour.
   useEffect(() => {
-    try { localStorage.setItem(VARIATIONS_KEY, JSON.stringify(persistedVariations)); }
-    catch { /* ignore if localStorage is full */ }
-  }, [persistedVariations]);
+    try { localStorage.removeItem('pg_current_variations'); } catch { /* ignore */ }
+  }, []);
 
   // Clear variations whenever a fresh batch of images is generated
   useEffect(() => { setPersistedVariations([]); }, [generatedImages]);

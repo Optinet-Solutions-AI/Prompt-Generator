@@ -133,11 +133,30 @@ Return ONLY the final edited prompt text. No explanations, no labels, no extra t
     const data = await openaiRes.json();
     const promptText = data.choices[0].message.content.trim();
 
+    // Some brand mandates carry a non-negotiable visual that the editor LLM
+    // tends to summarise away. Re-assert it directly on the final prompt so it
+    // always reaches the image model (e.g. Roosterbet: a REAL visible athlete
+    // with fire erupting from them — NOT a player made of fire / flame silhouette).
+    const SCENE_SAFEGUARDS: Record<string, string> = {
+      Roosterbet: 'The athlete is a REAL photorealistic human with clearly visible skin, a real face, and a team kit; the flames are an effect erupting from the body and the ball is on fire — the player is NOT made of fire, NOT a flame silhouette, and NOT a burning skeleton.',
+    };
+    let finalPrompt = promptText;
+    const safeguard = body.brand ? SCENE_SAFEGUARDS[body.brand] : undefined;
+    if (safeguard && !/not made of fire/i.test(finalPrompt)) {
+      // Insert before any trailing --ar flag so the flag stays at the very end.
+      const arMatch = finalPrompt.match(/\s*--ar\s+\S+\s*$/i);
+      if (arMatch && arMatch.index !== undefined) {
+        finalPrompt = finalPrompt.slice(0, arMatch.index).trimEnd() + ' ' + safeguard + ' ' + arMatch[0].trim();
+      } else {
+        finalPrompt = finalPrompt.trimEnd() + ' ' + safeguard;
+      }
+    }
+
     // Return in the same shape as the n8n workflow response
     return res.status(200).json({
       success: true,
       message: 'AI prompt generated successfully',
-      prompt: promptText,
+      prompt: finalPrompt,
       metadata: {
         brand: body.brand,
         reference: body.reference,

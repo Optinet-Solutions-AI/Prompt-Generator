@@ -520,7 +520,11 @@ export function ResultDisplay({
                 subjectPosition={metadata.subjectPosition || "Centered"}
                 aspectRatio={metadata.aspectRatio || "16:9"}
                 onSubjectPositionChange={(value) => onMetadataChange?.("subjectPosition", value)}
-                onAspectRatioChange={(value) => onMetadataChange?.("aspectRatio", value)}
+                onAspectRatioChange={(value) => {
+                  onMetadataChange?.("aspectRatio", value);
+                  // Ratio slider switches to ratio-only mode (clears any exact size).
+                  onMetadataChange?.("bannerDimensions", "");
+                }}
                 disabled={isRegeneratingPrompt}
               />
             </div>

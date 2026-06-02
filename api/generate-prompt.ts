@@ -63,10 +63,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // safe margins, otherwise heads/feet/logos get cropped off.
     let wideBannerRule = '';
     {
-      const parts = String(body.aspectRatio || '').split(':');
+      const parts = String(effectiveAspect || '').split(':');
       const ratio = parts.length === 2 ? parseFloat(parts[0]) / parseFloat(parts[1]) : NaN;
       if (!isNaN(ratio) && ratio >= 1.7) {
-        wideBannerRule = `\n8) WIDE BANNER COMPOSITION (OVERRIDES THE BASE PROMPT'S FRAMING)\nThis is a WIDE horizontal banner (aspect ${body.aspectRatio}). It MUST be framed as a wide ESTABLISHING shot: show the FULL main subject together with its surrounding environment, at a medium-to-wide camera distance, with the composition spread horizontally across the full width (use the side space for the environment or secondary elements).\nIMPORTANT: If the Base prompt specifies a close-up, portrait, head-and-shoulders, "sharp focus on face", or any tight/shallow framing, DELETE that framing wording and REPLACE it with this wide establishing shot — the wide-banner framing takes priority over the base prompt's framing. Keep the subject's identity, wardrobe and style intact, but pull the camera back so the whole subject and scene fit comfortably within the short, wide strip. Keep faces, logos, key action and text clear of the extreme top and bottom edges.\n`;
+        wideBannerRule = `\n8) WIDE BANNER COMPOSITION (OVERRIDES THE BASE PROMPT'S FRAMING)\nThis is a WIDE horizontal banner (aspect ${effectiveAspect}). It MUST be framed as a wide ESTABLISHING shot: show the FULL main subject together with its surrounding environment, at a medium-to-wide camera distance, with the composition spread horizontally across the full width (use the side space for the environment or secondary elements).\nIMPORTANT: If the Base prompt specifies a close-up, portrait, head-and-shoulders, "sharp focus on face", or any tight/shallow framing, DELETE that framing wording and REPLACE it with this wide establishing shot — the wide-banner framing takes priority over the base prompt's framing. Keep the subject's identity, wardrobe and style intact, but pull the camera back so the whole subject and scene fit comfortably within the short, wide strip. Keep faces, logos, key action and text clear of the extreme top and bottom edges.\n`;
       }
     }
 

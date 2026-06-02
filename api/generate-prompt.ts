@@ -18,6 +18,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const body = req.body;
 
+    // The image's actual output ratio is driven by the exact pixel size
+    // (bannerDimensions) when present. Derive the prompt's aspect ratio from THAT
+    // so the prompt's --ar and framing always match the real output (e.g.
+    // 1200×600 → "2:1"), preventing a "16:9 prompt but 2:1 image" mismatch.
+    const SUPPORTED_RATIOS_GP: Array<{ token: string; value: number }> = [
+      { token: '1:2', value: 0.5 }, { token: '6:11', value: 6 / 11 }, { token: '9:16', value: 9 / 16 },
+      { token: '2:3', value: 2 / 3 }, { token: '3:4', value: 0.75 }, { token: '4:5', value: 0.8 },
+      { token: '5:6', value: 5 / 6 }, { token: '1:1', value: 1 }, { token: '6:5', value: 1.2 },
+      { token: '5:4', value: 1.25 }, { token: '4:3', value: 4 / 3 }, { token: '3:2', value: 1.5 },
+      { token: '16:9', value: 16 / 9 }, { token: '2:1', value: 2 }, { token: '21:9', value: 21 / 9 },
+    ];
+    function tokenFromDims(s: unknown): string | null {
+      const m = String(s || '').match(/^(\d+)\s*[x×*]\s*(\d+)$/i);
+      if (!m) return null;
+      const w = parseInt(m[1], 10), h = parseInt(m[2], 10);
+      if (!w || !h) return null;
+      const r = w / h;
+      return SUPPORTED_RATIOS_GP.reduce((b, c) => Math.abs(c.value - r) < Math.abs(b.value - r) ? c : b).token;
+    }
+    const effectiveAspect = tokenFromDims(body.bannerDimensions) || body.aspectRatio || '';
+
     let brandColorRule = '';
     let brandSceneMandate = '';
     if (body.brand) {

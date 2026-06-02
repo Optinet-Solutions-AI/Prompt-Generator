@@ -960,7 +960,7 @@ export function ResultDisplay({
                         <div
                           key={`${label}-${img.provider}-${index}`}
                           className="relative group cursor-pointer"
-                          style={{ aspectRatio: ratioToCss(metadata?.aspectRatio) }}
+                          style={{ aspectRatio: imageAspects[imageId] || ratioToCss(metadata?.aspectRatio) }}
                           onClick={() => {
                             const flatIdx = flatGallery.findIndex(g => g.imageId === imageId);
                             setModalImage({ initialIndex: flatIdx >= 0 ? flatIdx : 0 });

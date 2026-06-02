@@ -155,11 +155,29 @@ Return ONLY the final edited prompt text. No explanations, no labels, no extra t
     const promptText = data.choices[0].message.content.trim();
 
     // NOTE: we deliberately do NOT append an extra brand "safeguard" clause here.
-    // It duplicated the fire description already produced by the editor, which
-    // over-weighted fire and pushed gpt-image-1 toward its "flaming athlete"
-    // prior (a soccer player). The brand mandate itself now keeps the subject
-    // solid/real with a single fire mention — that's enough.
-    const finalPrompt = promptText;
+    // (Duplicating the fire description over-weighted fire and pushed gpt-image-1
+    // toward a flaming athlete.)
+    //
+    // Deterministic CLOSE-UP CLEANUP for wide banners: the editor frequently KEEPS
+    // the reference's close-up wording ("sharp focus on face", "shallow depth of
+    // field", "portrait") even after being told to reframe wide. gpt-image-1 then
+    // latches onto those words and renders a tight close-up. Strip them so the wide
+    // establishing framing wins. Only applied when this is a wide banner.
+    let finalPrompt = promptText;
+    if (wideBannerRule) {
+      finalPrompt = finalPrompt
+        .replace(/\b(extreme\s+|tight\s+)?close[-\s]?ups?\b/gi, 'wide establishing shot')
+        .replace(/\bhead[-\s]and[-\s]shoulders\b/gi, 'full wide shot')
+        .replace(/\bportraits?\b/gi, 'wide banner scene')
+        .replace(/,?\s*shallow depth of field\b/gi, '')
+        .replace(/,?\s*sharp focus on (the\s+)?(face|subject|character)(\s+and\s+[a-z]+)?\b/gi, '')
+        .replace(/,?\s*(soft|blurred)\s+bokeh\b/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\s+([,.])/g, '$1')
+        .replace(/,(\s*,)+/g, ',')
+        .replace(/,\s*--ar/g, ' --ar')
+        .trim();
+    }
 
     // Return in the same shape as the n8n workflow response
     return res.status(200).json({

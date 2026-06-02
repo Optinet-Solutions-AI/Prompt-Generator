@@ -238,7 +238,12 @@ export function PromptForm({
         subjectPosition={formData.subjectPosition}
         aspectRatio={formData.aspectRatio}
         onSubjectPositionChange={(value) => onFieldChange("subjectPosition", value)}
-        onAspectRatioChange={(value) => onFieldChange("aspectRatio", value)}
+        onAspectRatioChange={(value) => {
+          onFieldChange("aspectRatio", value);
+          // Moving the ratio slider switches to ratio-only mode so it isn't
+          // silently overridden by a previously-picked exact size (e.g. 1200×600).
+          onFieldChange("bannerDimensions", "");
+        }}
       />
 
       <SizePresetSelect

@@ -165,7 +165,7 @@ const BRAND_STYLES: Record<string, string> = {
   roosterbet:
     '[BRAND COLOR SIGNATURE] ' +
     'Render exactly the subject and setting described below, styled in the ' +
-    'Roosterbet palette: bold red, crimson, fiery orange, black and bold white, ' +
+    'Roosterbet palette: bold red, crimson, vivid orange, black and bold white, ' +
     'with high-energy, high-contrast dynamic lighting and an intense, premium mood. ' +
     'Keep the described subject and scene faithful; the prompt text controls whether ' +
     'fire appears (only when the scene already calls for it or it is a sports/action banner).',

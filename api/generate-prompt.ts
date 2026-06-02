@@ -93,7 +93,7 @@ Main Subject Position:
 ${body.subjectPosition || ''}
 
 Aspect Ratio:
-${body.aspectRatio || ''}
+${effectiveAspect}
 
 RULES (apply in order, make only the minimum changes needed)
 

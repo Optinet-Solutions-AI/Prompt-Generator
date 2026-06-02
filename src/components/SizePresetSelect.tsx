@@ -51,6 +51,7 @@ export function SizePresetSelect({ bannerDimensions, onChange, disabled }: Props
     setActiveId(id);
     if (id === 'ratio') {
       onChange('bannerDimensions', ''); // clear exact size; ratio slider takes over
+      onChange('aspectRatio', '16:9');  // reset to a normal landscape default (not stuck on 2:1)
       return;
     }
     if (id === 'custom') return; // wait for W×H input

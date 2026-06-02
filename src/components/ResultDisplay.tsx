@@ -182,6 +182,9 @@ export function ResultDisplay({
     gemini: false,
   });
   const [imageError, setImageError] = useState<string | null>(null);
+  // Per-image actual aspect ratio (detected on load) so each preview thumbnail
+  // reflects its own real shape, not one shared ratio for the whole batch.
+  const [imageAspects, setImageAspects] = useState<Record<string, string>>({});
   const [modalImage, setModalImage] = useState<{
     initialIndex: number;
   } | null>(null);

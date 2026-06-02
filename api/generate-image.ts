@@ -316,7 +316,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // resolution to at least 2K for exact-size requests. (No bump otherwise.)
     const RES_ORDER = ['1K', '2K', '3K', '4K'];
     const exactSizeRequested = !!ratioFromString(bannerDimensions);
-    const genResolution = exactSizeRequested
+    // Any banner whose ratio differs from the model's native shapes gets
+    // cropped, so generate bigger and downscale to stay sharp. Bump to >=2K for
+    // exact sizes and for wide (>=1.7) or tall (<=0.6) banners.
+    const reqRatioForRes = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1;
+    const needsCrop = exactSizeRequested || reqRatioForRes >= 1.7 || reqRatioForRes <= 0.6;
+    const genResolution = needsCrop
       ? (RES_ORDER.indexOf(resolution) >= RES_ORDER.indexOf('2K') ? resolution : '2K')
       : (resolution || '1K');
 

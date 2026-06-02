@@ -7,7 +7,7 @@
  *   - aspectRatio (nearest supported --ar token) — keeps the prompt's framing in sync
  * "Aspect ratio only" clears bannerDimensions, restoring the ratio-slider behaviour.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { nearestAspectToken, parseDimensions } from '@/lib/aspectRatio';

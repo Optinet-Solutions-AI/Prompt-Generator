@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const parts = String(body.aspectRatio || '').split(':');
       const ratio = parts.length === 2 ? parseFloat(parts[0]) / parseFloat(parts[1]) : NaN;
       if (!isNaN(ratio) && ratio >= 1.7) {
-        wideBannerRule = `\n8) WIDE BANNER COMPOSITION\nThis is a WIDE horizontal banner (aspect ${body.aspectRatio}). Compose for a wide frame: keep the main subject centered with generous clear headroom above and breathing room below, and keep critical elements (faces, logos, key action, text) well away from the top and bottom edges. The final image is cropped to a wide horizontal strip, so nothing important may sit near the top or bottom edge.\n`;
+        wideBannerRule = `\n8) WIDE BANNER COMPOSITION\nThis is a WIDE horizontal banner (aspect ${body.aspectRatio}). Frame it as a wide ESTABLISHING shot: show the FULL main subject together with its surrounding environment, captured at a medium-to-wide camera distance so the whole subject and the scene around it are visible with comfortable breathing room, and spread the composition horizontally across the full width of the frame (use the side space for the environment or secondary elements). Keep faces, logos, key action and text clear of the extreme top and bottom edges so the wide crop keeps everything important. Favour a full, wide scene over a tight head-and-shoulders framing.\n`;
       }
     }
 

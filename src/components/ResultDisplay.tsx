@@ -1021,6 +1021,13 @@ export function ResultDisplay({
                             src={thumbUrl}
                             alt={`${label} - ${img.provider}`}
                             className="w-full h-full object-cover rounded-lg border border-border shadow-sm"
+                            onLoad={(e) => {
+                              const el = e.currentTarget;
+                              if (el.naturalWidth && el.naturalHeight) {
+                                const ar = `${el.naturalWidth} / ${el.naturalHeight}`;
+                                setImageAspects(prev => prev[imageId] === ar ? prev : { ...prev, [imageId]: ar });
+                              }
+                            }}
                           />
                         </div>
                       );

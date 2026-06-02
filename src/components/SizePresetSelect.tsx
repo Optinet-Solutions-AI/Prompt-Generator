@@ -40,6 +40,13 @@ export function SizePresetSelect({ bannerDimensions, onChange, disabled }: Props
   const [customW, setCustomW] = useState(initialId === 'custom' && initialDims ? String(initialDims.width) : '');
   const [customH, setCustomH] = useState(initialId === 'custom' && initialDims ? String(initialDims.height) : '');
 
+  // Keep the highlighted preset in sync if bannerDimensions changes elsewhere —
+  // e.g. moving the aspect-ratio slider clears it, switching us back to "Aspect ratio".
+  useEffect(() => {
+    const m = SIZE_PRESETS.find(p => p.dimensions && p.dimensions === bannerDimensions);
+    setActiveId(m ? m.id : bannerDimensions ? 'custom' : 'ratio');
+  }, [bannerDimensions]);
+
   const selectPreset = (id: string, dimensions: string) => {
     setActiveId(id);
     if (id === 'ratio') {

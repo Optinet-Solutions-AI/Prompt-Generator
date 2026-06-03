@@ -47,13 +47,22 @@ async function resizeToExact(
 
     if (!width || !height) return { buffer, mime: 'image/png', resized: false };
 
-    const out = await sharp(buffer)
-      // Smart crop: focus on the salient region (subject) instead of a blind
-      // center-crop, so the subject isn't sliced when trimming to the ratio/size.
-      .resize(width, height, { fit: 'cover', position: sharp.strategy.attention })
+    // FIT, don't crop into the subject. Show the WHOLE generated image (nothing
+    // removed) scaled to fit the target, and fill any leftover gap with a soft
+    // blurred extension of the same image. When the generated ratio already
+    // matches the target this is just a plain resize (no visible fill).
+    const bg = await sharp(buffer)
+      .resize(width, height, { fit: 'cover', position: 'centre' })
+      .blur(40)
+      .toBuffer();
+    const fg = await sharp(buffer)
+      .resize(width, height, { fit: 'inside' })
+      .toBuffer();
+    const out = await sharp(bg)
+      .composite([{ input: fg, gravity: 'center' }])
       .png()
       .toBuffer();
-    console.log(`[generate-image] resized to ${width}x${height} (smart crop)`);
+    console.log(`[generate-image] fit ${width}x${height} (no-cut + blurred fill)`);
     return { buffer: out, mime: 'image/png', resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);

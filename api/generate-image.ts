@@ -9,22 +9,51 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 async function resizeToExact(
   buffer: Buffer,
   bannerDimensions?: string,
+  aspectRatio?: string,
 ): Promise<{ buffer: Buffer; mime: string; resized: boolean }> {
-  const m = (bannerDimensions || '').trim().match(/^(\d+)\s*[x×*]\s*(\d+)$/i);
-  if (!m) return { buffer, mime: 'image/png', resized: false };
-  const width = parseInt(m[1], 10);
-  const height = parseInt(m[2], 10);
-  if (!width || !height) return { buffer, mime: 'image/png', resized: false };
   try {
     const sharp = (await import('sharp')).default;
+
+    // 1) Exact pixel size from bannerDimensions ("1200 × 600") wins.
+    const dm = (bannerDimensions || '').trim().match(/^(\d+)\s*[x×*]\s*(\d+)$/i);
+    let width = dm ? parseInt(dm[1], 10) : 0;
+    let height = dm ? parseInt(dm[2], 10) : 0;
+
+    // 2) Otherwise crop to the requested ASPECT RATIO at the source's resolution.
+    //    This is what makes a "16:9" selection actually 16:9 even with no exact
+    //    pixel size — previously gpt-image-1 kept its native 3:2 and was never
+    //    cropped to the ratio.
+    if (!width || !height) {
+      const am = (aspectRatio || '').trim().match(/^(\d+(?:\.\d+)?)\s*[:x×]\s*(\d+(?:\.\d+)?)$/i);
+      if (am) {
+        const rw = parseFloat(am[1]);
+        const rh = parseFloat(am[2]);
+        if (rw > 0 && rh > 0) {
+          const meta = await sharp(buffer).metadata();
+          const sw = meta.width || 0;
+          const sh = meta.height || 0;
+          if (sw && sh) {
+            const r = rw / rh;
+            const sr = sw / sh;
+            // Already the right ratio (within 1%) → no crop needed.
+            if (Math.abs(r - sr) / r > 0.01) {
+              if (r >= sr) { width = sw; height = Math.round(sw / r); }   // wider → crop top/bottom
+              else { height = sh; width = Math.round(sh * r); }            // taller → crop sides
+            }
+          }
+        }
+      }
+    }
+
+    if (!width || !height) return { buffer, mime: 'image/png', resized: false };
+
     const out = await sharp(buffer)
-      // Smart crop: focus on the most salient region (subject/face) instead of a
-      // blind center-crop, so the subject isn't sliced when trimming to the
-      // exact ratio. Falls back gracefully if attention can't be computed.
+      // Smart crop: focus on the salient region (subject) instead of a blind
+      // center-crop, so the subject isn't sliced when trimming to the ratio/size.
       .resize(width, height, { fit: 'cover', position: sharp.strategy.attention })
       .png()
       .toBuffer();
-    console.log(`[generate-image] resized to exact ${width}x${height} (smart crop)`);
+    console.log(`[generate-image] resized to ${width}x${height} (smart crop)`);
     return { buffer: out, mime: 'image/png', resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);

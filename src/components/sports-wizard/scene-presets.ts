@@ -490,6 +490,14 @@ export type BannerSizePreset = {
 
 export const BANNER_SIZES: BannerSizePreset[] = [
   {
+    id: 'email-banner',
+    label: 'Email Banner',
+    subtitle: 'CRM / email header',
+    dimensions: '1200 × 600',
+    aspectRatio: '2:1',
+    previewRatio: 2,
+  },
+  {
     id: 'wide-banner',
     label: 'Wide Banner',
     subtitle: 'Website hero',

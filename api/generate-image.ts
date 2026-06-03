@@ -604,7 +604,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 // Crop/resize to the exact requested size before saving, so the
                 // stored Drive image and preview match the request (e.g. 1200×600).
-                const exact   = await resizeToExact(rawBuf, bannerDimensions);
+                const exact   = await resizeToExact(rawBuf, bannerDimensions, aspectRatio);
                 const imgBuf  = exact.buffer;
                 const imgMime = exact.resized ? exact.mime : rawMime;
                 const ext     = imgMime.split('/')[1] || 'png';

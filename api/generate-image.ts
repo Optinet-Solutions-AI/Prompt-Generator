@@ -376,7 +376,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'All corners must be completely clean and empty — no marks in the bottom-right, bottom-left, top-right, or top-left. ' +
       'The final image must be fully unbranded and free of any written characters or symbols.';
 
-    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt + NO_WATERMARKS;
+    // ChatGPT-only wide-framing constraint for wide banners. gpt-image-1 tends to
+    // compose a tight close-up that then gets cut by the banner crop; Gemini doesn't
+    // need this. Placed near the end (gpt-image-1 weights later tokens stronger).
+    // Only applied to wide banners (Gemini path never sees it).
+    const WIDE_FRAMING = reqRatioForRes >= 1.7
+      ? ' FRAMING: an ultra-wide, full-length establishing shot. The entire subject is visible head to toe, sized small-to-medium and centred within a large open environment, with generous empty headroom above the subject and clear floor/ground space below it, so the whole figure sits comfortably inside the frame with breathing room on every side.'
+      : '';
+    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt + WIDE_FRAMING + NO_WATERMARKS;
 
     // Gemini/Imagen responds to quality tags — avoid "illustration" (painting signal).
     const GEMINI_PREFIX = 'photorealistic, hyperrealistic, cinematic lighting, sharp focus, highly detailed, dramatic composition, rich deep colors, professional color grading, clean sharp render. ';

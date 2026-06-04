@@ -62,3 +62,35 @@ describe('_outpaint geometry', () => {
     expect(p).toMatch(/no text.*no letters.*no numbers/i);
   });
 });
+
+afterEach(() => vi.unstubAllGlobals());
+
+async function squareBuf(): Promise<Buffer> {
+  return sharp({ create: {
+    width: 1024, height: 1024, channels: 4,
+    background: { r: 0, g: 100, b: 0, alpha: 255 },
+  } }).png().toBuffer();
+}
+
+describe('extendToWide', () => {
+  it('throws when the edits API returns non-ok', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500 })));
+    await expect(
+      extendToWide({ squareBuffer: await squareBuf(), brand: 'Roosterbet', openaiKey: 'k' }),
+    ).rejects.toThrow(/outpaint edits failed \(500\)/);
+  });
+
+  it('returns a decoded buffer at the EXTEND size on success', async () => {
+    const fakePng = (await sharp({ create: {
+      width: EXTEND_W, height: EXTEND_H, channels: 4,
+      background: { r: 1, g: 2, b: 3, alpha: 255 },
+    } }).png().toBuffer()).toString('base64');
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      new Response(JSON.stringify({ data: [{ b64_json: fakePng }] }), { status: 200 })));
+    const out = await extendToWide({ squareBuffer: await squareBuf(), brand: 'X', openaiKey: 'k' });
+    expect(out.width).toBe(EXTEND_W);
+    expect(out.height).toBe(EXTEND_H);
+    const meta = await sharp(out.buffer).metadata();
+    expect(meta.width).toBe(EXTEND_W);
+  });
+});

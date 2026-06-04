@@ -390,7 +390,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const WIDE_FRAMING = reqRatioForRes >= 1.7
       ? ' FRAMING: an ultra-wide, full-length establishing shot. The entire subject is visible head to toe, sized small-to-medium and centred within a large open environment. Leave a GENEROUS band of empty headroom above the very top of the head/comb/hat so the head sits well below the top edge, and clear floor/ground space below the feet, so the whole figure sits comfortably inside the frame with wide breathing room on every side and nothing touches any edge.'
       : '';
-    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt + WIDE_FRAMING + NO_WATERMARKS;
+    // When outpainting, the base is a SQUARE — compose the whole subject inside it
+    // with margin; the wide look comes from the side-extend, not from the generation.
+    const SQUARE_FRAMING = ' FRAMING: a centred square composition. The ENTIRE subject is fully visible with clear empty margin on all four sides — nothing touches any edge. Keep the background simple and uncluttered around the subject.';
+    const framing = doOutpaint ? SQUARE_FRAMING : WIDE_FRAMING;
+    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt + framing + NO_WATERMARKS;
 
     // Gemini/Imagen responds to quality tags — avoid "illustration" (painting signal).
     const GEMINI_PREFIX = 'photorealistic, hyperrealistic, cinematic lighting, sharp focus, highly detailed, dramatic composition, rich deep colors, professional color grading, clean sharp render. ';

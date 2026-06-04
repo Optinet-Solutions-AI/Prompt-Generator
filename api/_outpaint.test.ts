@@ -38,6 +38,10 @@ describe('_outpaint geometry', () => {
     expect(await alphaAt(canvas, 10, 512)).toBe(0);             // left strip = transparent
     expect(await alphaAt(canvas, EXTEND_W - 10, 512)).toBe(0);  // right strip = transparent
     expect(await alphaAt(canvas, EXTEND_W / 2, 512)).toBe(255); // centre = subject (opaque)
+    const SIDE = (EXTEND_W - BASE_SQUARE) / 2;
+    expect(await alphaAt(canvas, SIDE - 1, 512)).toBe(0);                  // last strip pixel = transparent
+    expect(await alphaAt(canvas, SIDE, 512)).toBe(255);                    // first subject pixel = opaque
+    expect(await alphaAt(canvas, SIDE + BASE_SQUARE / 2, 512)).toBe(255);  // centre = subject
   });
 
   it('mask keeps the centre opaque and the side strips transparent', async () => {

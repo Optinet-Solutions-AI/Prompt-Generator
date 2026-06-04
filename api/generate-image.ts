@@ -511,13 +511,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               const fb = await fetch('https://api.openai.com/v1/images/generations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-                body: JSON.stringify({ model: 'gpt-image-1', prompt: finalPrompt, n: 1, size: outputSize, quality: outputQuality }),
+                body: JSON.stringify({ model: 'gpt-image-1', prompt: wideFallbackPrompt, n: 1, size: outputSize, quality: outputQuality }),
               });
               if (fb.ok) {
                 const fbData = await fb.json() as { data?: Array<{ b64_json?: string; url?: string }> };
                 const fbItem = fbData.data?.[0];
                 if (fbItem?.b64_json) imageBuffer = Buffer.from(fbItem.b64_json, 'base64');
                 else if (fbItem?.url) imageBuffer = Buffer.from(await (await fetch(fbItem.url)).arrayBuffer());
+                else console.warn('[generate-image] outpaint fallback: response ok but no image item — keeping square base (output may distort)');
+              } else {
+                console.error('[generate-image] outpaint fallback generation failed', fb.status, (await fb.text()).slice(0, 300));
               }
             }
           }

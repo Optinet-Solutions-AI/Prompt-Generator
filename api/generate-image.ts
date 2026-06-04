@@ -413,11 +413,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         Math.abs(cur.ratio - requestedRatio) < Math.abs(best.ratio - requestedRatio) ? cur : best
       ).size;
 
-      // Map resolution to quality
+      // Map resolution to quality. Banners bump genResolution to ≥2K (see needsCrop
+      // above) → 'high' so gpt-image-1 renders the sharpest, least-distorted faces it
+      // can (its faces degrade badly at low/medium). 1K quick previews stay 'low' (fast).
       const qualityMap: Record<string, 'low' | 'medium' | 'high'> = {
-        '4K': 'high', '3K': 'high', '2K': 'medium', '1K': 'low',
+        '4K': 'high', '3K': 'high', '2K': 'high', '1K': 'low',
       };
-      const outputQuality = qualityMap[genResolution] || 'medium';
+      const outputQuality = qualityMap[genResolution] || 'high';
 
       console.log(`[generate-image] aspectRatio=${aspectRatio} bannerDimensions=${bannerDimensions || '-'} requestedRatio=${requestedRatio.toFixed(3)} → size=${outputSize}, resolution=${resolution} → quality=${outputQuality}`);
 

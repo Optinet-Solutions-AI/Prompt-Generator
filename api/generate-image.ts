@@ -54,23 +54,24 @@ async function resizeToExact(
       return { buffer: out, mime: 'image/png', resized: true };
     }
 
-    // BLURRED-FILL. The target ratio differs from the source (e.g. 16:9 → 2:1), so a
-    // cover-crop would cut the subject. Instead: place the WHOLE image (fit inside)
-    // centred on a blurred, darkened cover of the SAME image. The only added pixels
-    // are a soft blur of the real scene at the edges — the subject is never cut.
-    const bg = await sharp(buffer)
-      .resize(width, height, { fit: 'cover', position: sharp.gravity.centre })
-      .blur(22)
-      .modulate({ brightness: 0.6 })
-      .toBuffer();
-    const fg = await sharp(buffer)
-      .resize(width, height, { fit: 'inside' })
-      .toBuffer();
-    const out = await sharp(bg)
-      .composite([{ input: fg, gravity: 'centre' }])
+    // MIRROR-EXTEND. The target ratio differs from the source (e.g. 16:9 → 2:1), so a
+    // cover-crop would cut the subject. Instead keep the WHOLE image (fit by the
+    // dimension that fills the frame) and EXTEND the small leftover gaps by MIRRORING
+    // the real scene outward — sharp, seamless, no blur and no empty padding. The
+    // subject sits centred, so only background (crowd/arena/sky) gets reflected.
+    const fitted = tgtRatio > srcRatio
+      ? await sharp(buffer).resize({ height }).toBuffer()  // wider target → fit by height, mirror left/right
+      : await sharp(buffer).resize({ width }).toBuffer();  // taller target → fit by width, mirror top/bottom
+    const fm = await sharp(fitted).metadata();
+    const padX = Math.max(0, width - (fm.width || 0));
+    const padY = Math.max(0, height - (fm.height || 0));
+    const left = Math.floor(padX / 2);
+    const top = Math.floor(padY / 2);
+    const out = await sharp(fitted)
+      .extend({ left, right: padX - left, top, bottom: padY - top, extendWith: 'mirror' })
       .png()
       .toBuffer();
-    console.log(`[generate-image] blurred-fill to ${width}x${height} (src ${sw}x${sh}, ratios tgt=${tgtRatio.toFixed(3)} src=${srcRatio.toFixed(3)})`);
+    console.log(`[generate-image] mirror-extend to ${width}x${height} (src ${sw}x${sh}, tgt=${tgtRatio.toFixed(3)} src=${srcRatio.toFixed(3)})`);
     return { buffer: out, mime: 'image/png', resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);

@@ -58,6 +58,6 @@ describe('_outpaint geometry', () => {
     expect(p).toMatch(/background/i);
     expect(p).toContain('Roosterbet');
     expect(p).toMatch(/do not add any people/i);
-    expect(p).toMatch(/no .*(text|letters)/i);
+    expect(p).toMatch(/no text.*no letters.*no numbers/i);
   });
 });

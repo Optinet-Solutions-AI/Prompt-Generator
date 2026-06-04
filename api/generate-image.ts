@@ -422,6 +422,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const outputSize = SUPPORTED.reduce((best, cur) =>
         Math.abs(cur.ratio - requestedRatio) < Math.abs(best.ratio - requestedRatio) ? cur : best
       ).size;
+      // Outpaint base is always square; the wide size is reached by extendToWide.
+      const baseSize = doOutpaint ? '1024x1024' : outputSize;
 
       // Map resolution to quality. Banners bump genResolution to ≥2K (see needsCrop
       // above) → 'high' so gpt-image-1 renders the sharpest, least-distorted faces it

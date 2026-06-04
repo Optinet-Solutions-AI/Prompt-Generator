@@ -445,7 +445,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           model: 'gpt-image-1',
           prompt: finalPrompt,
           n: 1,
-          size: outputSize,
+          size: baseSize,
           quality: outputQuality,
         }),
       });

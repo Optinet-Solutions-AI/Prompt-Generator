@@ -387,6 +387,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Inject brand-mandatory style rules into the prompt
     const enrichedPrompt = enrichPromptWithBrandStyle(prompt, brand || '');
 
+    // The image models RENDER any literal brand name they see (Imagen stamped garbled
+    // "ROOSTERBET"/"ROOSTERN" on jerseys and arena boards, which the mirror-extend then
+    // duplicated). Strip the brand name from the text the model sees — the brand look is
+    // carried by colour/fire/style, not by writing the name. The rules already applied
+    // their meaning above, so removing the word here doesn't change the look.
+    const brandSafePrompt = (brand && brand.trim())
+      ? enrichedPrompt.replace(new RegExp(brand.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), 'the brand')
+      : enrichedPrompt;
+
     // gpt-image-1: short natural language quality signal — no "art/illustration" words (causes painting style).
     // "Hyperrealistic cinematic render" works for both CGI characters and photographic scenes.
     const CHATGPT_PREFIX = 'Hyperrealistic cinematic render, sharp photorealistic quality, dramatic professional lighting. ';

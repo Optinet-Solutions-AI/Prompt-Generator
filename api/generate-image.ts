@@ -408,7 +408,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ' Absolutely no text, no letters, no numbers, no words, no typography of any kind. ' +
       'No watermarks, no logos, no brand marks, no signatures, no captions, no stamps, no overlays. ' +
       'All corners must be completely clean and empty — no marks in the bottom-right, bottom-left, top-right, or top-left. ' +
-      'The final image must be fully unbranded and free of any written characters or symbols.';
+      'The final image must be fully unbranded and free of any written characters or symbols. ' +
+      'Any clothing, jerseys, uniforms, signage or boards are plain and blank — no team names, no player names, no numbers, no lettering.';
 
     // ChatGPT-only wide-framing constraint for wide banners. gpt-image-1 tends to
     // compose a tight close-up that then gets cut by the banner crop; Gemini doesn't

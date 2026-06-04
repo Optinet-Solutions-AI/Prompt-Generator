@@ -30,7 +30,7 @@ for (const c of CASES) {
     const sq = await squareBase(c.ref, c.provider);
     if (!sq) { console.log(`${c.tag}: square FAILED`); continue; }
     writeFileSync(`C:/tmp/spike-${c.tag}-square.png`, Buffer.from(await (await fetch(sq)).arrayBuffer()));
-    const ex = await fetch(`${BASE}/api/_spike-outpaint`, {
+    const ex = await fetch(`${BASE}/api/spike-outpaint`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ imageUrl: sq, brand: 'Roosterbet' }),
     });

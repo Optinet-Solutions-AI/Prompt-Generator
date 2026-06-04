@@ -67,7 +67,11 @@ export async function extendToWide(params: {
   form.append('prompt', buildExtendPrompt(brand));
   form.append('size', `${EXTEND_W}x${EXTEND_H}`);
   form.append('n', '1');
-  form.append('quality', 'high');
+  // The extended strips are ONLY blurred background/atmosphere, so they don't need
+  // top quality — 'medium' roughly halves the edit time vs 'high'. The SUBJECT keeps
+  // its quality from the (separate) high-quality base generation; only the sides are
+  // produced here. (Spike measured 'high' edits at 68-105s — too slow for the UX.)
+  form.append('quality', 'medium');
 
   const resp = await fetch('https://api.openai.com/v1/images/edits', {
     method: 'POST',

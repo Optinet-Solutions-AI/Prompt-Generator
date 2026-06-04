@@ -20,46 +20,57 @@ async function resizeToExact(
     const meta = await sharp(buffer).metadata();
     const sw = meta.width || 0;
     const sh = meta.height || 0;
+    if (!sw || !sh) return { buffer, mime: 'image/png', resized: false };
+    const srcRatio = sw / sh;
 
+    // Decide the TARGET width/height.
+    let width = 0;
+    let height = 0;
     // 1) Exact pixel size from bannerDimensions ("1200 × 600") wins.
     const dm = (bannerDimensions || '').trim().match(/^(\d+)\s*[x×*]\s*(\d+)$/i);
-    let width = dm ? parseInt(dm[1], 10) : 0;
-    let height = dm ? parseInt(dm[2], 10) : 0;
-
-    // 2) Otherwise crop to the requested ASPECT RATIO at the source's resolution,
-    //    so a "16:9" selection is actually 16:9 even with no exact pixel size.
-    if ((!width || !height) && sw && sh) {
+    if (dm) { width = parseInt(dm[1], 10); height = parseInt(dm[2], 10); }
+    // 2) Otherwise derive from the requested ASPECT RATIO by EXPANDING the source
+    //    to that ratio (add margin) rather than cropping into it — so nothing is lost.
+    else {
       const am = (aspectRatio || '').trim().match(/^(\d+(?:\.\d+)?)\s*[:x×]\s*(\d+(?:\.\d+)?)$/i);
       if (am) {
-        const rw = parseFloat(am[1]);
-        const rh = parseFloat(am[2]);
-        if (rw > 0 && rh > 0) {
-          const r = rw / rh;
-          const sr = sw / sh;
-          if (Math.abs(r - sr) / r > 0.01) {
-            if (r >= sr) { width = sw; height = Math.round(sw / r); }
-            else { height = sh; width = Math.round(sh * r); }
-          }
+        const r = parseFloat(am[1]) / parseFloat(am[2]);
+        if (r > 0) {
+          if (r >= srcRatio) { height = sh; width = Math.round(sh * r); }  // wider → side margin
+          else { width = sw; height = Math.round(sw / r); }                // taller → top/bottom margin
         }
       }
     }
 
     if (!width || !height) return { buffer, mime: 'image/png', resized: false };
-
-    // CENTERED crop. When the target is WIDER than the source (e.g. 16:9 → 2:1),
-    // a cover-crop trims the top and bottom. We generate the subject CENTERED with
-    // a crop-safe background border above and below it (see generate-prompt rule 8),
-    // so a CENTRE crop removes equal slivers of that border top and bottom and the
-    // whole subject survives, centered. Vertical/square targets keep subject-aware.
     const tgtRatio = width / height;
-    const srcRatio = sw && sh ? sw / sh : tgtRatio;
-    const position = tgtRatio > srcRatio + 0.01 ? sharp.gravity.centre : sharp.strategy.attention;
 
-    const out = await sharp(buffer)
-      .resize(width, height, { fit: 'cover', position })
+    // If the target ratio already matches the source, a plain cover resize is exact
+    // and lossless (e.g. square→square, portrait→portrait). No blur needed.
+    if (Math.abs(tgtRatio - srcRatio) / tgtRatio < 0.02) {
+      const out = await sharp(buffer)
+        .resize(width, height, { fit: 'cover', position: sharp.gravity.centre })
+        .png().toBuffer();
+      return { buffer: out, mime: 'image/png', resized: true };
+    }
+
+    // BLURRED-FILL. The target ratio differs from the source (e.g. 16:9 → 2:1), so a
+    // cover-crop would cut the subject. Instead: place the WHOLE image (fit inside)
+    // centred on a blurred, darkened cover of the SAME image. The only added pixels
+    // are a soft blur of the real scene at the edges — the subject is never cut.
+    const bg = await sharp(buffer)
+      .resize(width, height, { fit: 'cover', position: sharp.gravity.centre })
+      .blur(22)
+      .modulate({ brightness: 0.6 })
+      .toBuffer();
+    const fg = await sharp(buffer)
+      .resize(width, height, { fit: 'inside' })
+      .toBuffer();
+    const out = await sharp(bg)
+      .composite([{ input: fg, gravity: 'centre' }])
       .png()
       .toBuffer();
-    console.log(`[generate-image] cropped to ${width}x${height} (pos=${tgtRatio > srcRatio + 0.01 ? 'centre' : 'attention'})`);
+    console.log(`[generate-image] blurred-fill to ${width}x${height} (src ${sw}x${sh}, ratios tgt=${tgtRatio.toFixed(3)} src=${srcRatio.toFixed(3)})`);
     return { buffer: out, mime: 'image/png', resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);

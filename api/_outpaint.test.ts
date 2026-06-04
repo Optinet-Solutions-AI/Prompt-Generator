@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import sharp from 'sharp';
 import {
   shouldOutpaint,
@@ -9,6 +9,7 @@ import {
   EXTEND_H,
   BASE_SQUARE,
 } from './_outpaint.js';
+import { extendToWide } from './_outpaint.js';
 
 async function alphaAt(buf: Buffer, x: number, y: number): Promise<number> {
   const raw = await sharp(buf).ensureAlpha()

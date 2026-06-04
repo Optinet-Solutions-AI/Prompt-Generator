@@ -48,6 +48,9 @@ describe('_outpaint geometry', () => {
     const mask = await buildExtendMask();
     expect(await alphaAt(mask, 10, 512)).toBe(0);              // side = edit region
     expect(await alphaAt(mask, EXTEND_W / 2, 512)).toBe(255);  // centre = keep
+    const SIDE = (EXTEND_W - BASE_SQUARE) / 2;
+    expect(await alphaAt(mask, SIDE - 1, 512)).toBe(0);    // side strip = edit
+    expect(await alphaAt(mask, SIDE, 512)).toBe(255);      // centre = keep
   });
 
   it('extend prompt forbids new figures/objects/text and names the brand', () => {

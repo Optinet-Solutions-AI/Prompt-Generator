@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { extendToWide, shouldOutpaint } from './_outpaint.js';
 
 // ── Server-side exact-size crop ────────────────────────────────────────
 // The image model can only emit fixed sizes (1024², 1536×1024, 1024×1536),

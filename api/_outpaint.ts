@@ -48,3 +48,45 @@ export function buildExtendPrompt(brand: string): string {
   const b = brand ? `${brand} ` : '';
   return `Extend this scene outward to the left and right, filling ONLY the empty side areas with a seamless, photorealistic continuation of the existing background and atmosphere — blurred crowd, arena lighting, sky, depth, and a subtle ${b}brand-colour glow. Do NOT add any people, players, figures, faces, animals, balls, objects, or props in the extended areas. Add no text, no letters, no numbers, no logos, and no watermarks. Keep the central subject exactly as it is. The result must look like one continuous wide photograph.`;
 }
+
+// Outpaint the square into EXTEND_W×EXTEND_H via gpt-image-1 /images/edits.
+// Throws on any failure so the caller can fall back to generate+crop.
+export async function extendToWide(params: {
+  squareBuffer: Buffer;
+  brand: string;
+  openaiKey: string;
+}): Promise<{ buffer: Buffer; width: number; height: number }> {
+  const { squareBuffer, brand, openaiKey } = params;
+  const canvas = await buildExtendCanvas(squareBuffer);
+  const mask = await buildExtendMask();
+
+  const form = new FormData();
+  form.append('model', 'gpt-image-1');
+  form.append('image', new Blob([new Uint8Array(canvas)], { type: 'image/png' }), 'image.png');
+  form.append('mask', new Blob([new Uint8Array(mask)], { type: 'image/png' }), 'mask.png');
+  form.append('prompt', buildExtendPrompt(brand));
+  form.append('size', `${EXTEND_W}x${EXTEND_H}`);
+  form.append('n', '1');
+  form.append('quality', 'high');
+
+  const resp = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${openaiKey}` },
+    body: form,
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error(`outpaint edits failed (${resp.status}): ${t.slice(0, 300)}`);
+  }
+  const data = (await resp.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
+  const item = data.data?.[0];
+  let buffer: Buffer;
+  if (item?.b64_json) {
+    buffer = Buffer.from(item.b64_json, 'base64');
+  } else if (item?.url) {
+    buffer = Buffer.from(await (await fetch(item.url)).arrayBuffer());
+  } else {
+    throw new Error('outpaint returned no image');
+  }
+  return { buffer, width: EXTEND_W, height: EXTEND_H };
+}

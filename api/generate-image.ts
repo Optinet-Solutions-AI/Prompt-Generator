@@ -577,7 +577,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // ratio Imagen supports natively so the generation is nearly the right
       // shape and resizeToExact only trims a little.
       const reqRatio = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1;
-      const nativeRatio = nearestImagenRatio(reqRatio);
+      // Outpaint base is square; otherwise snap to the closest Imagen-native ratio.
+      const nativeRatio = doOutpaint ? '1:1' : nearestImagenRatio(reqRatio);
 
       console.log('Sending to Cloud Run:', { provider, aspectRatio, bannerDimensions, reqRatio, nativeRatio, resolution });
 

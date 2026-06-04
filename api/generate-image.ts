@@ -353,10 +353,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // exact sizes and for wide (>=1.7) or tall (<=0.6) banners.
     const reqRatioForRes = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1;
     const needsCrop = exactSizeRequested || reqRatioForRes >= 1.7 || reqRatioForRes <= 0.6;
-    // Outpaint path: wide banners get a SQUARE base + AI side-extend instead of a
-    // cropped wide generation, so the subject is never cut. Needs the OpenAI key
-    // (the extend uses gpt-image-1 edits). Falls back to generate+crop on failure.
-    const doOutpaint = shouldOutpaint(reqRatioForRes) && !!process.env.OPENAI_API_KEY;
+    // Outpaint DISABLED. The AI-extended sides looked padded/empty, so we use the
+    // approach the user asked for instead: generate a native wide image (Gemini does
+    // true 16:9) with the subject CENTERED inside a crop-safe border (generate-prompt
+    // rule 8), then centre-crop to the exact 2:1 — the crop removes only the border,
+    // not the subject. The square+extend code below stays dormant behind this flag;
+    // restore `shouldOutpaint(reqRatioForRes) && !!process.env.OPENAI_API_KEY` to re-enable.
+    const doOutpaint = false && shouldOutpaint(reqRatioForRes) && !!process.env.OPENAI_API_KEY;
     console.log(`[generate-image] doOutpaint=${doOutpaint} (ratio=${reqRatioForRes.toFixed(3)})`);
     const genResolution = needsCrop
       ? (RES_ORDER.indexOf(resolution) >= RES_ORDER.indexOf('2K') ? resolution : '2K')

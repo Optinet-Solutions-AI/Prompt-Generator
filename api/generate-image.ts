@@ -353,6 +353,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // exact sizes and for wide (>=1.7) or tall (<=0.6) banners.
     const reqRatioForRes = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1;
     const needsCrop = exactSizeRequested || reqRatioForRes >= 1.7 || reqRatioForRes <= 0.6;
+    // Outpaint path: wide banners get a SQUARE base + AI side-extend instead of a
+    // cropped wide generation, so the subject is never cut. Needs the OpenAI key
+    // (the extend uses gpt-image-1 edits). Falls back to generate+crop on failure.
+    const doOutpaint = shouldOutpaint(reqRatioForRes) && !!process.env.OPENAI_API_KEY;
+    console.log(`[generate-image] doOutpaint=${doOutpaint} (ratio=${reqRatioForRes.toFixed(3)})`);
     const genResolution = needsCrop
       ? (RES_ORDER.indexOf(resolution) >= RES_ORDER.indexOf('2K') ? resolution : '2K')
       : (resolution || '1K');

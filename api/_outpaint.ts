@@ -81,10 +81,13 @@ export async function extendToWide(params: {
   const data = (await resp.json()) as { data?: Array<{ b64_json?: string; url?: string }> };
   const item = data.data?.[0];
   let buffer: Buffer;
+  // gpt-image-1 returns b64_json; the url branch is a defensive fallback (untested).
   if (item?.b64_json) {
     buffer = Buffer.from(item.b64_json, 'base64');
   } else if (item?.url) {
-    buffer = Buffer.from(await (await fetch(item.url)).arrayBuffer());
+    const imgResp = await fetch(item.url);
+    if (!imgResp.ok) throw new Error(`outpaint image download failed (${imgResp.status})`);
+    buffer = Buffer.from(await imgResp.arrayBuffer());
   } else {
     throw new Error('outpaint returned no image');
   }

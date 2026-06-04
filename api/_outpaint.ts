@@ -46,5 +46,5 @@ export async function buildExtendMask(): Promise<Buffer> {
 // Background-only extend instruction. NO new figures/objects/text.
 export function buildExtendPrompt(brand: string): string {
   const b = brand ? `${brand} ` : '';
-  return `Extend this scene outward to the left and right, filling ONLY the empty side areas with a seamless, photorealistic continuation of the existing background and atmosphere — blurred crowd, arena lighting, sky, depth, and a subtle ${b}brand-colour glow. Do NOT add any people, players, figures, faces, animals, balls, objects, props, text, letters, numbers, logos, or watermarks in the extended areas. Keep the central subject exactly as it is. The result must look like one continuous wide photograph.`;
+  return `Extend this scene outward to the left and right, filling ONLY the empty side areas with a seamless, photorealistic continuation of the existing background and atmosphere — blurred crowd, arena lighting, sky, depth, and a subtle ${b}brand-colour glow. Do NOT add any people, players, figures, faces, animals, balls, objects, or props in the extended areas. Add no text, no letters, no numbers, no logos, and no watermarks. Keep the central subject exactly as it is. The result must look like one continuous wide photograph.`;
 }

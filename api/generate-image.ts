@@ -422,11 +422,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // with margin; the wide look comes from the side-extend, not from the generation.
     const SQUARE_FRAMING = ' FRAMING: a centred square composition. The ENTIRE subject is fully visible with clear empty margin on all four sides — nothing touches any edge. Keep the background simple and uncluttered around the subject.';
     const framing = doOutpaint ? SQUARE_FRAMING : WIDE_FRAMING;
-    const finalPrompt = CHATGPT_PREFIX + enrichedPrompt + framing + NO_WATERMARKS;
+    const finalPrompt = CHATGPT_PREFIX + brandSafePrompt + framing + NO_WATERMARKS;
     // The fallback (catch block below) regenerates a WIDE image, so it needs the
     // wide framing — not the square framing used for the outpaint base.
     const wideFallbackPrompt = doOutpaint
-      ? CHATGPT_PREFIX + enrichedPrompt + WIDE_FRAMING + NO_WATERMARKS
+      ? CHATGPT_PREFIX + brandSafePrompt + WIDE_FRAMING + NO_WATERMARKS
       : finalPrompt;
 
     // Gemini/Imagen responds to quality tags — avoid "illustration" (painting signal).

@@ -381,7 +381,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // need this. Placed near the end (gpt-image-1 weights later tokens stronger).
     // Only applied to wide banners (Gemini path never sees it).
     const WIDE_FRAMING = reqRatioForRes >= 1.7
-      ? ' FRAMING: an ultra-wide, full-length establishing shot. The entire subject is visible head to toe, sized small-to-medium and centred within a large open environment, with generous empty headroom above the subject and clear floor/ground space below it, so the whole figure sits comfortably inside the frame with breathing room on every side.'
+      ? ' FRAMING: an ultra-wide, full-length establishing shot. The entire subject is visible head to toe, sized small-to-medium and centred within a large open environment. Leave a GENEROUS band of empty headroom above the very top of the head/comb/hat so the head sits well below the top edge, and clear floor/ground space below the feet, so the whole figure sits comfortably inside the frame with wide breathing room on every side and nothing touches any edge.'
       : '';
     const finalPrompt = CHATGPT_PREFIX + enrichedPrompt + WIDE_FRAMING + NO_WATERMARKS;
 

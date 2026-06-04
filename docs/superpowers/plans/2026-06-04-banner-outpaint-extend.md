@@ -533,12 +533,6 @@ Find the block that decodes the OpenAI image into a buffer (~line 466-477), wher
           }
 ```
 
-> **Correction — use this exact `extendToWide` call (the line above has a typo guard):**
-> ```ts
->               const ext = await extendToWide({ squareBuffer: imageBuffer, brand: brand || '', openaiKey });
-> ```
-> Replace the malformed `extendToWide({ imageBufferBrand... } && ...)` line with this clean call.
-
 - [ ] **Step 4: Typecheck**
 
 Run: `npx tsc --noEmit`

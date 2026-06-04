@@ -7,6 +7,7 @@ import {
   buildExtendPrompt,
   EXTEND_W,
   EXTEND_H,
+  BASE_SQUARE,
 } from './_outpaint.js';
 
 async function alphaAt(buf: Buffer, x: number, y: number): Promise<number> {

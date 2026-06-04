@@ -13,33 +13,28 @@ async function resizeToExact(
 ): Promise<{ buffer: Buffer; mime: string; resized: boolean }> {
   try {
     const sharp = (await import('sharp')).default;
+    const meta = await sharp(buffer).metadata();
+    const sw = meta.width || 0;
+    const sh = meta.height || 0;
 
     // 1) Exact pixel size from bannerDimensions ("1200 × 600") wins.
     const dm = (bannerDimensions || '').trim().match(/^(\d+)\s*[x×*]\s*(\d+)$/i);
     let width = dm ? parseInt(dm[1], 10) : 0;
     let height = dm ? parseInt(dm[2], 10) : 0;
 
-    // 2) Otherwise crop to the requested ASPECT RATIO at the source's resolution.
-    //    This is what makes a "16:9" selection actually 16:9 even with no exact
-    //    pixel size — previously gpt-image-1 kept its native 3:2 and was never
-    //    cropped to the ratio.
-    if (!width || !height) {
+    // 2) Otherwise crop to the requested ASPECT RATIO at the source's resolution,
+    //    so a "16:9" selection is actually 16:9 even with no exact pixel size.
+    if ((!width || !height) && sw && sh) {
       const am = (aspectRatio || '').trim().match(/^(\d+(?:\.\d+)?)\s*[:x×]\s*(\d+(?:\.\d+)?)$/i);
       if (am) {
         const rw = parseFloat(am[1]);
         const rh = parseFloat(am[2]);
         if (rw > 0 && rh > 0) {
-          const meta = await sharp(buffer).metadata();
-          const sw = meta.width || 0;
-          const sh = meta.height || 0;
-          if (sw && sh) {
-            const r = rw / rh;
-            const sr = sw / sh;
-            // Already the right ratio (within 1%) → no crop needed.
-            if (Math.abs(r - sr) / r > 0.01) {
-              if (r >= sr) { width = sw; height = Math.round(sw / r); }   // wider → crop top/bottom
-              else { height = sh; width = Math.round(sh * r); }            // taller → crop sides
-            }
+          const r = rw / rh;
+          const sr = sw / sh;
+          if (Math.abs(r - sr) / r > 0.01) {
+            if (r >= sr) { width = sw; height = Math.round(sw / r); }
+            else { height = sh; width = Math.round(sh * r); }
           }
         }
       }
@@ -47,14 +42,20 @@ async function resizeToExact(
 
     if (!width || !height) return { buffer, mime: 'image/png', resized: false };
 
-    // Hard crop to the exact size/ratio — real edge-to-edge content (no padding).
-    // The prompt composes the subject inside the central "safe band" with
-    // expendable top/bottom margins, so this crop trims background, not the subject.
+    // HEAD-PROTECTIVE crop. When the target is WIDER than the source, a cover-crop
+    // trims the top and bottom — and gpt-image-1 ignores "leave headroom", so the
+    // head often sits near the top edge. Cropping from the TOP (north) keeps the
+    // head / dunk-action and trims the floor/feet instead — deterministic, not
+    // dependent on the model obeying. Vertical/square targets keep subject-aware.
+    const tgtRatio = width / height;
+    const srcRatio = sw && sh ? sw / sh : tgtRatio;
+    const position = tgtRatio > srcRatio + 0.01 ? sharp.gravity.north : sharp.strategy.attention;
+
     const out = await sharp(buffer)
-      .resize(width, height, { fit: 'cover', position: sharp.strategy.attention })
+      .resize(width, height, { fit: 'cover', position })
       .png()
       .toBuffer();
-    console.log(`[generate-image] cropped to ${width}x${height} (cover, subject-aware)`);
+    console.log(`[generate-image] cropped to ${width}x${height} (pos=${tgtRatio > srcRatio + 0.01 ? 'top/head-safe' : 'attention'})`);
     return { buffer: out, mime: 'image/png', resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);

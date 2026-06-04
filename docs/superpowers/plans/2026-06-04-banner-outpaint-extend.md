@@ -513,7 +513,7 @@ Find the block that decodes the OpenAI image into a buffer (~line 466-477), wher
           // wide generation (today's behaviour) — never a hard error.
           if (doOutpaint) {
             try {
-              const ext = await extendToWide({ imageBufferBrand: brand || '' } && { squareBuffer: imageBuffer, brand: brand || '', openaiKey });
+              const ext = await extendToWide({ squareBuffer: imageBuffer, brand: brand || '', openaiKey });
               imageBuffer = ext.buffer;
               console.log('[generate-image] outpaint OK (chatgpt)');
             } catch (err) {

@@ -43,20 +43,20 @@ async function resizeToExact(
 
     if (!width || !height) return { buffer, mime: 'image/png', resized: false };
 
-    // HEAD-PROTECTIVE crop. When the target is WIDER than the source, a cover-crop
-    // trims the top and bottom — and gpt-image-1 ignores "leave headroom", so the
-    // head often sits near the top edge. Cropping from the TOP (north) keeps the
-    // head / dunk-action and trims the floor/feet instead — deterministic, not
-    // dependent on the model obeying. Vertical/square targets keep subject-aware.
+    // CENTERED crop. When the target is WIDER than the source (e.g. 16:9 → 2:1),
+    // a cover-crop trims the top and bottom. We generate the subject CENTERED with
+    // a crop-safe background border above and below it (see generate-prompt rule 8),
+    // so a CENTRE crop removes equal slivers of that border top and bottom and the
+    // whole subject survives, centered. Vertical/square targets keep subject-aware.
     const tgtRatio = width / height;
     const srcRatio = sw && sh ? sw / sh : tgtRatio;
-    const position = tgtRatio > srcRatio + 0.01 ? sharp.gravity.north : sharp.strategy.attention;
+    const position = tgtRatio > srcRatio + 0.01 ? sharp.gravity.centre : sharp.strategy.attention;
 
     const out = await sharp(buffer)
       .resize(width, height, { fit: 'cover', position })
       .png()
       .toBuffer();
-    console.log(`[generate-image] cropped to ${width}x${height} (pos=${tgtRatio > srcRatio + 0.01 ? 'top/head-safe' : 'attention'})`);
+    console.log(`[generate-image] cropped to ${width}x${height} (pos=${tgtRatio > srcRatio + 0.01 ? 'centre' : 'attention'})`);
     return { buffer: out, mime: 'image/png', resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);

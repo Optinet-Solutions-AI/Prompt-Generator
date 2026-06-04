@@ -431,7 +431,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Gemini/Imagen responds to quality tags — avoid "illustration" (painting signal).
     const GEMINI_PREFIX = 'photorealistic, hyperrealistic, cinematic lighting, sharp focus, highly detailed, dramatic composition, rich deep colors, professional color grading, clean sharp render. ';
-    const geminiPrompt = GEMINI_PREFIX + enrichedPrompt + NO_WATERMARKS;
+    const geminiPrompt = GEMINI_PREFIX + brandSafePrompt + NO_WATERMARKS;
 
     // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────
     // Uses gpt-image-1 via Vercel's OPENAI_API_KEY — no Cloud Run needed.

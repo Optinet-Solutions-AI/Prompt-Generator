@@ -679,6 +679,6 @@ Summarize in plain English (per the user's end-of-task report preference): what 
 - Testing/verification → Tasks 3 (spike) + 7 (live). ✓
 - Timeout/perf → measured in Task 3 Step 5; noted. ✓
 
-**Placeholder scan:** Task 5 Step 3 intentionally contains a malformed line FOLLOWED by an explicit correction block — the implementer uses the corrected call. All other steps have complete code.
+**Placeholder scan:** No placeholders or malformed code — every step has the exact content to use.
 
 **Type consistency:** `extendToWide({ squareBuffer, brand, openaiKey })` returns `{ buffer, width, height }` — used consistently in Tasks 2, 3, 5, 6. `shouldOutpaint(number): boolean`, `doOutpaint` boolean. `EXTEND_W=1536`, `EXTEND_H=1024` consistent across module, tests, spike, and the verification crop.

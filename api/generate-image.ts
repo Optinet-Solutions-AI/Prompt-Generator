@@ -1,14 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { extendToWide, shouldOutpaint } from './_outpaint.js';
 
-// ── Server-side exact-size fit (blurred-fill) ──────────────────────────
+// ── Server-side exact-size fit (mirror-extend) ─────────────────────────
 // The image model can only emit fixed sizes (1024², 1536×1024, 1024×1536),
 // and 2:1 is WIDER+SHORTER than any of them — so cover-cropping to 2:1 used
 // to slice the subject's head/feet. Instead we keep the ENTIRE generated image
-// (fit inside the target) and fill the small leftover side/top gaps with a
-// blurred, darkened copy of the same scene — nothing is ever cut. This runs
-// BEFORE saving to Drive, so the stored/preview image is the exact size too.
-// Uses sharp (already
+// (fit by the filling dimension) and extend the small leftover side/top gaps by
+// MIRRORING the real scene outward — sharp and seamless, no blur and no empty
+// padding, and nothing is ever cut. This runs BEFORE saving to Drive, so the
+// stored/preview image is the exact size too. Uses sharp (already
 // a dependency). bannerDimensions is the "1200 × 600" string from the UI.
 async function resizeToExact(
   buffer: Buffer,

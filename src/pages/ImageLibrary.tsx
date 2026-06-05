@@ -1099,6 +1099,14 @@ function Lightbox({
                 <DropdownMenuItem onClick={() => handleDownloadRounded(null)} className="gap-2">
                   <Download className="w-4 h-4" /> Rounded corners (no shadow)
                 </DropdownMenuItem>
+                {(image.brand_name || image.brand) && (
+                  <DropdownMenuItem
+                    onClick={() => handleDownloadRounded((image.brand_name || image.brand) as string)}
+                    className="gap-2 font-medium"
+                  >
+                    <Download className="w-4 h-4" /> Rounded + {image.brand_name || image.brand} shadow (auto)
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger className="gap-2">
                     <Download className="w-4 h-4" /> Rounded + brand shadow

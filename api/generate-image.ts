@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { brandSlug } from './_brand-slug.js';
 
 // ── Server-side exact-size fit (mirror-extend) ─────────────────────────
 // The image model can only emit fixed sizes (1024², 1536×1024, 1024×1536),

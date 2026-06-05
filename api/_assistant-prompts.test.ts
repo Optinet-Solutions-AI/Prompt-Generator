@@ -66,6 +66,19 @@ describe('buildGenerateSystemPrompt', () => {
   });
 });
 
+describe('buildAvoidClause', () => {
+  it('returns empty string for an empty or blank-only list', () => {
+    expect(buildAvoidClause([])).toBe('');
+    expect(buildAvoidClause(['  ', ''])).toBe('');
+  });
+  it('lists the items under a do-not-repeat header', () => {
+    const out = buildAvoidClause(['Sky Ascent — hero in golden sky', 'Vault Reveal — hand in vault']);
+    expect(out).toMatch(/do NOT repeat or lightly re-skin/i);
+    expect(out).toContain('- Sky Ascent — hero in golden sky');
+    expect(out).toContain('- Vault Reveal — hand in vault');
+  });
+});
+
 describe('pickConceptLens', () => {
   it('offers a pool of several distinct, non-empty creative lenses', () => {
     expect(CONCEPT_LENSES.length).toBeGreaterThanOrEqual(5);

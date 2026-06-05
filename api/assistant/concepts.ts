@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateToken } from '../_assistant-token.js';
 import { chat } from '../_llm.js';
-import { buildConceptsSystemPrompt, CONCEPTS_JSON_SCHEMA } from '../_assistant-prompts.js';
+import { buildConceptsSystemPrompt, CONCEPTS_JSON_SCHEMA, pickConceptLens } from '../_assistant-prompts.js';
 import { logLlmCall } from '../_assistant-log.js';
 import { checkSpendCap } from '../_spend-cap.js';
 

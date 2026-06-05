@@ -8,6 +8,7 @@ export interface ChatOptions {
   maxTokens: number;
   json?: boolean;
   jsonSchema?: object;
+  temperature?: number;
 }
 
 export interface ChatResult {

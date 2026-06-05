@@ -46,6 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       json: true,
       jsonSchema: CONCEPTS_JSON_SCHEMA,
       maxTokens: 600,
+      // Higher temperature widens the spread between the 3 concepts (diversity).
+      temperature: 0.9,
     });
 
     const parsed = JSON.parse(result.text);

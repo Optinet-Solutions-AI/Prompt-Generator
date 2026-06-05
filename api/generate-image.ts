@@ -639,22 +639,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const rawMime = imgRes.headers.get('content-type')?.split(';')[0] || 'image/png';
                 const rawBuf  = Buffer.from(await imgRes.arrayBuffer());
 
-                // Wide banner: extend the square base sideways first, so the crop
-                // trims only background. On failure, fall back to cropping the
-                // square base (rare — only on outpaint API error).
-                let preCrop = rawBuf;
-                if (doOutpaint && process.env.OPENAI_API_KEY) {
-                  try {
-                    const ext = await extendToWide({ squareBuffer: rawBuf, brand: brand || '', openaiKey: process.env.OPENAI_API_KEY });
-                    preCrop = ext.buffer;
-                    console.log('[generate-image] outpaint OK (gemini)');
-                  } catch (err) {
-                    console.error('[generate-image] outpaint failed (gemini); cropping square base', err);
-                  }
-                }
                 // Crop/resize to the exact requested size before saving, so the
                 // stored Drive image and preview match the request (e.g. 1200×600).
-                const exact   = await resizeToExact(preCrop, bannerDimensions, aspectRatio);
+                const exact   = await resizeToExact(rawBuf, bannerDimensions, aspectRatio);
                 const imgBuf  = exact.buffer;
                 const imgMime = exact.resized ? exact.mime : rawMime;
                 const ext     = imgMime.split('/')[1] || 'png';

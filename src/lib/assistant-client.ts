@@ -27,6 +27,7 @@ export function requestConcepts(args: {
   task: string;
   description?: string;
   model: AssistantProvider;
+  avoid?: string[];
 }) {
   return postJson<ConceptsResponse>('/api/assistant/concepts', args);
 }

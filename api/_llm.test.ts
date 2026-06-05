@@ -65,6 +65,23 @@ describe('_llm.chat — OpenAI', () => {
       chat({ provider: 'openai', model: 'gpt-4o', system: 's', user: 'u', maxTokens: 100 })
     ).rejects.toThrow(/OpenAI/);
   });
+
+  it('includes temperature in the OpenAI body when provided, omits it otherwise', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1, completion_tokens: 1, prompt_tokens_details: { cached_tokens: 0 } } }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await chat({ provider: 'openai', model: 'gpt-4o-mini', system: 's', user: 'u', maxTokens: 100, temperature: 0.9 });
+    let body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.temperature).toBe(0.9);
+
+    fetchMock.mockClear();
+    await chat({ provider: 'openai', model: 'gpt-4o-mini', system: 's', user: 'u', maxTokens: 100 });
+    body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.temperature).toBeUndefined();
+  });
 });
 
 describe('_llm.chat — Gemini', () => {

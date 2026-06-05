@@ -650,16 +650,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const imgBuf  = exact.buffer;
                 const imgMime = exact.resized ? exact.mime : rawMime;
                 const ext     = imgMime.split('/')[1] || 'png';
+                const gSlug   = brandSlug(brand);
 
                 const geminiFileId = await uploadImageToDrive({
                   imageBuffer: imgBuf,
                   mimeType:    imgMime,
-                  filename:    `gemini-${Date.now()}.${ext}`,
+                  filename:    `${gSlug ? gSlug + '-' : ''}gemini-${Date.now()}.${ext}`,
                   folderId:    geminiFolder,
                   provider:    'gemini',
                   aspectRatio: aspectRatio || '16:9',
                   resolution:  resolution  || '1K',
                   accessToken: geminiAccessToken,
+                  brand,
                 });
 
                 // Make public so server-side fetches (edit, variations) work without auth

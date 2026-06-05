@@ -22,50 +22,10 @@ want to iterate.
 Speak in first person. Be direct. No filler ("Great", "Sure", "I'd be happy to").
 Output the work, not commentary about the work.`;
 
-// Two-mode JSON output — same as how Claude / I (in this very chat) handle
-// ambiguous requests. The model picks "clarify" when the user's intent could
-// reasonably go several different ways, otherwise it picks "refine" and just
-// updates the prompt directly.
-const REFINE_JSON_SCHEMA = {
-  type: 'object',
-  required: ['action', 'message'],
-  properties: {
-    action: {
-      type: 'string',
-      enum: ['clarify', 'refine'],
-    },
-    message: { type: 'string' },
-    options: {
-      type: 'array',
-      maxItems: 3,
-      items: {
-        type: 'object',
-        required: ['label', 'description'],
-        properties: {
-          label:       { type: 'string' },
-          description: { type: 'string' },
-        },
-      },
-    },
-    refinedFields: {
-      type: 'object',
-      required: [
-        'format_layout', 'primary_object', 'subject', 'lighting', 'mood',
-        'background', 'positive_prompt', 'negative_prompt',
-      ],
-      properties: {
-        format_layout:   { type: 'string' },
-        primary_object:  { type: 'string' },
-        subject:         { type: 'string' },
-        lighting:        { type: 'string' },
-        mood:            { type: 'string' },
-        background:      { type: 'string' },
-        positive_prompt: { type: 'string' },
-        negative_prompt: { type: 'string' },
-      },
-    },
-  },
-} as const;
+// Two-mode output: the model picks "clarify" when the user's intent could reasonably
+// go several ways, otherwise "refine" and updates the prompt directly. The shape is
+// enforced by the system prompt (not a strict json_schema — its conditional fields
+// aren't OpenAI-strict-compatible).
 
 interface GeneratedFields {
   format_layout: string;

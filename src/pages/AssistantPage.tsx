@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import NotFound from './NotFound';
 import { Input } from '@/components/ui/input';

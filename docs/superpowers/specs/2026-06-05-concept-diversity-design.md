@@ -26,9 +26,19 @@ armored hero with a different backdrop.
 3. **No temperature.** `chat()` in `api/_llm.ts` never sets a temperature, so there is no
    extra sampling spread to push the three apart.
 
+## Guiding intent
+
+The assistant's job is to **expand the user's creative thinking — give them more and new
+ideas — not narrow their mindset.** The three concepts should open *different doors*: fresh,
+non-obvious directions the user might not have considered, not three safe takes on the same
+obvious idea. Brand identity is the guardrail (palette, character, style stay intact), but
+within it the assistant should think broadly and surprise the user with range. "Distinct"
+is the floor; **mind-expanding** is the goal.
+
 ## Decision (confirmed with user — Approach A)
 
-Strengthen the concepts prompt for orthogonal diversity, decouple brand **identity** from
+Strengthen the concepts prompt so it acts as a creative **expander** (fresh, non-obvious,
+anti-cliché directions that broaden the user's thinking), decouple brand **identity** from
 **composition** (so identity stays mandatory but composition/scene varies), and add a
 temperature to the concepts LLM call. Backend-only; no schema or frontend change.
 

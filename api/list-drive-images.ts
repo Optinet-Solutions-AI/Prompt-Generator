@@ -110,6 +110,7 @@ function mapFile(f: DriveFile, defaultProvider: string) {
     provider:     f.appProperties?.provider    || defaultProvider,
     aspect_ratio: f.appProperties?.aspectRatio || '16:9',
     resolution:   f.appProperties?.resolution  || '1K',
+    brand:        brandFromDriveFile(f.name, f.appProperties),
     public_url:   `https://lh3.googleusercontent.com/d/${f.id}`,
   };
 }

@@ -42,6 +42,8 @@ export default function AssistantPage() {
   const [generating, setGenerating] = useState(false);
   const [pickedConcept, setPickedConcept] = useState<AssistantConcept | null>(null);
   const [generatedUsage, setGeneratedUsage] = useState<AssistantUsage | null>(null);
+  const [avoid, setAvoid] = useState<string[]>([]);
+  const avoidKeyRef = useRef<string>('');
 
   async function onPick(c: AssistantConcept) {
     setError(null); setGenerating(true); setGenerated(null);

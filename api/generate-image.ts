@@ -567,7 +567,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // shape and resizeToExact only trims a little.
       const reqRatio = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1;
       // Outpaint base is square; otherwise snap to the closest Imagen-native ratio.
-      const nativeRatio = doOutpaint ? '1:1' : nearestImagenRatio(reqRatio);
+      const nativeRatio = nearestImagenRatio(reqRatio);
 
       console.log('Sending to Cloud Run:', { provider, aspectRatio, bannerDimensions, reqRatio, nativeRatio, resolution });
 

@@ -25,6 +25,7 @@ interface DriveFile {
 }
 
 // The 10 brands in the system, keyed by their slug, for filename-prefix fallback.
+// Kept in sync manually with _brand-rules.ts (no import allowed in this self-contained file).
 const BRAND_BY_SLUG: Record<string, string> = {
   roosterbet: 'Roosterbet', fortuneplay: 'FortunePlay', spinjo: 'SpinJo',
   luckyvibe: 'LuckyVibe', spinsup: 'SpinsUp', playmojo: 'PlayMojo',

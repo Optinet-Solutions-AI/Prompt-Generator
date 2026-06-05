@@ -183,10 +183,12 @@ async function makeFilePublic(fileId: string, accessToken: string): Promise<void
 async function uploadImageToDrive(params: {
   imageBuffer: Buffer; mimeType: string; filename: string;
   folderId: string; provider: string; aspectRatio: string;
-  resolution: string; accessToken: string;
+  resolution: string; accessToken: string; brand?: string;
 }): Promise<string> {
-  const { imageBuffer, mimeType, filename, folderId, provider, aspectRatio, resolution, accessToken } = params;
-  const metadata = { name: filename, parents: [folderId], appProperties: { provider, aspectRatio, resolution } };
+  const { imageBuffer, mimeType, filename, folderId, provider, aspectRatio, resolution, accessToken, brand } = params;
+  const appProperties: Record<string, string> = { provider, aspectRatio, resolution };
+  if (brand && brand.trim()) appProperties.brand = brand.trim();
+  const metadata = { name: filename, parents: [folderId], appProperties };
   const boundary = 'drive_upload_boundary_xyz';
   const metaJson = JSON.stringify(metadata);
   const partHeaders =

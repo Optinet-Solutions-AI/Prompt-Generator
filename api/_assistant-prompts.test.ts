@@ -32,7 +32,7 @@ describe('buildConceptsSystemPrompt', () => {
   it('requires a range of boldness (a safe direction and a bolder stretch)', () => {
     const out = buildConceptsSystemPrompt('RocketSpin');
     expect(out).toMatch(/range of boldness/i);
-    expect(out).toMatch(/bolder/i);
+    expect(out).toMatch(/bolder.*stretch/i);
   });
 
   it('decouples brand identity from composition', () => {

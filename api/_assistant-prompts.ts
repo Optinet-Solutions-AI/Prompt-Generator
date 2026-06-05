@@ -18,17 +18,20 @@ function brandBlock(brand: string): string {
   if (!palette) {
     return `The brand for this work is ${brand}. (No brand-specific rules registered — match the provided task and description faithfully.)`;
   }
-  return [
+  const parts: string[] = [
     `The brand for this work is ${brand}. Apply these rules to every concept:`,
     '',
     'COLOR PALETTE:',
     palette,
-    '',
-    mandate ? 'STYLE MANDATE:' : '',
-    mandate,
+  ];
+  if (mandate) {
+    parts.push('', 'STYLE MANDATE:', mandate);
+  }
+  parts.push(
     '',
     'IDENTITY vs COMPOSITION: The rules above define the brand IDENTITY — colour palette, character look, and style — and MUST be applied to every concept. They are NOT a fixed composition: vary the setting, shot scale (wide establishing vs tight hero vs product-forward), framing, camera angle, action/moment, and mood across concepts. Any specific composition a rule suggests (e.g. a centered hero or symmetrical framing) is ONE option to draw from, not a requirement for every image.',
-  ].filter(Boolean).join('\n');
+  );
+  return parts.join('\n');
 }
 
 export function buildConceptsSystemPrompt(brand: string): string {

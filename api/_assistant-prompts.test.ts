@@ -15,10 +15,31 @@ describe('buildConceptsSystemPrompt', () => {
     expect(out).toMatch(/chest reactor/i);
   });
 
-  it('instructs the model to return exactly 3 visually distinct concepts as JSON', () => {
+  it('instructs the model to return exactly 3 genuinely-different concepts as JSON', () => {
     const out = buildConceptsSystemPrompt('RocketSpin');
     expect(out).toMatch(/exactly 3 concepts/i);
-    expect(out).toMatch(/visually distinct/i);
+    expect(out).toMatch(/genuinely different visual direction/i);
+    expect(out).toMatch(/do NOT return the same scene/i);
+  });
+
+  it('frames the assistant as a creative expander (more/newer, non-obvious)', () => {
+    const out = buildConceptsSystemPrompt('RocketSpin');
+    expect(out).toMatch(/expand the user'?s thinking/i);
+    expect(out).toMatch(/more and newer ideas/i);
+    expect(out).toMatch(/non-obvious/i);
+  });
+
+  it('requires a range of boldness (a safe direction and a bolder stretch)', () => {
+    const out = buildConceptsSystemPrompt('RocketSpin');
+    expect(out).toMatch(/range of boldness/i);
+    expect(out).toMatch(/bolder/i);
+  });
+
+  it('decouples brand identity from composition', () => {
+    const out = buildConceptsSystemPrompt('RocketSpin');
+    expect(out).toMatch(/IDENTITY vs COMPOSITION/i);
+    expect(out).toMatch(/not a fixed composition/i);
+    expect(out).toMatch(/one option to draw from/i);
   });
 });
 

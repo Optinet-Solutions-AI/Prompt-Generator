@@ -13,9 +13,9 @@ const CONCEPTS_MODEL: Record<'openai' | 'gemini', string> = {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { token, brand, task, description, model } = (req.body ?? {}) as {
+  const { token, brand, task, description, model, avoid } = (req.body ?? {}) as {
     token?: string; brand?: string; task?: string; description?: string;
-    model?: 'openai' | 'gemini' | 'claude';
+    model?: 'openai' | 'gemini' | 'claude'; avoid?: string[];
   };
 
   const auth = validateToken(token);

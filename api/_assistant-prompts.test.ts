@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, CONCEPT_LENSES } from './_assistant-prompts.js';
+import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, CONCEPT_LENSES, buildAvoidClause } from './_assistant-prompts.js';
 
 describe('buildConceptsSystemPrompt', () => {
   it('includes the partner personality preamble', () => {

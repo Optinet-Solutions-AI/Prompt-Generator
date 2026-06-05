@@ -13,4 +13,10 @@ describe('brandFromDriveFile', () => {
     expect(brandFromDriveFile('chatgpt-123.png', {})).toBe('');
     expect(brandFromDriveFile('gemini-123.png', undefined)).toBe('');
   });
+  it('parses the lucky7even slug (digit in the middle)', () => {
+    expect(brandFromDriveFile('lucky7even-chatgpt-99.png', undefined)).toBe('Lucky7even');
+  });
+  it('falls through to the filename slug when appProperties.brand is an empty string', () => {
+    expect(brandFromDriveFile('roosterbet-chatgpt-1.png', { brand: '' })).toBe('Roosterbet');
+  });
 });

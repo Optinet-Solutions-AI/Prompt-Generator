@@ -65,3 +65,16 @@ describe('buildGenerateSystemPrompt', () => {
     expect(out).toMatch(/IDENTITY vs COMPOSITION/i);
   });
 });
+
+describe('pickConceptLens', () => {
+  it('offers a pool of several distinct, non-empty creative lenses', () => {
+    expect(CONCEPT_LENSES.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(CONCEPT_LENSES).size).toBe(CONCEPT_LENSES.length); // all distinct
+    CONCEPT_LENSES.forEach(l => expect(l.trim().length).toBeGreaterThan(0));
+  });
+
+  it('selects the lens indicated by the random value (deterministic with a stubbed rand)', () => {
+    expect(pickConceptLens(() => 0)).toBe(CONCEPT_LENSES[0]);
+    expect(pickConceptLens(() => 0.999)).toBe(CONCEPT_LENSES[CONCEPT_LENSES.length - 1]);
+  });
+});

@@ -102,10 +102,11 @@ default.
 
 - **Unit:**
   - `api/_assistant-prompts.test.ts` — assert `buildConceptsSystemPrompt(brand)` contains
+    the creative-expansion framing (e.g. "more and newer ideas" / "non-obvious", anti-cliché),
     the orthogonal-diversity rules (e.g. "different visual direction", "do NOT return the
-    same scene") AND the identity-vs-composition clause (e.g. brand defines identity, not a
-    fixed composition). Assert brand identity is still present (palette/mandate for a known
-    brand like RocketSpin).
+    same scene"), the range-of-boldness rule (a safe direction + a bolder stretch), AND the
+    identity-vs-composition clause (brand defines identity, not a fixed composition). Assert
+    brand identity is still present (palette/mandate for a known brand like RocketSpin).
   - `api/_llm.test.ts` — assert that when `chat({ temperature })` is called, the value is
     threaded into the request body (OpenAI `temperature`, Gemini `generationConfig.temperature`),
     and that omitting it leaves the body without a temperature key.

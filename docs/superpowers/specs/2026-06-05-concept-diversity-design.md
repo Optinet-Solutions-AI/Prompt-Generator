@@ -113,9 +113,10 @@ default.
 - **Live (per CLAUDE.md):**
   - Call `/api/assistant/concepts` for RocketSpin 2–3 times with the same task →
     confirm the three concepts are genuinely different directions (different
-    setting/shot/mood), not minor variants, and still read as RocketSpin (palette + hero
-    identity intact). Repeat for one non-RocketSpin brand (e.g. Roosterbet) to confirm no
-    regression.
+    setting/shot/mood), not minor variants; that **at least one is a bold/unexpected
+    stretch** that opens a new idea (mind-expanding, not just distinct); and that all three
+    still read as RocketSpin (palette + hero identity intact). Repeat for one non-RocketSpin
+    brand (e.g. Roosterbet) to confirm no regression.
 
 ## Risks / notes
 

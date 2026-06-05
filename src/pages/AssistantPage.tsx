@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ModelSelect } from '@/components/assistant/ModelSelect';
 import { CostTrackerPanel } from '@/components/assistant/CostTrackerPanel';
 import { requestConcepts, requestGenerate } from '@/lib/assistant-client';
+import { mergeAvoid } from '@/lib/concept-avoid';
 import type { AssistantProvider, AssistantConcept, AssistantUsage, GeneratedFields } from '@/lib/assistant-types';
 import { GeneratedPromptPanel } from '@/components/assistant/GeneratedPromptPanel';
 import { SavedPromptsPanel } from '@/components/assistant/SavedPromptsPanel';

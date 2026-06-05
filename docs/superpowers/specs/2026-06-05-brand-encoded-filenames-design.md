@@ -50,8 +50,7 @@ Download (ImageModal in ImageLibrary.tsx)
 
 | File | Change |
 |---|---|
-| `api/_drive-upload.ts` (or wherever `uploadImageToDrive` lives) | Add optional `brand?: string` param; include `brand` in `appProperties` when non-empty. |
-| `api/generate-image.ts` | Both engine paths: build `filename` with a brand-slug prefix when `brand` is set; pass `brand` to `uploadImageToDrive`. Add a tiny inline `brandSlug()` (lowercase, spaces→`-`, strip non-alphanumerics) — matches `getBrandOverlaySlug` logic but self-contained (api can't import `src/`). |
+| `api/generate-image.ts` | `uploadImageToDrive` (defined here, ~line 182): add optional `brand?: string` param and include `brand` in `appProperties` when non-empty. Both engine paths: build `filename` with a brand-slug prefix when `brand` is set; pass `brand` to `uploadImageToDrive`. Add a tiny inline `brandSlug()` (lowercase, spaces→`-`, strip non-alphanumerics) — matches `getBrandOverlaySlug` logic but self-contained (api can't import `src/`). |
 | `api/list-drive-images.ts` | Add `brand?` to the `appProperties` interface + the `fields` query already returns appProperties; `mapFile` returns `brand: appProperties.brand ?? parseFromFilename(name) ?? ''`. |
 | `src/pages/ImageLibrary.tsx` | `syncFromDrive`: include `brand` in the `batchStoreImages` mapping. Default download path passes `image.brand` to the overlay lookup (auto), keep the override dropdown. |
 | `src/lib/imageStore.ts` | No change — `StoredImage.brand?` already exists; `batchStoreImages` already spreads incoming fields. |

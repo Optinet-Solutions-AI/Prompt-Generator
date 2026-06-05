@@ -62,10 +62,16 @@ export default function AssistantPage() {
   async function onSuggest() {
     setError(null); setLoading(true); setConcepts(null);
     setGenerated(null); setPickedConcept(null);
+    // Reset the avoid-list when the brief (brand+task) changes; otherwise accumulate
+    // so each regenerate avoids every idea already shown for this brief.
+    const key = `${brand}␟${task}`;
+    const base = key === avoidKeyRef.current ? avoid : [];
+    avoidKeyRef.current = key;
     try {
-      const r = await requestConcepts({ token: token!, brand, task, description, model });
+      const r = await requestConcepts({ token: token!, brand, task, description, model, avoid: base });
       setConcepts(r.concepts);
       setRecommendation(r.recommendation);
+      setAvoid(mergeAvoid(base, r.concepts));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

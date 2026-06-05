@@ -50,6 +50,8 @@ export function requestRefine(args: {
   chatHistory: ChatTurn[];
   userMessage: string;
   model: AssistantProvider;
+  task?: string;
+  description?: string;
 }) {
   return postJson<RefineResponse>('/api/assistant/refine', args);
 }

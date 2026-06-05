@@ -59,4 +59,9 @@ describe('buildGenerateSystemPrompt', () => {
     expect(out).toMatch(/copyrighted franchises/i);
     expect(out).toMatch(/brand names/i);
   });
+
+  it('inherits the identity-vs-composition clause from the brand block', () => {
+    const out = buildGenerateSystemPrompt('RocketSpin');
+    expect(out).toMatch(/IDENTITY vs COMPOSITION/i);
+  });
 });

@@ -21,6 +21,8 @@ interface Props {
   brand: string;
   model: AssistantProvider;
   fields: GeneratedFields;
+  task: string;
+  description?: string;
   initialTurns: { role: 'user' | 'assistant'; content: string; imageUrl?: string }[];
   onRegenerate: (fields: GeneratedFields) => Promise<string | null>;
   onFieldsRefined: (fields: GeneratedFields) => void;
@@ -28,7 +30,7 @@ interface Props {
 }
 
 export function RefineChat({
-  token, brand, model, fields, initialTurns, onRegenerate, onFieldsRefined, onImageClick,
+  token, brand, model, fields, task, description, initialTurns, onRegenerate, onFieldsRefined, onImageClick,
 }: Props) {
   const [turns, setTurns] = useState<TurnKind[]>(() =>
     initialTurns.map<TurnKind>(t =>

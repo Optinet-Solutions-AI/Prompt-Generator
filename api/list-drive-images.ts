@@ -20,7 +20,26 @@ interface DriveFile {
     provider?:    string;
     aspectRatio?: string;
     resolution?:  string;
+    brand?:       string;
   };
+}
+
+// The 10 brands in the system, keyed by their slug, for filename-prefix fallback.
+const BRAND_BY_SLUG: Record<string, string> = {
+  roosterbet: 'Roosterbet', fortuneplay: 'FortunePlay', spinjo: 'SpinJo',
+  luckyvibe: 'LuckyVibe', spinsup: 'SpinsUp', playmojo: 'PlayMojo',
+  lucky7even: 'Lucky7even', novadreams: 'NovaDreams', rollero: 'Rollero',
+  rocketspin: 'RocketSpin',
+};
+
+/** Resolve a file's brand: appProperties.brand wins; else parse a known slug prefix. */
+export function brandFromDriveFile(
+  name: string,
+  appProperties?: { brand?: string },
+): string {
+  if (appProperties?.brand) return appProperties.brand;
+  const prefix = (name.split('-')[0] || '').toLowerCase();
+  return BRAND_BY_SLUG[prefix] || '';
 }
 
 async function getGoogleAccessToken(): Promise<string> {

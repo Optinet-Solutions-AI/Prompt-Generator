@@ -122,3 +122,23 @@ export const GENERATE_JSON_SCHEMA = {
     negative_prompt: { type: 'string' },
   },
 } as const;
+
+// Each concepts call is stateless, so the model re-derives the same "obvious"
+// on-brand idea every time (e.g. always a hero in a golden sky). To make repeated
+// regenerations explore NEW ground, we inject one randomly-chosen creative lens per
+// request — a different angle that pushes the model off its default anchor. Brand
+// IDENTITY still applies (see brandBlock); only the creative angle rotates.
+export const CONCEPT_LENSES: string[] = [
+  'Lead with an UNEXPECTED SETTING you would not normally pick for this brand — surprise me with where the scene takes place.',
+  'AVOID the most obvious brand image (e.g. a hero standing triumphantly in a golden sky). Find a fresh metaphor for the offer instead.',
+  'Anchor the set on a strong EMOTIONAL moment or story beat, not a product-hero pose.',
+  'Make the FIRST concept the boldest, most unexpected one — open with the stretch idea, not the safe one.',
+  'Build around an UNUSUAL CAMERA ANGLE or perspective — top-down, worm\'s-eye, over-the-shoulder, or an extreme close detail.',
+  'Center the set on a single striking VISUAL OBJECT or symbol rather than the character.',
+  'Explore a different TIME or ENERGY than the default — quiet aftermath, frantic peak-action, dawn, or deep night.',
+];
+
+/** Pick one creative lens at random (inject a different angle on each regenerate). */
+export function pickConceptLens(rand: () => number = Math.random): string {
+  return CONCEPT_LENSES[Math.floor(rand() * CONCEPT_LENSES.length)];
+}

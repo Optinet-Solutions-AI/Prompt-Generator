@@ -59,13 +59,20 @@ mandatory (identity) from what should vary (composition):
 Rationale: identity stays strong (brand fidelity was an earlier problem and must not
 regress); only the composition lock loosens, which is what was flattening the three.
 
-### 2. `api/_assistant-prompts.ts` — `buildConceptsSystemPrompt()`: orthogonal diversity
-Replace the single distinctness line with a stronger instruction:
+### 2. `api/_assistant-prompts.ts` — `buildConceptsSystemPrompt()`: creative expansion
+Replace the single distinctness line with instructions that make the model a creative
+**expander**, not a safe-default generator:
 
+- **Goal — open new doors.** Act as a creative partner whose job is to give the user *more
+  and newer* ideas than they arrived with. Propose fresh, non-obvious directions they may
+  not have considered; avoid the most predictable/clichéd take on the brief.
 - The 3 concepts MUST each take a **genuinely different visual direction**, differing on
   **different axes** — e.g. a different environment/setting, a different shot scale (wide
   establishing vs tight hero), a different action/moment, a different mood / time-of-day,
-  a different composition.
+  a different conceptual angle.
+- **Span a range of boldness:** at least one concept should be a safe, on-brief direction
+  and at least one should be a bolder, more unexpected stretch — so the set always widens
+  the user's options rather than narrowing them.
 - Explicit rule: **do NOT return the same scene or subject with only minor changes.** If
   two concepts could share one background, they are too similar — push them apart.
 - Keep: exactly 3 concepts, the JSON shape, 2–3 sentence scannable descriptions, and the

@@ -126,6 +126,9 @@ default.
   picked concept is honored in the final image rather than re-centered. This is intended.
 - `temperature: 0.9` is a starting value; can be tuned if concepts get incoherent or still
   too samey.
+- Bolder/expansive concept *ideas* are fine — they are text only. The downstream `generate`
+  stage already enforces image-gen safety (no real people, no copyrighted franchises), so a
+  bold concept gets sanitised into a safe final prompt there; no extra guard needed here.
 
 ## Golden-rule compliance
 

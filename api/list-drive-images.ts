@@ -37,7 +37,7 @@ export function brandFromDriveFile(
   name: string,
   appProperties?: { brand?: string },
 ): string {
-  if (appProperties?.brand) return appProperties.brand;
+  if (appProperties?.brand) return appProperties.brand.trim();
   const prefix = (name.split('-')[0] || '').toLowerCase();
   return BRAND_BY_SLUG[prefix] || '';
 }

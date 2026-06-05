@@ -37,7 +37,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const system = buildConceptsSystemPrompt(brand);
-    const user = `Task topic: ${task}\nExtra detail: ${description ?? '(none)'}`;
+    // A different creative lens per request pushes the model off its default anchor,
+    // so repeated regenerations explore new ground instead of repeating the same top idea.
+    const lens = pickConceptLens();
+    const user = `Task topic: ${task}\nExtra detail: ${description ?? '(none)'}\n\nCREATIVE LENS for THIS set — use it to find a fresh angle and avoid repeating the obvious default: ${lens}`;
     const result = await chat({
       provider: model,
       model: chosenModel,

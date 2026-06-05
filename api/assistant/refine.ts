@@ -86,13 +86,15 @@ interface ChatTurn {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { token, brand, currentFields, chatHistory, userMessage, model } = (req.body ?? {}) as {
+  const { token, brand, currentFields, chatHistory, userMessage, model, task, description } = (req.body ?? {}) as {
     token?: string;
     brand?: string;
     currentFields?: GeneratedFields;
     chatHistory?: ChatTurn[];
     userMessage?: string;
     model?: 'openai' | 'gemini' | 'claude';
+    task?: string;
+    description?: string;
   };
 
   const auth = validateToken(token);

@@ -92,6 +92,7 @@ async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
     generationConfig.responseMimeType = 'application/json';
     if (opts.jsonSchema) generationConfig.responseSchema = sanitizeSchemaForGemini(opts.jsonSchema);
   }
+  if (opts.temperature !== undefined) generationConfig.temperature = opts.temperature;
 
   const body = {
     systemInstruction: { parts: [{ text: opts.system }] },

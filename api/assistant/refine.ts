@@ -182,8 +182,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       model: chosenModel,
       system,
       user,
+      // Lenient JSON mode (no strict schema): the two-mode output (clarify | refine)
+      // has conditional fields that OpenAI strict json_schema rejects ("additionalProperties
+      // must be false") — which 500'd every ChatGPT refine. The system prompt fully
+      // specifies the shape, and we validate refinedFields below.
       json: true,
-      jsonSchema: REFINE_JSON_SCHEMA,
       maxTokens: MAX_TOKENS[model],
     });
 

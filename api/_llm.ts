@@ -153,6 +153,7 @@ async function chatOpenAI(opts: ChatOptions): Promise<ChatResult> {
       ? { type: 'json_schema', json_schema: { name: 'assistant_output', strict: true, schema: opts.jsonSchema } }
       : { type: 'json_object' };
   }
+  if (opts.temperature !== undefined) body.temperature = opts.temperature;
 
   const res = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
     method: 'POST',

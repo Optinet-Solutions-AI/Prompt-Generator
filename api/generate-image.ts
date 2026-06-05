@@ -513,7 +513,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           imageMime     = exact.mime;
 
           const ext      = imageMime.split('/')[1] || 'png';
-          const filename = `chatgpt-${Date.now()}.${ext}`;
+          const slug     = brandSlug(brand);
+          const filename = `${slug ? slug + '-' : ''}chatgpt-${Date.now()}.${ext}`;
 
           const fileId = await uploadImageToDrive({
             imageBuffer,
@@ -524,6 +525,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             aspectRatio: aspectRatio || '16:9',
             resolution:  resolution  || '1K',
             accessToken,
+            brand,
           });
 
           // Make public so server-side fetches (edit, variations) work without auth

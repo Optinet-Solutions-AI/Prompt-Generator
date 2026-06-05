@@ -138,6 +138,16 @@ export const CONCEPT_LENSES: string[] = [
   'Explore a different TIME or ENERGY than the default — quiet aftermath, frantic peak-action, dawn, or deep night.',
 ];
 
+/** A prompt block listing ideas the model must NOT repeat. Empty list → '' (no block). */
+export function buildAvoidClause(avoid: string[]): string {
+  const items = (avoid || []).map(s => s.trim()).filter(Boolean);
+  if (items.length === 0) return '';
+  return [
+    'ALREADY-SHOWN IDEAS — do NOT repeat or lightly re-skin any of these. Every concept must be a brand-new direction not in this list:',
+    ...items.map(s => `- ${s}`),
+  ].join('\n');
+}
+
 /** Pick one creative lens at random (inject a different angle on each regenerate). */
 export function pickConceptLens(rand: () => number = Math.random): string {
   return CONCEPT_LENSES[Math.floor(rand() * CONCEPT_LENSES.length)];

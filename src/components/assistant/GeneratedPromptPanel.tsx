@@ -210,6 +210,8 @@ export function GeneratedPromptPanel({
           brand={currentFields.brand}
           model={refineModel}
           fields={currentFields}
+          task={task}
+          description={description}
           initialTurns={chatTurns}
           onRegenerate={onRegenerate}
           onFieldsRefined={onFieldsRefined}

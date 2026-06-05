@@ -194,6 +194,23 @@ describe('_llm.chat — Gemini', () => {
     ).rejects.toThrow(/finishReason=MAX_TOKENS/);
   });
 
+  it('includes temperature in the Gemini generationConfig when provided, omits it otherwise', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ candidates: [{ content: { parts: [{ text: '{}' }] } }], usageMetadata: { promptTokenCount: 1, candidatesTokenCount: 1 } }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await chat({ provider: 'gemini', model: 'gemini-2.5-flash', system: 's', user: 'u', maxTokens: 100, temperature: 0.9 });
+    let body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.generationConfig.temperature).toBe(0.9);
+
+    fetchMock.mockClear();
+    await chat({ provider: 'gemini', model: 'gemini-2.5-flash', system: 's', user: 'u', maxTokens: 100 });
+    body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.generationConfig.temperature).toBeUndefined();
+  });
+
   it('strips additionalProperties from the schema before sending to Gemini', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

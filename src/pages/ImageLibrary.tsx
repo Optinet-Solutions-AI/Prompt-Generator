@@ -114,6 +114,7 @@ async function syncFromDrive(): Promise<number> {
       aspect_ratio: f.aspect_ratio || '16:9',
       resolution:   f.resolution   || '1K',
       filename:     f.filename     || `image-${f.id}.png`,
+      brand:        f.brand || undefined,
     })));
   } catch (err) {
     console.error('[syncFromDrive] failed:', err);

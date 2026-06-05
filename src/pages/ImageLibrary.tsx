@@ -92,7 +92,7 @@ async function syncFromDrive(): Promise<number> {
     const data = await res.json() as {
       files: Array<{
         id: string; public_url: string; provider: string;
-        aspect_ratio: string; resolution: string; filename: string; created_at: string;
+        aspect_ratio: string; resolution: string; filename: string; created_at: string; brand?: string;
       }>;
     };
 

@@ -63,7 +63,7 @@ export function RefineChat({
 
     try {
       const refineResult = await requestRefine({
-        token, brand, currentFields: fields, chatHistory: historyForApi, userMessage, model,
+        token, brand, currentFields: fields, chatHistory: historyForApi, userMessage, model, task, description,
       });
 
       if (refineResult.action === 'clarify') {

@@ -134,7 +134,7 @@ Stores images the user has hearted/liked. This table is separate from reference 
 
 ## Known Issues / Risks
 
-- **Image Library is localStorage-only** — Drive file IDs are not persisted to a database. Changing Vercel domains wipes the image library. Fix: write file IDs to Supabase on save.
+- **Image Library syncs from Google Drive** — `ImageLibrary.tsx` (`syncFromDrive`) lists the shared Drive folder via `api/list-drive-images.ts`, so the library works across users/devices and survives Vercel domain changes. localStorage is only a cache, not the source of truth.
 
 ---
 

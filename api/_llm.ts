@@ -155,11 +155,12 @@ async function chatOpenAI(opts: ChatOptions): Promise<ChatResult> {
       ? { type: 'json_schema', json_schema: { name: 'assistant_output', strict: true, schema: opts.jsonSchema } }
       : { type: 'json_object' };
   }
-  // gpt-5.x reasoning models reject a custom temperature — only send it for non-5.x.
+  // gpt-5.2 (and gpt-5.x reasoning variants) reject a custom temperature — only send it
+  // for non-5.x models. Re-verify if a gpt-5o/gpt-5o-mini lineage is added; it may differ.
   const isGpt5 = opts.model.startsWith('gpt-5');
   if (opts.temperature !== undefined && !isGpt5) body.temperature = opts.temperature;
   // reasoning_effort is a gpt-5.x control (none|low|medium|high). Send when provided.
-  if (opts.reasoningEffort !== undefined) body.reasoning_effort = opts.reasoningEffort;
+  if (opts.reasoningEffort !== undefined && isGpt5) body.reasoning_effort = opts.reasoningEffort;
 
   const res = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
     method: 'POST',

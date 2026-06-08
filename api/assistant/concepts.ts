@@ -47,10 +47,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       user,
       json: true,
       jsonSchema: CONCEPTS_JSON_SCHEMA,
-      // 1200 (up from 600): the diversity prompt + creative lens produce richer, longer
-      // concept descriptions that were overflowing 600 tokens and truncating (~1 in 4
-      // calls hit Gemini MAX_TOKENS). 1200 gives comfortable headroom for 3 concepts.
-      maxTokens: 1200,
+      reasoningEffort: stage.effort,
+      maxTokens: stage.maxTokens,
       // Higher temperature widens the spread between the 3 concepts (diversity).
       temperature: 0.9,
     });

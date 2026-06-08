@@ -20,10 +20,12 @@ export const ASSISTANT_MODELS: Record<AssistantStage, Record<AssistantProvider, 
     openai: { model: 'gpt-5.2', effort: 'none', maxTokens: 1200 },
     gemini: { model: 'gemini-3.5-flash', maxTokens: 1200 },
   },
-  // Templated 8-field structured JSON — cheapest/fastest current tier is enough.
+  // Templated 8-field structured JSON. gemini-3.1-flash-lite was tried first (cheapest),
+  // but the 2026-06-08 smoke test showed it dropped fields AND the requested theme on
+  // richer briefs (e.g. a Christmas promo). gemini-3.5-flash fills all 8 fields reliably.
   generate: {
     openai: { model: 'gpt-5.2', effort: 'none', maxTokens: 1200 },
-    gemini: { model: 'gemini-3.1-flash-lite', maxTokens: 2000 },
+    gemini: { model: 'gemini-3.5-flash', maxTokens: 2000 },
   },
   // Intent disambiguation (clarify vs refine, "not-X = add-X") benefits from light
   // reasoning. maxTokens raised so reasoning tokens don't truncate the JSON output.

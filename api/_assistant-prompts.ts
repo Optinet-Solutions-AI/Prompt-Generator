@@ -74,6 +74,8 @@ export function buildGenerateSystemPrompt(brand: string): string {
     '',
     brandBlock(brand),
     '',
+    SUBJECT_NEUTRALITY,
+    '',
     'You will receive a picked concept (title + description) plus the original task and description.',
     'Produce the structured prompt fields for a downstream image generator.',
     '',

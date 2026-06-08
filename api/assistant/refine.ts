@@ -139,7 +139,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // must be false") — which 500'd every ChatGPT refine. The system prompt fully
       // specifies the shape, and we validate refinedFields below.
       json: true,
-      maxTokens: MAX_TOKENS[model],
+      reasoningEffort: stage.effort,
+      maxTokens: stage.maxTokens,
     });
 
     const parsed = JSON.parse(result.text);

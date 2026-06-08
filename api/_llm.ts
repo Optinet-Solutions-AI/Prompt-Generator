@@ -9,6 +9,8 @@ export interface ChatOptions {
   json?: boolean;
   jsonSchema?: object;
   temperature?: number;
+  /** OpenAI gpt-5.x reasoning control. Ignored by Gemini and non-5.x models. */
+  reasoningEffort?: 'none' | 'low' | 'medium' | 'high';
 }
 
 export interface ChatResult {

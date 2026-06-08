@@ -67,7 +67,7 @@ describe('POST /api/assistant/concepts', () => {
     expect(body.recommendation).toMatch(/Sky Strike/);
     expect(body.usage).toEqual({
       provider: 'gemini',
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
       input_tokens: 350,
       cached_input_tokens: 0,
       output_tokens: 180,

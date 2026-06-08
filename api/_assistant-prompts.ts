@@ -52,6 +52,8 @@ export function buildConceptsSystemPrompt(brand: string): string {
     '',
     brandBlock(brand),
     '',
+    SUBJECT_NEUTRALITY,
+    '',
     "YOUR JOB IS TO EXPAND THE USER'S THINKING, NOT NARROW IT: give them more and newer ideas than they arrived with. Propose fresh, non-obvious directions they may not have considered. Avoid the most predictable or clichéd take on the brief.",
     '',
     'Return exactly 3 concepts as strict JSON: {"concepts":[{"title":"...","description":"..."}],"recommendation":"..."}.',

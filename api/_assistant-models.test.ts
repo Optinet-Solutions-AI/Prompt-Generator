@@ -8,9 +8,9 @@ describe('ASSISTANT_MODELS tiered map', () => {
     expect(ASSISTANT_MODELS.refine.openai).toMatchObject({ model: 'gpt-5.2', effort: 'low' });
   });
 
-  it('tiers Gemini: flash for concepts/refine, flash-lite for generate', () => {
+  it('uses gemini-3.5-flash on every Gemini stage (flash-lite dropped fields on generate)', () => {
     expect(ASSISTANT_MODELS.concepts.gemini.model).toBe('gemini-3.5-flash');
-    expect(ASSISTANT_MODELS.generate.gemini.model).toBe('gemini-3.1-flash-lite');
+    expect(ASSISTANT_MODELS.generate.gemini.model).toBe('gemini-3.5-flash');
     expect(ASSISTANT_MODELS.refine.gemini.model).toBe('gemini-3.5-flash');
   });
 

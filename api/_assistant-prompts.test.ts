@@ -66,6 +66,18 @@ describe('buildGenerateSystemPrompt', () => {
   });
 });
 
+describe('subject demographics neutrality', () => {
+  it('tells BOTH stages not to assume subject gender/ethnicity when unspecified', () => {
+    const c = buildConceptsSystemPrompt('RocketSpin');
+    const g = buildGenerateSystemPrompt('RocketSpin');
+    for (const out of [c, g]) {
+      expect(out).toMatch(/DO NOT ASSUME/i);
+      expect(out).toMatch(/gender/i);
+      expect(out).toMatch(/keep it exactly/i); // honors an explicitly-stated gender
+    }
+  });
+});
+
 describe('buildAvoidClause', () => {
   it('returns empty string for an empty or blank-only list', () => {
     expect(buildAvoidClause([])).toBe('');

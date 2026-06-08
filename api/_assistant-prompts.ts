@@ -34,6 +34,18 @@ function brandBlock(brand: string): string {
   return parts.join('\n');
 }
 
+// When the brief doesn't state a subject's gender (or ethnicity), the model used to
+// pick one on its own (e.g. defaulting a "navigator" to a specific woman). Applied to
+// BOTH stages so neither concepts nor generate bakes in a demographic the user never asked
+// for — the user stays in control via the brief / refine.
+const SUBJECT_NEUTRALITY = [
+  'SUBJECT DEMOGRAPHICS — DO NOT ASSUME:',
+  "Unless the task, description, or picked concept explicitly states the human subject's",
+  'gender or ethnicity, do NOT introduce one. Describe the subject with neutral, non-gendered',
+  'wording and no gendered pronouns (e.g. "a navigator", "a hero", "an athlete" — not "a woman"',
+  'or "a man"). If the brief already specifies a gender or ethnicity, keep it exactly.',
+].join('\n');
+
 export function buildConceptsSystemPrompt(brand: string): string {
   return [
     PERSONALITY,

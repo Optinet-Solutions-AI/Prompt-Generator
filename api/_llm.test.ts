@@ -76,6 +76,7 @@ describe('_llm.chat — OpenAI', () => {
     await chat({ provider: 'openai', model: 'gpt-5.2', system: 's', user: 'u', maxTokens: 100, reasoningEffort: 'low' });
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
     expect(body.reasoning_effort).toBe('low');
+    expect(body.temperature).toBeUndefined();
   });
 
   it('omits a custom temperature for gpt-5.x models even when provided', async () => {

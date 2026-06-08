@@ -4,11 +4,7 @@ import { chat } from '../_llm.js';
 import { buildConceptsSystemPrompt, CONCEPTS_JSON_SCHEMA, pickConceptLens, buildAvoidClause } from '../_assistant-prompts.js';
 import { logLlmCall } from '../_assistant-log.js';
 import { checkSpendCap } from '../_spend-cap.js';
-
-const CONCEPTS_MODEL: Record<'openai' | 'gemini', string> = {
-  openai: 'gpt-4o-mini',
-  gemini: 'gemini-2.5-flash',
-};
+import { ASSISTANT_MODELS } from '../_assistant-models.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

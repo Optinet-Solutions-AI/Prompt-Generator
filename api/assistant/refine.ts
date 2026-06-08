@@ -4,16 +4,7 @@ import { chat } from '../_llm.js';
 import { buildBrandRules } from '../_brand-rules.js';
 import { logLlmCall } from '../_assistant-log.js';
 import { checkSpendCap } from '../_spend-cap.js';
-
-const REFINE_MODEL: Record<'openai' | 'gemini', string> = {
-  openai: 'gpt-4o',
-  gemini: 'gemini-2.5-flash',
-};
-
-const MAX_TOKENS: Record<'openai' | 'gemini', number> = {
-  openai: 1200,
-  gemini: 2000,
-};
+import { ASSISTANT_MODELS } from '../_assistant-models.js';
 
 const PERSONALITY = `You are a senior visual concept partner working with a creative director.
 You already generated a structured prompt for them. They have now seen the image and

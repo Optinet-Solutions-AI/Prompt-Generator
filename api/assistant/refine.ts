@@ -64,7 +64,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { palette, mandate } = buildBrandRules(brand);
-  const chosenModel = REFINE_MODEL[model];
+  const stage = ASSISTANT_MODELS.refine[model];
+  const chosenModel = stage.model;
 
   const system = [
     PERSONALITY,

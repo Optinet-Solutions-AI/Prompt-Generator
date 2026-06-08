@@ -66,6 +66,30 @@ describe('_llm.chat — OpenAI', () => {
     ).rejects.toThrow(/OpenAI/);
   });
 
+  it('sends reasoning_effort for gpt-5.2 when reasoningEffort is provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1, completion_tokens: 1, prompt_tokens_details: { cached_tokens: 0 } } }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await chat({ provider: 'openai', model: 'gpt-5.2', system: 's', user: 'u', maxTokens: 100, reasoningEffort: 'low' });
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.reasoning_effort).toBe('low');
+  });
+
+  it('omits a custom temperature for gpt-5.x models even when provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1, completion_tokens: 1, prompt_tokens_details: { cached_tokens: 0 } } }),
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await chat({ provider: 'openai', model: 'gpt-5.2', system: 's', user: 'u', maxTokens: 100, temperature: 0.9 });
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.temperature).toBeUndefined();
+  });
+
   it('includes temperature in the OpenAI body when provided, omits it otherwise', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

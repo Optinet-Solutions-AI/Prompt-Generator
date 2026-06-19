@@ -429,189 +429,204 @@ export default function EmailContentChecker() {
         </div>
 
         {tab === 'builder' && (
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* LEFT */}
-          <div className="space-y-3 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
-            <div className="space-y-1.5">
-              <Small>Brand</Small>
-              <div className="flex flex-wrap gap-1.5">
-                {BRAND_NAMES.map(b => (
-                  <button key={b} type="button" onClick={() => selectBrand(b)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === b ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{b}</button>
-                ))}
-              </div>
-            </div>
+        <>
+          {/* Flow */}
+          <div className="mb-4 flex items-center gap-1.5 overflow-x-auto pb-1">
+            {FLOW.map((s, i) => (
+              <span key={s} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                {i > 0 && <span className="h-px w-5 bg-border" />}
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary/15 text-primary text-[9px] font-bold">{i + 1}</span>
+                <span className="text-[11px] font-medium text-muted-foreground">{s}</span>
+              </span>
+            ))}
+          </div>
 
-            <div className="space-y-1.5">
-              <Small>Template <span className="font-normal normal-case">(fills the blocks)</span></Small>
-              <div className="flex flex-wrap gap-1.5">
-                {EMAIL_TEMPLATES.map(t => (
-                  <button key={t.id} type="button" onClick={() => loadTemplate(t.id)} title={t.description} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${activeTemplate === t.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{t.name}</button>
-                ))}
-              </div>
-            </div>
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* LEFT: grouped, collapsible */}
+            <div className="lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1">
+              <Accordion type="multiple" defaultValue={['brand', 'blocks']} className="space-y-2">
 
-            <div className="grid grid-cols-2 gap-1.5">
-              <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
-              <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>
-            </div>
+                <AccordionItem value="brand" className="border border-border rounded-lg bg-card px-3">
+                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Brand &amp; template</span></AccordionTrigger>
+                  <AccordionContent className="pb-3 space-y-2.5">
+                    <div className="flex flex-wrap gap-1.5">
+                      {BRAND_NAMES.map(b => (
+                        <button key={b} type="button" onClick={() => selectBrand(b)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === b ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{b}</button>
+                      ))}
+                    </div>
+                    <div>
+                      <Small>Template <span className="font-normal normal-case">(fills the blocks)</span></Small>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {EMAIL_TEMPLATES.map(t => (
+                          <button key={t.id} type="button" onClick={() => loadTemplate(t.id)} title={t.description} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${activeTemplate === t.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{t.name}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
+                      <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-            {/* AI variations */}
-            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-primary" /><Small>Generate variations</Small></div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-muted-foreground">Count:</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={varCount}
-                    onChange={e => setVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
-                    className="h-7 w-16 text-xs"
-                  />
-                  <span className="text-[10px] text-muted-foreground">max 10</span>
-                </div>
-              </div>
-              <Button type="button" onClick={generateVariations} disabled={varLoading} variant="outline" className="w-full h-8 gap-1.5 text-xs">
-                {varLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Rewording the copy…</> : <><Sparkles className="w-3.5 h-3.5" /> Reword the copy with AI</>}
-              </Button>
-              {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{varError}</p>}
-              {variations.length > 0 && (
-                <ul className="space-y-1.5">
-                  {variations.map((v, i) => {
-                    const open = expandedVar === i;
-                    return (
-                      <li key={i} className="rounded-md border border-border bg-background overflow-hidden">
-                        <div className="flex items-center justify-between gap-2 p-2">
-                          <button type="button" onClick={() => setExpandedVar(open ? null : i)} className="flex items-center gap-1.5 min-w-0 text-left flex-1">
-                            {open ? <ChevronUp className="w-3.5 h-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
-                            <span className="min-w-0">
-                              <span className="block text-xs font-semibold truncate">{v.label}</span>
-                              {v.notes && <span className="block text-[10px] text-muted-foreground truncate">{v.notes}</span>}
-                            </span>
-                          </button>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>
-                            <Button type="button" size="sm" className="h-6 text-[11px] px-2" onClick={() => useVariation(v.edits)}>Use</Button>
+                <AccordionItem value="variations" className="border border-border rounded-lg bg-card px-3">
+                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Generate variations{variations.length > 0 && <span className="text-[10px] font-normal text-muted-foreground">({variations.length})</span>}</span></AccordionTrigger>
+                  <AccordionContent className="pb-3 space-y-2">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span className="text-[11px] text-muted-foreground">Count:</span>
+                      <Input type="number" min={1} max={10} value={varCount} onChange={e => setVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))} className="h-7 w-16 text-xs" />
+                      <span className="text-[10px] text-muted-foreground">max 10</span>
+                    </div>
+                    <Button type="button" onClick={generateVariations} disabled={varLoading} variant="outline" className="w-full h-8 gap-1.5 text-xs">
+                      {varLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Rewording the copy…</> : <><Sparkles className="w-3.5 h-3.5" /> Reword the copy with AI</>}
+                    </Button>
+                    {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{varError}</p>}
+                    {variations.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {variations.map((v, i) => {
+                          const open = expandedVar === i;
+                          return (
+                            <li key={i} className="rounded-md border border-border bg-background overflow-hidden">
+                              <div className="flex items-center justify-between gap-2 p-2">
+                                <button type="button" onClick={() => setExpandedVar(open ? null : i)} className="flex items-center gap-1.5 min-w-0 text-left flex-1">
+                                  {open ? <ChevronUp className="w-3.5 h-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+                                  <span className="min-w-0">
+                                    <span className="block text-xs font-semibold truncate">{v.label}</span>
+                                    {v.notes && <span className="block text-[10px] text-muted-foreground truncate">{v.notes}</span>}
+                                  </span>
+                                </button>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>
+                                  <Button type="button" size="sm" className="h-6 text-[11px] px-2" onClick={() => useVariation(v.edits)}>Use</Button>
+                                </div>
+                              </div>
+                              {open && (
+                                <div className="border-t border-border p-2 space-y-2 bg-muted/20">
+                                  <div className="space-y-1">
+                                    {v.fields.map((f, j) => (
+                                      <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{f.label}: </span>{f.value}</p>
+                                    ))}
+                                  </div>
+                                  {v.report.findings.length > 0 ? (
+                                    <ul className="space-y-1 max-h-32 overflow-y-auto border-t border-border pt-1.5">
+                                      {v.report.findings.map((f, j) => (
+                                        <li key={j} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                                          <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                                          <span className="text-muted-foreground">{f.message}{f.suggestion ? ` ${f.suggestion}` : ''}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 border-t border-border pt-1.5">No spam triggers — clean.</p>
+                                  )}
+                                  <div className="flex items-center gap-1.5 pt-0.5">
+                                    <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy text</Button>
+                                    <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
+                                    <Button type="button" size="sm" className="h-6 text-[11px] px-2 ml-auto" onClick={() => useVariation(v.edits)}>Use this</Button>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="blocks" className="border border-border rounded-lg bg-card px-3">
+                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><LayoutTemplate className="w-3.5 h-3.5 text-primary" /> Email blocks <span className="text-[10px] font-normal text-muted-foreground">({doc.blocks.length})</span></span></AccordionTrigger>
+                  <AccordionContent className="pb-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add:</span>
+                      {ADDABLE.map(a => (
+                        <button key={a.type} type="button" onClick={() => addBlock(a.type)} className="px-2 py-0.5 rounded border border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary">{a.label}</button>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      {doc.blocks.map((b, i) => (
+                        <div key={b.id} className="rounded-lg border border-border bg-background p-2.5">
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">{TYPE_LABEL[b.type]}</span>
+                            <div className="flex items-center gap-1">
+                              {b.type !== 'divider' && b.type !== 'wordmark' && (
+                                <button type="button" onClick={() => setOpenStyle(openStyle === b.id ? null : b.id)} title="Style" className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] ${openStyle === b.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}><SlidersHorizontal className="w-3 h-3" /> Style</button>
+                              )}
+                              <button type="button" onClick={() => move(b.id, -1)} disabled={i === 0} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronUp className="w-3.5 h-3.5" /></button>
+                              <button type="button" onClick={() => move(b.id, 1)} disabled={i === doc.blocks.length - 1} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronDown className="w-3.5 h-3.5" /></button>
+                              <button type="button" onClick={() => remove(b.id)} title="Remove" className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><X className="w-3.5 h-3.5" /></button>
+                            </div>
                           </div>
+                          {renderFields(b)}
+                          {openStyle === b.id && renderStyle(b)}
+                          {libFor === b.id && (
+                            <div className="mt-2 rounded-md border border-border p-2 max-h-52 overflow-y-auto">
+                              <div className="flex items-center justify-between mb-1"><span className="text-[11px] text-muted-foreground">Pick an image</span><button type="button" onClick={() => setLibFor(null)} className="text-muted-foreground"><X className="w-3.5 h-3.5" /></button></div>
+                              {libLoading ? <p className="text-[11px] text-muted-foreground py-4 text-center">Loading…</p>
+                                : libImages.length === 0 ? <p className="text-[11px] text-muted-foreground py-4 text-center">No images in your library yet.</p>
+                                : <div className="grid grid-cols-4 gap-1.5">{libImages.slice(0, 60).map(im => (
+                                    <button key={im.id} type="button" onClick={() => pickImage(im.url)} className="aspect-square rounded overflow-hidden border border-border hover:border-primary"><img src={im.url} alt="" loading="lazy" className="w-full h-full object-cover" /></button>
+                                  ))}</div>}
+                            </div>
+                          )}
                         </div>
-                        {open && (
-                          <div className="border-t border-border p-2 space-y-2 bg-muted/20">
-                            {/* reworded copy */}
-                            <div className="space-y-1">
-                              {v.fields.map((f, j) => (
-                                <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{f.label}: </span>{f.value}</p>
-                              ))}
-                            </div>
-                            {/* deliverability check for this variation */}
-                            {v.report.findings.length > 0 ? (
-                              <ul className="space-y-1 max-h-32 overflow-y-auto border-t border-border pt-1.5">
-                                {v.report.findings.map((f, j) => (
-                                  <li key={j} className="flex items-start gap-1.5 text-[11px] leading-snug">
-                                    <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                                    <span className="text-muted-foreground">{f.message}{f.suggestion ? ` ${f.suggestion}` : ''}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 border-t border-border pt-1.5">No spam triggers — clean.</p>
-                            )}
-                            {/* actions */}
-                            <div className="flex items-center gap-1.5 pt-0.5">
-                              <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy text</Button>
-                              <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
-                              <Button type="button" size="sm" className="h-6 text-[11px] px-2 ml-auto" onClick={() => useVariation(v.edits)}>Use this</Button>
-                            </div>
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-            {/* Add block */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add:</span>
-              {ADDABLE.map(a => (
-                <button key={a.type} type="button" onClick={() => addBlock(a.type)} className="px-2 py-0.5 rounded border border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary">{a.label}</button>
-              ))}
-            </div>
-
-            {/* Block cards */}
-            <div className="space-y-2">
-              {doc.blocks.map((b, i) => (
-                <div key={b.id} className="rounded-lg border border-border bg-card p-2.5">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">{TYPE_LABEL[b.type]}</span>
-                    <div className="flex items-center gap-1">
-                      {b.type !== 'divider' && b.type !== 'wordmark' && (
-                        <button type="button" onClick={() => setOpenStyle(openStyle === b.id ? null : b.id)} title="Style" className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] ${openStyle === b.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}><SlidersHorizontal className="w-3 h-3" /> Style</button>
+                {report && (
+                  <AccordionItem value="check" className="border border-border rounded-lg bg-card px-3">
+                    <AccordionTrigger className="py-2.5 hover:no-underline">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold">
+                        <ShieldCheck className={`w-3.5 h-3.5 ${report.level === 'clean' ? 'text-emerald-600' : report.level === 'caution' ? 'text-amber-500' : 'text-destructive'}`} /> Deliverability
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(report.level)}`}>{report.level === 'clean' ? 'Clean' : report.level === 'caution' ? 'Caution' : 'High risk'}{report.score > 0 && ` · ${report.score}`}</span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-3 space-y-2">
+                      <div className="flex justify-end"><Button type="button" onClick={handleSanitize} variant="ghost" size="sm" className="h-6 gap-1 text-[11px] px-2"><Wand2 className="w-3 h-3" /> Clean up</Button></div>
+                      {report.findings.length === 0 ? (
+                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400">No spam triggers detected — this copy should deliver well.</p>
+                      ) : (
+                        <ul className="space-y-1 max-h-40 overflow-y-auto">
+                          {report.findings.map((f, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                              <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                              <span className="text-muted-foreground">{f.message}{f.suggestion ? ` ${f.suggestion}` : ''}</span>
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                      <button type="button" onClick={() => move(b.id, -1)} disabled={i === 0} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => move(b.id, 1)} disabled={i === doc.blocks.length - 1} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronDown className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => remove(b.id)} title="Remove" className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><X className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </div>
-                  {renderFields(b)}
-                  {openStyle === b.id && renderStyle(b)}
-                  {/* Image picker for this hero block */}
-                  {libFor === b.id && (
-                    <div className="mt-2 rounded-md border border-border p-2 max-h-52 overflow-y-auto">
-                      <div className="flex items-center justify-between mb-1"><span className="text-[11px] text-muted-foreground">Pick an image</span><button type="button" onClick={() => setLibFor(null)} className="text-muted-foreground"><X className="w-3.5 h-3.5" /></button></div>
-                      {libLoading ? <p className="text-[11px] text-muted-foreground py-4 text-center">Loading…</p>
-                        : libImages.length === 0 ? <p className="text-[11px] text-muted-foreground py-4 text-center">No images in your library yet.</p>
-                        : <div className="grid grid-cols-4 gap-1.5">{libImages.slice(0, 60).map(im => (
-                            <button key={im.id} type="button" onClick={() => pickImage(im.url)} className="aspect-square rounded overflow-hidden border border-border hover:border-primary"><img src={im.url} alt="" loading="lazy" className="w-full h-full object-cover" /></button>
-                          ))}</div>}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Deliverability */}
-            {report && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className={`w-3.5 h-3.5 ${report.level === 'clean' ? 'text-emerald-600' : report.level === 'caution' ? 'text-amber-500' : 'text-destructive'}`} />
-                    <Small>Deliverability</Small>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(report.level)}`}>{report.level === 'clean' ? 'Clean' : report.level === 'caution' ? 'Caution' : 'High risk'}{report.score > 0 && ` · risk ${report.score}`}</span>
-                  </div>
-                  <Button type="button" onClick={handleSanitize} variant="ghost" size="sm" className="h-6 gap-1 text-[11px] px-2"><Wand2 className="w-3 h-3" /> Clean up</Button>
-                </div>
-                {report.findings.length === 0 ? (
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400">No spam triggers detected — this copy should deliver well.</p>
-                ) : (
-                  <ul className="space-y-1 max-h-40 overflow-y-auto">
-                    {report.findings.map((f, i) => (
-                      <li key={i} className="flex items-start gap-1.5 text-[11px] leading-snug">
-                        <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                        <span className="text-muted-foreground">{f.message}{f.suggestion ? ` ${f.suggestion}` : ''}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    </AccordionContent>
+                  </AccordionItem>
                 )}
-              </div>
-            )}
-          </div>
 
-          {/* RIGHT */}
-          <div className="lg:sticky lg:top-5 self-start space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <Small>Live preview</Small>
-              <div className="flex gap-1.5">
-                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy HTML</Button>
-                <Button type="button" size="sm" className="h-7 gap-1 text-xs" onClick={downloadHtml}><Download className="w-3 h-3" /> Download</Button>
+              </Accordion>
+            </div>
+
+            {/* RIGHT: framed preview with device toggle */}
+            <div className="lg:sticky lg:top-5 self-start space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Small>Live preview</Small>
+                  <div className="flex gap-0.5 p-0.5 rounded-md bg-muted border border-border">
+                    <button type="button" onClick={() => setDevice('desktop')} title="Desktop" className={`p-1 rounded transition-colors ${device === 'desktop' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Monitor className="w-3.5 h-3.5" /></button>
+                    <button type="button" onClick={() => setDevice('mobile')} title="Mobile" className={`p-1 rounded transition-colors ${device === 'mobile' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Smartphone className="w-3.5 h-3.5" /></button>
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy HTML</Button>
+                  <Button type="button" size="sm" className="h-7 gap-1 text-xs" onClick={downloadHtml}><Download className="w-3 h-3" /> Download</Button>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/40 p-3 flex justify-center overflow-auto" style={{ height: 'calc(100vh - 10rem)' }}>
+                <div className="bg-white rounded-lg shadow-md overflow-hidden h-full" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: device === 'mobile' ? 390 : 680, transition: 'width .2s ease' }}>
+                  <iframe title="Email preview" srcDoc={html} sandbox="" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
+                </div>
               </div>
             </div>
-            <div className="rounded-lg border border-border overflow-hidden bg-white">
-              <iframe title="Email preview" srcDoc={html} sandbox="" style={{ width: '100%', height: 'calc(100vh - 9rem)', border: 0, display: 'block' }} />
-            </div>
           </div>
-        </div>
+        </>
         )}
 
         {tab === 'checker' && (

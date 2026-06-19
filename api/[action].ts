@@ -363,7 +363,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       const brand   = (data.brand   || '').toString();
       const locale  = (data.locale  || 'en').toString();
       const blocks  = Array.isArray(data.blocks) ? data.blocks : [];
-      const count   = Math.min(Math.max(Number(data.count) || 3, 1), 6);
+      const count   = Math.min(Math.max(Number(data.count) || 3, 1), 10);
       if (!blocks.length) return res.status(400).json({ error: 'No editable blocks provided.' });
 
       const RULES = [

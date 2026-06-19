@@ -333,7 +333,12 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     variant, imageSrc, brand, style, containerWidth,
     imgWidth, imgHeight,
     bannerUrl: cfg.banner_url || undefined,
+    heroWidth: params.heroWidth,
+    heroRadius: params.heroRadius,
   });
+
+  // Optional themed CTA button (renders only when label + url are provided).
+  const ctaHtml = buildCtaRow(params.cta, style);
 
   // ── Branded header ───────────────────────────────────────────────────
   // When header_url is set (AI-generated composite: texture + logo), render

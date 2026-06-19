@@ -107,6 +107,21 @@ function applyEdits(doc: EmailDoc, edits: EditField[]): EmailDoc {
   };
 }
 
+/** Strip HTML tags so pasted HTML is scored on its visible text, not its markup. */
+function stripHtml(input: string): string {
+  if (!input.includes('<')) return input;
+  return input
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function EmailContentChecker() {
   const [doc, setDoc] = useState<EmailDoc>(() => buildTemplateDoc(EMAIL_TEMPLATES[0], '', genId));
   const [activeTemplate, setActiveTemplate] = useState(EMAIL_TEMPLATES[0].id);

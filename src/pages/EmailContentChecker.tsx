@@ -30,6 +30,8 @@ import {
 import { EMAIL_TEMPLATES, buildTemplateDoc } from '@/lib/email-templates';
 import { getAllStoredImages, batchStoreImages } from '@/lib/imageStore';
 
+const FLOW = ['Template', 'Build', 'Variations', 'Check', 'Export'];
+
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL      || '';
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const genId = () => (crypto?.randomUUID ? crypto.randomUUID() : `b-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);

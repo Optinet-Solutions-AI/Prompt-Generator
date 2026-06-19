@@ -547,12 +547,15 @@ export function buildEmailHtml(params: BuildEmailHtmlParams): string {
     `          ${headerBarHtml}`,
     // Bottom torn-paper edge separating the header from the white content
     `          ${tornEdgeHtml}`,
-    // Content block — headline + intro + body
-    `          ${contentHtml}`,
-    // Hero banner — sits after the body text, full-bleed inside the container
-    `          ${heroHtml}`,
-    // Brand wordmark centered — replaces CTA button, sits after the hero
-    `          ${wordmarkHtml}`,
+    // Middle sections — order is customizable (content / hero / cta / wordmark).
+    // The default order reproduces the original layout exactly.
+    ...(params.order ?? DEFAULT_SECTION_ORDER).map((key) => {
+      const section = key === 'content' ? contentHtml
+        : key === 'hero' ? heroHtml
+        : key === 'cta' ? ctaHtml
+        : wordmarkHtml;
+      return `          ${section}`;
+    }),
     // Divider between content and footer (only when there's footer content below)
     hasFooterRow || socialHtml
       ? `          <tr><td style="padding:0 40px;"><div style="border-top:1px solid ${LINE_COLOR};font-size:0;line-height:0;">&nbsp;</div></td></tr>`

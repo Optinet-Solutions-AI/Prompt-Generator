@@ -177,6 +177,33 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // ── Deliverability checker ────────────────────────────────────────────────
+  // Scores the copy for spam/hype/currency triggers as the user types. The
+  // brand name is exempted (it's a proper noun, not promo language) so e.g.
+  // "FortunePlay" isn't flagged for containing "play". Pure + synchronous.
+  const deliverability = useMemo(() => {
+    const subject = formData.headline;
+    const body = [formData.introText, formData.bodyText, formData.linkText, formData.footerAttribution]
+      .filter(Boolean)
+      .join('\n');
+    if (!subject.trim() && !body.trim()) return null;
+    return lintDeliverability(subject, body, { ignore: effectiveBrand ? [effectiveBrand] : [] });
+  }, [formData.headline, formData.introText, formData.bodyText, formData.linkText, formData.footerAttribution, effectiveBrand]);
+
+  // "Clean up copy" — deterministically strips the mechanical triggers
+  // (currency symbols → codes, all "!" → "."). Spam words are left alone since
+  // swapping them needs human/AI judgement on tone.
+  const handleSanitize = () => {
+    setFormData(prev => ({
+      ...prev,
+      headline:          sanitizeContent(prev.headline),
+      introText:         sanitizeContent(prev.introText),
+      bodyText:          sanitizeContent(prev.bodyText),
+      linkText:          sanitizeContent(prev.linkText),
+      footerAttribution: sanitizeContent(prev.footerAttribution),
+    }));
+  };
+
   const handleGenerateWithAI = async () => {
     setAIError(null);
     if (!brief.trim()) {

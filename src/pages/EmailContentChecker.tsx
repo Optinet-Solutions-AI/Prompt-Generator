@@ -11,13 +11,15 @@
  */
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Eraser } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Eraser, LayoutTemplate, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { BRAND_STANDARDS } from '@/lib/brand-standards';
 import { lintDeliverability, sanitizeContent } from '@/lib/deliverability';
+import { buildEmailHtml } from '@/lib/build-email-html';
+import { EMAIL_TEMPLATES, resolveTemplateForm, templateCheckerCopy, type EmailTemplate } from '@/lib/email-templates';
 
 const ALL_BRANDS = Object.keys(BRAND_STANDARDS);
 

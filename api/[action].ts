@@ -351,6 +351,89 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       }
     }
 
+    // ── GENERATE EMAIL VARIATIONS — reword the block text N ways ────────────
+    // The AI rewrites ONLY the text fields of the supplied blocks (heading,
+    // paragraph, bonus, cta). Styling/layout are never sent or returned — the
+    // client re-renders through the branded email builder and re-checks each
+    // variation with the deliverability linter. Mirrors the transfer package's
+    // generate-branded-variation, ported to OpenAI.
+    if (action === 'generate-email-variations') {
+      const data = req.body || {};
+      const subject = (data.subject || '').toString();
+      const brand   = (data.brand   || '').toString();
+      const locale  = (data.locale  || 'en').toString();
+      const blocks  = Array.isArray(data.blocks) ? data.blocks : [];
+      const count   = Math.min(Math.max(Number(data.count) || 3, 1), 6);
+      if (!blocks.length) return res.status(400).json({ error: 'No editable blocks provided.' });
+
+      const RULES = [
+        'Deliverability rules (follow strictly):',
+        '- Do NOT use spam-trigger words such as: bonus, free spins, promotion, deals, play, win, 100%, guaranteed, instant cash, claim now, risk free, jackpot, free money, limited time offer.',
+        '- Avoid hype: no excessive capitalization, NO exclamation marks at all, at most one emoji, no false urgency, no aggressive "buy now / click here" CTAs, no gambling vocabulary.',
+        '- Never use currency symbols ($ EUR-symbol etc). Write the code instead (USD, EUR, GBP, JPY).',
+        '- Keep the brand name exactly as given; do not alter it.',
+        '- Keep it natural, specific, and conversational — like a real 1:1 email.',
+      ].join('\n');
+
+      const ANGLES = [
+        'a fresh, friendly rewrite with a different opening hook',
+        'a concise, minimalist phrasing — short lines',
+        'a benefit-led restructure that leads with what the reader gets',
+        'a warm, conversational tone as if writing to one person',
+        'a clean, professional voice with a single clear call-to-action',
+        'a curiosity-driven opener that teases before revealing',
+      ];
+
+      const SYSTEM = [
+        "You rewrite the TEXT of a marketing email's blocks into a NEW variation.",
+        'Keep the SAME offer, intent, brand, and language/locale as the source.',
+        'Change the wording — do not copy phrases verbatim. Do NOT add or remove blocks; keep each id and type.',
+        'Only return the text fields for each block (heading/paragraph -> text, bonus -> offer/code, cta -> label).',
+        'SANITIZE for deliverability — this is mandatory:',
+        RULES,
+        'Return ONLY strict JSON — no markdown, no code fences, no commentary.',
+      ].join('\n');
+
+      const KEYS = `{"label": string (3-5 words), "notes": string (one line: what changed), "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
+
+      const buildPrompt = (angle: string) => [
+        `Brand: ${brand || 'n/a'}. Locale: ${locale}. Subject: ${subject || '(none)'}.`,
+        '',
+        'BLOCKS TO REWRITE (JSON):',
+        JSON.stringify(blocks),
+        '',
+        `Write ONE new variation as ${angle}.`,
+        'Return strict JSON with exactly these keys:',
+        KEYS,
+      ].join('\n');
+
+      const tasks = Array.from({ length: count }, (_, i) => (async () => {
+        const raw = await chatCompletion({
+          systemPrompt: SYSTEM,
+          userPrompt: buildPrompt(ANGLES[i % ANGLES.length]),
+          temperature: 0.8,
+          model: 'gpt-4o-mini',
+          maxTokens: 1200,
+        });
+        const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+        const parsed = JSON.parse(cleaned) as { label?: string; notes?: string; blocks?: unknown[] };
+        return {
+          label: (parsed.label || `Variation ${i + 1}`).toString(),
+          notes: (parsed.notes || '').toString(),
+          blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
+        };
+      })());
+
+      const settled = await Promise.allSettled(tasks);
+      const variations = settled
+        .filter((r): r is PromiseFulfilledResult<{ label: string; notes: string; blocks: unknown[] }> => r.status === 'fulfilled')
+        .map(r => r.value)
+        .filter(v => v.blocks.length > 0);
+
+      if (!variations.length) return res.status(502).json({ error: 'The AI returned no usable variations. Try again.' });
+      return res.status(200).json({ variations });
+    }
+
     // ── CONVERT TO HTML — direct OpenAI with vision (was n8n) ──────────────
     if (action === 'convert-to-html') {
       const data = req.body;

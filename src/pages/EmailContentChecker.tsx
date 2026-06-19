@@ -108,9 +108,13 @@ export default function EmailContentChecker() {
 
   const [activeTemplate, setActiveTemplate] = useState<string>('');
   const [copied, setCopied] = useState<'html' | null>(null);
+  // Tracks whether the user has hand-edited the content. While false, switching
+  // brands re-syncs the template copy (so the brand name shows correctly); once
+  // they edit, we stop overwriting their work.
+  const [dirty, setDirty] = useState(false);
 
-  const field = (k: keyof EmailFormData, v: string) => setForm(p => ({ ...p, [k]: v }));
-  const setCtaField = <K extends keyof EmailCta>(k: K, v: EmailCta[K]) => setCta(p => ({ ...p, [k]: v }));
+  const field = (k: keyof EmailFormData, v: string) => { setForm(p => ({ ...p, [k]: v })); setDirty(true); };
+  const setCtaField = <K extends keyof EmailCta>(k: K, v: EmailCta[K]) => { setCta(p => ({ ...p, [k]: v })); setDirty(true); };
 
   // ── Hero selection ──────────────────────────────────────────────────────
   const useHero = (url: string) => {

@@ -110,8 +110,9 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const unsubLine = unsub
         ? `<div style="margin-top:8px;"><a href="${esc(unsub)}" style="color:${INK_MUTED};text-decoration:underline;">Unsubscribe</a></div>`
         : '';
-      return `<tr><td style="background:${FOOTER_BG};border-top:2px solid ${s.accentColor};padding:22px 32px;font-family:${FONT_STACK};font-size:12px;line-height:1.6;color:${INK_LIGHT};">` +
-        (attribution ? `<div style="color:${INK_MUTED};">${esc(attribution)}</div>` : '') +
+      const fAlign = st.align ?? 'left';
+      return `<tr><td style="background:${FOOTER_BG};border-top:2px solid ${s.accentColor};padding:22px 32px;font-family:${FONT_STACK};font-size:${st.fontSize ?? 12}px;line-height:1.6;color:${st.color || INK_LIGHT};text-align:${fAlign};">` +
+        (attribution ? `<div style="color:${st.color || INK_MUTED};">${esc(attribution)}</div>` : '') +
         (legal ? `<div style="margin-top:6px;">${esc(legal)}</div>` : '') +
         unsubLine + `</td></tr>`;
     }

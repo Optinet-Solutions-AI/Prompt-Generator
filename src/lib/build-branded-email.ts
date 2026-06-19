@@ -53,8 +53,14 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
     case 'hero': {
       const src = b.mode === 'banner' ? (c.banner_url || '') : b.mode === 'url' ? (b.url || '') : '';
       if (b.mode === 'css' || !src) {
-        return `<tr><td align="center" style="background:${s.panelBg};padding:32px;">` +
-          `<span style="font-family:${s.fontFamily};font-size:28px;font-weight:800;color:${s.accentColor};letter-spacing:.04em;">${esc(brand)}</span></td></tr>`;
+        // CSS hero: a solid panel + brand wordmark. Background, text colour and
+        // alignment are all overridable so it can be white / any colour and
+        // left / center / right aligned.
+        const align = st.align ?? 'center';
+        const bg = st.background || s.panelBg;
+        const txt = st.color || s.accentColor;
+        return `<tr><td align="${align}" style="background:${bg};padding:32px;text-align:${align};">` +
+          `<span style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 28}px;font-weight:800;color:${txt};letter-spacing:.04em;">${esc(brand)}</span></td></tr>`;
       }
       const mw = st.width ?? 340;
       const align = st.align ?? 'center';

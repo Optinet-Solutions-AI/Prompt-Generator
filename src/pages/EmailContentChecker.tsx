@@ -79,6 +79,34 @@ const Small = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{children}</p>
 );
 
+// ── Variation helpers (text-only edits applied back to the doc by id) ────────
+interface EditField { id: string; type: string; text?: string; offer?: string; code?: string; label?: string }
+
+function editableBlocks(doc: EmailDoc): EditField[] {
+  const out: EditField[] = [];
+  for (const b of doc.blocks) {
+    if (b.type === 'heading' || b.type === 'paragraph') out.push({ id: b.id, type: b.type, text: b.text });
+    else if (b.type === 'bonus') out.push({ id: b.id, type: b.type, offer: b.offer, code: b.code });
+    else if (b.type === 'cta') out.push({ id: b.id, type: b.type, label: b.label });
+  }
+  return out;
+}
+
+function applyEdits(doc: EmailDoc, edits: EditField[]): EmailDoc {
+  const byId = new Map(edits.map(e => [e.id, e]));
+  return {
+    ...doc,
+    blocks: doc.blocks.map(b => {
+      const e = byId.get(b.id);
+      if (!e) return b;
+      if (b.type === 'heading' || b.type === 'paragraph') return { ...b, text: e.text ?? b.text };
+      if (b.type === 'bonus') return { ...b, offer: e.offer ?? b.offer, code: e.code ?? b.code };
+      if (b.type === 'cta') return { ...b, label: e.label ?? b.label };
+      return b;
+    }),
+  };
+}
+
 export default function EmailContentChecker() {
   const [doc, setDoc] = useState<EmailDoc>(() => buildTemplateDoc(EMAIL_TEMPLATES[0], '', genId));
   const [activeTemplate, setActiveTemplate] = useState(EMAIL_TEMPLATES[0].id);

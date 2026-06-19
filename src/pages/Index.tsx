@@ -156,14 +156,23 @@ const Index = () => {
           <p className="text-muted-foreground text-base sm:text-lg max-w-lg mx-auto px-2">
             Create stunning AI image prompts tailored for your brand and campaign needs
           </p>
-          <button
-            type="button"
-            onClick={() => handleTabChange('library')}
-            className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 hover:border-primary/50 text-primary font-medium text-sm transition-all duration-150 shadow-sm hover:shadow"
-          >
-            <Images className="w-4 h-4" />
-            Image Library
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-5">
+            <button
+              type="button"
+              onClick={() => handleTabChange('library')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 hover:border-primary/50 text-primary font-medium text-sm transition-all duration-150 shadow-sm hover:shadow"
+            >
+              <Images className="w-4 h-4" />
+              Image Library
+            </button>
+            <Link
+              to="/email"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 hover:border-primary/50 text-primary font-medium text-sm transition-all duration-150 shadow-sm hover:shadow"
+            >
+              <Mail className="w-4 h-4" />
+              Email Builder
+            </Link>
+          </div>
         </div>
 
         {/* Mode tabs — hidden when library is active (library has its own top bar) */}

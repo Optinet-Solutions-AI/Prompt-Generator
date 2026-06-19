@@ -176,8 +176,6 @@ export default function EmailContentChecker() {
     order: visibleOrder,
   }), [heroUrl, brand, form, heroDims, cta, bannerWidth, visibleOrder]);
 
-  const text = useMemo(() => buildEmailText(form, brand || undefined), [form, brand]);
-
   // ── Deliverability ──────────────────────────────────────────────────────
   const report = useMemo(() => {
     const body = [form.headline, form.introText, form.bodyText, cta.label, form.footerAttribution].filter(Boolean).join('\n');

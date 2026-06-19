@@ -289,6 +289,18 @@ export default function EmailContentChecker() {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
+  // Standalone checker (paste-and-check)
+  const chkReport = useMemo(() => {
+    const subj = chkSubject.trim();
+    const body = stripHtml(chkBody);
+    if (!subj && !body) return null;
+    return lintDeliverability(subj, body, { ignore: chkBrand ? [chkBrand] : [] });
+  }, [chkSubject, chkBody, chkBrand]);
+  const chkSanitize = () => { setChkSubject(s => sanitizeContent(s)); setChkBody(s => sanitizeContent(s)); };
+  const chkCopy = async (kind: 'subject' | 'body') => {
+    try { await navigator.clipboard.writeText(kind === 'subject' ? chkSubject : chkBody); setChkCopied(kind); setTimeout(() => setChkCopied(null), 1500); } catch { /* blocked */ }
+  };
+
   const copyHtml = async () => { try { await navigator.clipboard.writeText(html); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* blocked */ } };
   const downloadHtml = () => {
     const blob = new Blob([html], { type: 'text/html' });

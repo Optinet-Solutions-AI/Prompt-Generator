@@ -13,12 +13,13 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Download,
-  ChevronUp, ChevronDown, X, Plus, SlidersHorizontal, Images, Upload, Sparkles, Loader2, Eye, LayoutTemplate, Eraser,
+  ChevronUp, ChevronDown, X, Plus, SlidersHorizontal, Images, Upload, Sparkles, Loader2, Eye, LayoutTemplate, Eraser, Monitor, Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { BRAND_NAMES, getBrandStyle } from '@/lib/brand-standards';
 import { lintDeliverability, sanitizeContent } from '@/lib/deliverability';
 import { buildBrandedEmail } from '@/lib/build-branded-email';

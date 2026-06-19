@@ -178,18 +178,24 @@ export default function EmailContentChecker() {
 
   // ── Build the email ───────────────────────────────────────────────────────
   const visibleOrder = useMemo(() => order.filter(k => !hidden.has(k)), [order, hidden]);
+  // Drop the hero section entirely when there's no banner image — otherwise the
+  // brand-only fallback would draw a second brand panel under the header.
+  const effectiveOrder = useMemo(
+    () => visibleOrder.filter(k => k !== 'hero' || !!heroUrl),
+    [visibleOrder, heroUrl],
+  );
   const html = useMemo(() => buildEmailHtml({
     imageSrc: heroUrl,
     brand: brand || undefined,
     formData: form,
     imgWidth: heroDims.w,
     imgHeight: heroDims.h,
-    variant: heroUrl ? 'image-hero' : 'brand-only',
+    variant: 'image-hero',
     cta: cta.label && cta.url ? cta : undefined,
     heroWidth: bannerWidth || undefined,
     heroRadius: bannerWidth ? 10 : 0,
-    order: visibleOrder,
-  }), [heroUrl, brand, form, heroDims, cta, bannerWidth, visibleOrder]);
+    order: effectiveOrder,
+  }), [heroUrl, brand, form, heroDims, cta, bannerWidth, effectiveOrder]);
 
   // ── Deliverability ──────────────────────────────────────────────────────
   const report = useMemo(() => {

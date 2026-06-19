@@ -86,6 +86,30 @@ export interface StaticBrandConfig {
   legal_text?: string | null;
 }
 
+/**
+ * Optional themed call-to-action button. The original template has no CTA
+ * (it uses the wordmark), so this is opt-in and only renders when `label` and
+ * `url` are set. Colours come from the brand's button styling.
+ */
+export interface EmailCta {
+  label: string;
+  url: string;
+  /** Stretch the button to the full content width. */
+  fullWidth?: boolean;
+  /** Corner radius (px). Default 6. */
+  radius?: number;
+  /** Label font size (px). Default 15. */
+  fontSize?: number;
+  /** Horizontal alignment. Default 'center'. */
+  align?: 'left' | 'center' | 'right';
+}
+
+/** The reorderable middle sections (header stays top; social/footer stay bottom). */
+export type EmailSectionKey = 'content' | 'hero' | 'cta' | 'wordmark';
+
+/** Default middle-section order — matches the original fixed layout. */
+export const DEFAULT_SECTION_ORDER: EmailSectionKey[] = ['content', 'hero', 'cta', 'wordmark'];
+
 export interface BuildEmailHtmlParams {
   /** Base64 data URI or public URL for the AI-generated image */
   imageSrc: string;
@@ -98,6 +122,14 @@ export interface BuildEmailHtmlParams {
   variant?: EmailTemplateVariant;
   /** Static brand config loaded from Supabase — fills in blank form fields */
   staticConfig?: StaticBrandConfig;
+  /** Optional CTA button (opt-in; renders only when label + url are set). */
+  cta?: EmailCta;
+  /** Max width (px) for the image hero. When < 600 the hero is inset + centered. */
+  heroWidth?: number;
+  /** Corner radius (px) for the inset image hero. Default 0 (full-bleed). */
+  heroRadius?: number;
+  /** Order of the middle sections. Omit to keep the original layout. */
+  order?: EmailSectionKey[];
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

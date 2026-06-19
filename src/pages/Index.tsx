@@ -1,5 +1,6 @@
-import { Images, Sparkles, Trophy } from "lucide-react";
+import { Images, Sparkles, Trophy, Mail } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { PromptForm } from "@/components/PromptForm";
 import { ProcessingState } from "@/components/ProcessingState";
 import { ResultDisplay } from "@/components/ResultDisplay";

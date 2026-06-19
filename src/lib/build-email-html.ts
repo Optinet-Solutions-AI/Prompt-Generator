@@ -592,16 +592,29 @@ function buildHeroRow(opts: {
   imgWidth: number;
   imgHeight: number;
   bannerUrl?: string;
+  /** Cap the hero width (px). When < containerWidth, the hero is inset + centered. */
+  heroWidth?: number;
+  /** Corner radius (px) for the inset hero. */
+  heroRadius?: number;
 }): string {
-  const { variant, imageSrc, brand, style, containerWidth, imgWidth, imgHeight, bannerUrl } = opts;
+  const { variant, imageSrc, brand, style, containerWidth, imgWidth, imgHeight, bannerUrl, heroWidth, heroRadius } = opts;
   const BRAND_BANNER_RATIO = 1656 / 500; // aspect ratio of scraped platform banners
 
   if (variant === 'image-hero') {
-    const heroHeight = Math.round((imgHeight / imgWidth) * containerWidth);
+    // Optional sizing: when heroWidth is set below the container, inset + centre
+    // the banner with padding (and an optional corner radius); otherwise keep
+    // the original full-bleed behaviour exactly.
+    const mw = heroWidth && heroWidth < containerWidth ? heroWidth : containerWidth;
+    const inset = mw < containerWidth;
+    const heroHeight = Math.round((imgHeight / imgWidth) * mw);
+    const radius = heroRadius ?? 0;
+    const tdStyle = inset
+      ? 'padding:20px 40px;line-height:0;font-size:0;'
+      : 'padding:0;line-height:0;font-size:0;';
     return [
       '<tr>',
-      '  <td align="center" style="padding:0;line-height:0;font-size:0;">',
-      `    <img class="hero-img" src="${escapeHtml(imageSrc)}" alt="${escapeHtml(brand || 'Email hero')}" width="${containerWidth}" height="${heroHeight}" style="display:block;width:100%;max-width:${containerWidth}px;height:auto;border:0;outline:none;" />`,
+      `  <td align="center" style="${tdStyle}">`,
+      `    <img class="hero-img" src="${escapeHtml(imageSrc)}" alt="${escapeHtml(brand || 'Email hero')}" width="${mw}" height="${heroHeight}" style="display:block;width:100%;max-width:${mw}px;height:auto;border:0;outline:none;border-radius:${radius}px;-ms-interpolation-mode:bicubic;" />`,
       '  </td>',
       '</tr>',
     ].join('\n');

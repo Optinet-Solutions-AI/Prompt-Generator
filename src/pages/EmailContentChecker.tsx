@@ -119,6 +119,13 @@ export default function EmailContentChecker() {
   const [libImages, setLibImages] = useState<PickImage[]>([]);
   const [libLoading, setLibLoading] = useState(false);
 
+  // AI variations
+  interface VariationResult { label: string; notes: string; edits: EditField[]; level: string; score: number }
+  const [variations, setVariations] = useState<VariationResult[]>([]);
+  const [varLoading, setVarLoading] = useState(false);
+  const [varError, setVarError] = useState<string | null>(null);
+  const [varCount, setVarCount] = useState(3);
+
   const brand = doc.meta.brand;
 
   // ── Mutations ─────────────────────────────────────────────────────────────

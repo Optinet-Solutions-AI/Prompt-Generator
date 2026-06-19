@@ -154,6 +154,7 @@ export default function EmailContentChecker() {
 
   // View tab + standalone Content Checker (paste any subject/body or HTML)
   const [tab, setTab] = useState<'builder' | 'checker'>('builder');
+  const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [chkBrand, setChkBrand] = useState('');
   const [chkSubject, setChkSubject] = useState('');
   const [chkBody, setChkBody] = useState('');

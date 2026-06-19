@@ -159,7 +159,16 @@ export const DEFAULT_BRAND_STYLE: BrandStyle = {
   buttonShadow: 'rgba(124,77,255,0.5)',
 };
 
+/** Canonical brand names (the 9 supported brands). */
+export const BRAND_NAMES = Object.keys(BRAND_STANDARDS);
+
+// Normalized lookup so "Rooster.Bet" / "Fortune Play" resolve to the canonical entry.
+const NORMALIZED_STYLES: Record<string, BrandStyle> = Object.fromEntries(
+  Object.entries(BRAND_STANDARDS).map(([name, style]) => [name.toLowerCase().replace(/[^a-z0-9]/g, ''), style]),
+);
+
 export function getBrandStyle(brand: string | undefined | null): BrandStyle {
-  if (brand && BRAND_STANDARDS[brand]) return BRAND_STANDARDS[brand];
-  return DEFAULT_BRAND_STYLE;
+  if (!brand) return DEFAULT_BRAND_STYLE;
+  if (BRAND_STANDARDS[brand]) return BRAND_STANDARDS[brand];
+  return NORMALIZED_STYLES[brand.toLowerCase().replace(/[^a-z0-9]/g, '')] ?? DEFAULT_BRAND_STYLE;
 }

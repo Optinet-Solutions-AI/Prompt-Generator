@@ -229,18 +229,28 @@ export default function EmailContentChecker() {
         return;
       }
       const data = await res.json() as { variations: { label: string; notes: string; blocks: EditField[] }[] };
+      const style = getBrandStyle(brand);
       const results: VariationResult[] = (data.variations || []).map(v => {
         const applied = applyEdits(doc, v.blocks);
+        const built = buildBrandedEmail(applied, style);
         const parts: string[] = [];
         for (const b of applied.blocks) {
           if (b.type === 'heading' || b.type === 'paragraph') parts.push(b.text);
           else if (b.type === 'bonus') parts.push(b.offer);
           else if (b.type === 'cta') parts.push(b.label);
         }
-        const rep = lintDeliverability(applied.meta.subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [] });
-        return { label: v.label, notes: v.notes, edits: v.blocks, level: rep.level, score: rep.score };
+        const report = lintDeliverability(applied.meta.subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [] });
+        const fields = (v.blocks || []).map(e => {
+          if (e.type === 'heading') return { label: 'Heading', value: e.text || '' };
+          if (e.type === 'paragraph') return { label: 'Text', value: e.text || '' };
+          if (e.type === 'bonus') return { label: 'Bonus', value: [e.offer, e.code ? `(code ${e.code})` : ''].filter(Boolean).join(' ') };
+          if (e.type === 'cta') return { label: 'CTA', value: e.label || '' };
+          return { label: e.type, value: '' };
+        }).filter(f => f.value);
+        return { label: v.label, notes: v.notes, edits: v.blocks, report, text: built.text, html: built.html, fields };
       });
       setVariations(results);
+      setExpandedVar(results.length ? 0 : null);
     } catch {
       setVarError('Could not reach the AI service. Try again.');
     } finally {

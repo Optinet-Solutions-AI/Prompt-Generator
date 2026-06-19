@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import ImageLibrary from "./pages/ImageLibrary";
 import NotFound from "./pages/NotFound";
 import AssistantPage from "./pages/AssistantPage";
+import EmailBuilder from "./pages/EmailBuilder";
 
 const queryClient = new QueryClient();
 

@@ -48,6 +48,15 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Dev-only: forward /api/* to a running `vercel dev` (default :3939) so the
+    // serverless functions (OpenAI, Supabase, etc.) work while vite serves the
+    // UI. Override the target with VITE_API_PROXY. Has no effect in production.
+    proxy: {
+      "/api": {
+        target: process.env.VITE_API_PROXY || "http://localhost:3939",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [
     react(),

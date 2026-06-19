@@ -12,6 +12,7 @@ export interface BlockStyle {
   align?: 'left' | 'center' | 'right';
   fontSize?: number; // px — text / heading / bonus / cta / wordmark / social
   color?: string; // text color override
+  background?: string; // panel background override — CSS hero (white / any color)
   spaceTop?: number; // px margin above the block
   spaceBottom?: number; // px margin below the block
   width?: number; // px max-width — image hero

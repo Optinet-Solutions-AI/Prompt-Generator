@@ -144,14 +144,25 @@ export default function EmailContentChecker() {
   }, [libImages.length]);
 
   // ── Template ────────────────────────────────────────────────────────────
-  const loadTemplate = (t: EmailTemplate) => {
-    setActiveTemplate(t.id);
-    const f = resolveTemplateForm(t, brand);
+  const applyTemplate = useCallback((t: EmailTemplate, brandArg: string) => {
+    const f = resolveTemplateForm(t, brandArg);
     setForm(f);
-    setSubject(t.subject.replace(/\{brand\}/g, brand || 'your brand'));
+    setSubject(t.subject.replace(/\{brand\}/g, brandArg || 'your brand'));
     // Templates have a natural CTA — wire it from the template's link.
     setCta(p => ({ ...p, label: f.linkText || 'Learn more', url: f.linkUrl || '' }));
-  };
+  }, []);
+  const loadTemplate = (t: EmailTemplate) => { setActiveTemplate(t.id); applyTemplate(t, brand); setDirty(false); };
+
+  // Start with a real example loaded so the preview is never an empty shell.
+  useEffect(() => { applyTemplate(EMAIL_TEMPLATES[0], ''); setActiveTemplate(EMAIL_TEMPLATES[0].id); }, [applyTemplate]);
+  // Re-sync template copy with the brand until the user hand-edits the content.
+  useEffect(() => {
+    if (!dirty && activeTemplate) {
+      const t = EMAIL_TEMPLATES.find(x => x.id === activeTemplate);
+      if (t) applyTemplate(t, brand);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brand]);
 
   // ── Section order helpers ────────────────────────────────────────────────
   const move = (i: number, dir: -1 | 1) => {

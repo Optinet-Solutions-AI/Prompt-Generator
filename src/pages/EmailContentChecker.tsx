@@ -608,6 +608,63 @@ export default function EmailContentChecker() {
             </div>
           </div>
         </div>
+        )}
+
+        {tab === 'checker' && (
+          <div className="max-w-3xl space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Paste any email subject and body — or full HTML — to check its spam / deliverability risk. Independent of the builder.
+            </p>
+
+            <div className="space-y-1.5">
+              <Small>Brand <span className="font-normal normal-case">(optional — so the brand name isn't flagged)</span></Small>
+              <div className="flex flex-wrap gap-1.5">
+                {BRAND_NAMES.map(bn => (
+                  <button key={bn} type="button" onClick={() => setChkBrand(p => p === bn ? '' : bn)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${chkBrand === bn ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{bn}</button>
+                ))}
+              </div>
+            </div>
+
+            <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={chkSubject} onChange={e => setChkSubject(e.target.value)} placeholder="e.g. A quick note about your account" className="h-9 text-sm" /></div>
+            <div><Label className="text-[11px] mb-0.5 block">Email body or HTML</Label><Textarea value={chkBody} onChange={e => setChkBody(e.target.value)} placeholder="Paste your copy here. You can paste full HTML too — it's checked on the visible text." className="min-h-[220px] text-sm font-mono" /></div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={chkSanitize} className="gap-1.5 h-8 text-xs" disabled={!chkSubject && !chkBody}><Wand2 className="w-3.5 h-3.5" /> Clean up copy</Button>
+              <Button type="button" variant="outline" onClick={() => chkCopy('subject')} className="gap-1.5 h-8 text-xs" disabled={!chkSubject}>{chkCopied === 'subject' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy subject</Button>
+              <Button type="button" variant="outline" onClick={() => chkCopy('body')} className="gap-1.5 h-8 text-xs" disabled={!chkBody}>{chkCopied === 'body' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy body</Button>
+              <Button type="button" variant="ghost" onClick={() => { setChkSubject(''); setChkBody(''); }} className="gap-1.5 h-8 text-xs ml-auto" disabled={!chkSubject && !chkBody}><Eraser className="w-3.5 h-3.5" /> Clear</Button>
+            </div>
+
+            {!chkReport ? (
+              <div className="rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                Start typing or paste content above — your deliverability score appears here.
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className={`w-4 h-4 ${chkReport.level === 'clean' ? 'text-emerald-600' : chkReport.level === 'caution' ? 'text-amber-500' : 'text-destructive'}`} />
+                  <Small>Deliverability</Small>
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${levelBadge(chkReport.level)}`}>{chkReport.level === 'clean' ? 'Clean' : chkReport.level === 'caution' ? 'Caution' : 'High risk'}{chkReport.score > 0 && ` · risk ${chkReport.score}`}</span>
+                </div>
+                {chkReport.findings.length === 0 ? (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">No spam triggers detected — this copy should deliver well.</p>
+                ) : (
+                  <ul className="space-y-1.5 max-h-72 overflow-y-auto">
+                    {chkReport.findings.map((f, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs leading-snug">
+                        <AlertCircle className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                        <span className="text-muted-foreground">{f.message}{f.suggestion ? ` ${f.suggestion}` : ''}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
+                  "Clean up copy" auto-fixes mechanical triggers (currency symbols → codes, removes exclamation marks). Spam words are left for you to reword using the suggestions.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

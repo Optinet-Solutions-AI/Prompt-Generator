@@ -205,6 +205,41 @@ export default function EmailContentChecker() {
   // default template loaded once; re-sync to brand handled in selectBrand
   useEffect(() => { /* doc seeded in useState initializer */ }, []);
 
+  // ── AI variations: reword the text blocks N ways, re-score each ───────────
+  const generateVariations = async () => {
+    setVarError(null); setVarLoading(true); setVariations([]);
+    try {
+      const res = await fetch('/api/generate-email-variations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: doc.meta.subject, brand, locale: doc.meta.locale, blocks: editableBlocks(doc), count: varCount }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({} as { error?: string }));
+        setVarError(e.error || `Request failed (${res.status})`);
+        return;
+      }
+      const data = await res.json() as { variations: { label: string; notes: string; blocks: EditField[] }[] };
+      const results: VariationResult[] = (data.variations || []).map(v => {
+        const applied = applyEdits(doc, v.blocks);
+        const parts: string[] = [];
+        for (const b of applied.blocks) {
+          if (b.type === 'heading' || b.type === 'paragraph') parts.push(b.text);
+          else if (b.type === 'bonus') parts.push(b.offer);
+          else if (b.type === 'cta') parts.push(b.label);
+        }
+        const rep = lintDeliverability(applied.meta.subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [] });
+        return { label: v.label, notes: v.notes, edits: v.blocks, level: rep.level, score: rep.score };
+      });
+      setVariations(results);
+    } catch {
+      setVarError('Could not reach the AI service. Try again.');
+    } finally {
+      setVarLoading(false);
+    }
+  };
+
+  const useVariation = (edits: EditField[]) => { setDoc(d => applyEdits(d, edits)); setDirty(true); setActiveTemplate(''); setVariations([]); };
+
   const copyHtml = async () => { try { await navigator.clipboard.writeText(html); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* blocked */ } };
   const downloadHtml = () => {
     const blob = new Blob([html], { type: 'text/html' });

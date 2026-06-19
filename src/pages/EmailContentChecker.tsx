@@ -1,63 +1,59 @@
 /**
- * EmailContentChecker.tsx — the Email Builder page.
+ * EmailContentChecker.tsx — block-based Email Builder.
  *
- * Two panes:
- *   • Left  — controls: brand, template, banner (library/upload/URL), content,
- *             CTA, section order + sizes, footer, and the deliverability checker.
- *   • Right — a live preview of the REAL branded email (build-email-html.ts) plus
- *             copy / download.
+ * Left: editable block cards (header / hero / heading / paragraph / bonus / cta /
+ *       divider / wordmark / social / footer) — each with Style / move / remove,
+ *       plus brand, templates, add-block, and the deliverability checker.
+ * Right: live preview of the branded email (build-branded-email.ts).
  *
- * Follows the app's existing email HTML; adds the transfer-package features:
- * brand templates, section reorder + sizing, a CTA block, and spam-risk checking.
+ * Clean logo/composite header by default (no big text); the transfer package's
+ * block model + per-block styling, integrated with the spam-risk checker.
  */
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Download,
-  Upload, Link as LinkIcon, Images, ChevronUp, ChevronDown, Eye, EyeOff, X,
+  ChevronUp, ChevronDown, X, Plus, SlidersHorizontal, Images, Upload, Link as LinkIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { BRAND_STANDARDS } from '@/lib/brand-standards';
+import { BRAND_NAMES, getBrandStyle } from '@/lib/brand-standards';
 import { lintDeliverability, sanitizeContent } from '@/lib/deliverability';
+import { buildBrandedEmail } from '@/lib/build-branded-email';
 import {
-  buildEmailHtml, EMPTY_EMAIL_FORM,
-  DEFAULT_SECTION_ORDER, type EmailFormData, type EmailCta, type EmailSectionKey,
-} from '@/lib/build-email-html';
-import { EMAIL_TEMPLATES, resolveTemplateForm, type EmailTemplate } from '@/lib/email-templates';
+  newBlock, moveBlock, removeBlock, updateBlock,
+  type EmailDoc, type EmailBlock, type BlockType, type BlockStyle,
+} from '@/lib/email-model';
+import { EMAIL_TEMPLATES, buildTemplateDoc } from '@/lib/email-templates';
 import { getAllStoredImages, batchStoreImages } from '@/lib/imageStore';
 
-const ALL_BRANDS = Object.keys(BRAND_STANDARDS);
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL      || '';
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const genId = () => (crypto?.randomUUID ? crypto.randomUUID() : `b-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
-const SECTION_LABELS: Record<EmailSectionKey, string> = {
-  content:  'Content (headline + text)',
-  hero:     'Banner image',
-  cta:      'CTA button',
-  wordmark: 'Brand wordmark',
+// Block types you can add, with friendly labels (header is added by default).
+const ADDABLE: { type: BlockType; label: string }[] = [
+  { type: 'heading', label: 'Heading' }, { type: 'paragraph', label: 'Text' },
+  { type: 'bonus', label: 'Bonus' }, { type: 'cta', label: 'CTA' },
+  { type: 'hero', label: 'Image' }, { type: 'divider', label: 'Divider' },
+  { type: 'wordmark', label: 'Wordmark' }, { type: 'social', label: 'Social' },
+  { type: 'footer', label: 'Footer' }, { type: 'header', label: 'Header' },
+];
+const TYPE_LABEL: Record<BlockType, string> = {
+  header: 'header', hero: 'hero', heading: 'heading', paragraph: 'paragraph', bonus: 'bonus',
+  cta: 'cta', divider: 'divider', wordmark: 'wordmark', social: 'social', footer: 'footer',
 };
 
-const BANNER_SIZES = [
-  { label: 'Full', width: 0 },      // 0 → full-bleed (no cap)
-  { label: 'Large', width: 520 },
-  { label: 'Medium', width: 420 },
-  { label: 'Small', width: 320 },
-];
-const CTA_FONT = { Small: 13, Medium: 15, Large: 17 } as const;
-const CTA_RADIUS = { Square: 0, Rounded: 6, Pill: 24 } as const;
-
 interface PickImage { id: string; url: string; brand?: string }
-
 async function syncFromDrive(): Promise<void> {
   try {
     const res = await fetch('/api/list-drive-images');
     if (!res.ok) return;
     const data = await res.json() as { files: Array<{ id: string; public_url: string; provider: string; aspect_ratio: string; resolution: string; filename: string; brand?: string }> };
     const files = data.files;
-    if (!Array.isArray(files) || files.length === 0) return;
+    if (!Array.isArray(files) || !files.length) return;
     const existing = new Set(getAllStoredImages().map(i => i.public_url));
     const fresh = files.filter(f => f.public_url && !existing.has(f.public_url));
     if (fresh.length) batchStoreImages(fresh.map(f => ({
@@ -67,7 +63,6 @@ async function syncFromDrive(): Promise<void> {
     })));
   } catch { /* best-effort */ }
 }
-
 async function fetchFavorites(): Promise<PickImage[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
   try {
@@ -75,64 +70,59 @@ async function fetchFavorites(): Promise<PickImage[]> {
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } });
     if (!res.ok) return [];
     const raw = await res.json();
-    return (Array.isArray(raw) ? raw : [])
-      .filter((f: { img_url?: string }) => !!f.img_url)
+    return (Array.isArray(raw) ? raw : []).filter((f: { img_url?: string }) => !!f.img_url)
       .map((f: { id: string; img_url: string; brand_name?: string }) => ({ id: `fav-${f.id}`, url: f.img_url, brand: f.brand_name || undefined }));
   } catch { return []; }
 }
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+const Small = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{children}</p>
 );
 
 export default function EmailContentChecker() {
-  const [brand, setBrand] = useState('');
-  const [subject, setSubject] = useState('');
-  const [form, setForm] = useState<EmailFormData>(EMPTY_EMAIL_FORM);
-  const [cta, setCta] = useState<EmailCta>({ label: '', url: '', align: 'center', fullWidth: false, radius: 6, fontSize: 15 });
+  const [doc, setDoc] = useState<EmailDoc>(() => buildTemplateDoc(EMAIL_TEMPLATES[0], '', genId));
+  const [activeTemplate, setActiveTemplate] = useState(EMAIL_TEMPLATES[0].id);
+  const [dirty, setDirty] = useState(false);
+  const [openStyle, setOpenStyle] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Hero image
-  const [heroUrl, setHeroUrl] = useState('');
-  const [heroDims, setHeroDims] = useState<{ w: number; h: number }>({ w: 1200, h: 628 });
-  const [bannerWidth, setBannerWidth] = useState(0); // 0 = full-bleed
-
-  // Section order + visibility
-  const [order, setOrder] = useState<EmailSectionKey[]>([...DEFAULT_SECTION_ORDER]);
-  const [hidden, setHidden] = useState<Set<EmailSectionKey>>(new Set());
-
-  // Library picker
-  const [showLibrary, setShowLibrary] = useState(false);
+  // Image picker (scoped to a hero block)
+  const [libFor, setLibFor] = useState<string | null>(null);
   const [libImages, setLibImages] = useState<PickImage[]>([]);
   const [libLoading, setLibLoading] = useState(false);
-  const [pasteUrl, setPasteUrl] = useState('');
 
-  const [activeTemplate, setActiveTemplate] = useState<string>('');
-  const [copied, setCopied] = useState<'html' | null>(null);
-  // Tracks whether the user has hand-edited the content. While false, switching
-  // brands re-syncs the template copy (so the brand name shows correctly); once
-  // they edit, we stop overwriting their work.
-  const [dirty, setDirty] = useState(false);
+  const brand = doc.meta.brand;
 
-  const field = (k: keyof EmailFormData, v: string) => { setForm(p => ({ ...p, [k]: v })); setDirty(true); };
-  const setCtaField = <K extends keyof EmailCta>(k: K, v: EmailCta[K]) => { setCta(p => ({ ...p, [k]: v })); setDirty(true); };
-
-  // ── Hero selection ──────────────────────────────────────────────────────
-  const useHero = (url: string) => {
-    setHeroUrl(url);
-    const img = new window.Image();
-    img.onload = () => { if (img.naturalWidth) setHeroDims({ w: img.naturalWidth, h: img.naturalHeight }); };
-    img.src = url;
+  // ── Mutations ─────────────────────────────────────────────────────────────
+  const patchMeta = (patch: Partial<EmailDoc['meta']>) => { setDoc(d => ({ ...d, meta: { ...d.meta, ...patch } })); setDirty(true); };
+  const patchBlock = (id: string, patch: Partial<EmailBlock>) => { setDoc(d => ({ ...d, blocks: updateBlock(d.blocks, id, patch) })); setDirty(true); };
+  const patchStyle = (id: string, key: keyof BlockStyle, value: BlockStyle[keyof BlockStyle]) => {
+    setDoc(d => ({ ...d, blocks: d.blocks.map(b => b.id === id ? { ...b, style: { ...b.style, [key]: value } } : b) }));
+    setDirty(true);
   };
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { if (reader.result) useHero(reader.result as string); };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+  const move = (id: string, dir: -1 | 1) => setDoc(d => ({ ...d, blocks: moveBlock(d.blocks, id, dir) }));
+  const remove = (id: string) => { setDoc(d => ({ ...d, blocks: removeBlock(d.blocks, id) })); setDirty(true); };
+  const addBlock = (type: BlockType) => { setDoc(d => ({ ...d, blocks: [...d.blocks, newBlock(type, genId())] })); setDirty(true); };
+
+  const selectBrand = (b: string) => {
+    const nb = brand === b ? '' : b;
+    if (!dirty && activeTemplate) {
+      const t = EMAIL_TEMPLATES.find(x => x.id === activeTemplate);
+      if (t) { setDoc(buildTemplateDoc(t, nb, genId)); return; }
+    }
+    setDoc(d => ({ ...d, meta: { ...d.meta, brand: nb } }));
   };
-  const openLibrary = useCallback(async () => {
-    setShowLibrary(true);
+  const loadTemplate = (id: string) => {
+    const t = EMAIL_TEMPLATES.find(x => x.id === id);
+    if (!t) return;
+    setDoc(buildTemplateDoc(t, brand, genId));
+    setActiveTemplate(id);
+    setDirty(false);
+  };
+
+  // ── Image picker ──────────────────────────────────────────────────────────
+  const openLib = useCallback(async (blockId: string) => {
+    setLibFor(blockId);
     if (libImages.length) return;
     setLibLoading(true);
     await syncFromDrive();
@@ -142,257 +132,220 @@ export default function EmailContentChecker() {
     setLibImages([...stored, ...favs].filter(i => i.url && !seen.has(i.url) && seen.add(i.url)));
     setLibLoading(false);
   }, [libImages.length]);
-
-  // ── Template ────────────────────────────────────────────────────────────
-  const applyTemplate = useCallback((t: EmailTemplate, brandArg: string) => {
-    const f = resolveTemplateForm(t, brandArg);
-    setForm(f);
-    setSubject(t.subject.replace(/\{brand\}/g, brandArg || 'your brand'));
-    // Templates have a natural CTA — wire it from the template's link.
-    setCta(p => ({ ...p, label: f.linkText || 'Learn more', url: f.linkUrl || '' }));
-  }, []);
-  const loadTemplate = (t: EmailTemplate) => { setActiveTemplate(t.id); applyTemplate(t, brand); setDirty(false); };
-
-  // Start with a real example loaded so the preview is never an empty shell.
-  useEffect(() => { applyTemplate(EMAIL_TEMPLATES[0], ''); setActiveTemplate(EMAIL_TEMPLATES[0].id); }, [applyTemplate]);
-  // Re-sync template copy with the brand until the user hand-edits the content.
-  useEffect(() => {
-    if (!dirty && activeTemplate) {
-      const t = EMAIL_TEMPLATES.find(x => x.id === activeTemplate);
-      if (t) applyTemplate(t, brand);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brand]);
-
-  // ── Section order helpers ────────────────────────────────────────────────
-  const move = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= order.length) return;
-    const next = order.slice();
-    [next[i], next[j]] = [next[j], next[i]];
-    setOrder(next);
-  };
-  const toggleHidden = (k: EmailSectionKey) => {
-    setHidden(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const pickImage = (url: string) => { if (libFor) patchBlock(libFor, { mode: 'url', url } as Partial<EmailBlock>); setLibFor(null); };
+  const uploadFor = (blockId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { if (reader.result) patchBlock(blockId, { mode: 'url', url: reader.result as string } as Partial<EmailBlock>); };
+    reader.readAsDataURL(file); e.target.value = '';
   };
 
-  // ── Build the email ───────────────────────────────────────────────────────
-  const visibleOrder = useMemo(() => order.filter(k => !hidden.has(k)), [order, hidden]);
-  // Drop the hero section entirely when there's no banner image — otherwise the
-  // brand-only fallback would draw a second brand panel under the header.
-  const effectiveOrder = useMemo(
-    () => visibleOrder.filter(k => k !== 'hero' || !!heroUrl),
-    [visibleOrder, heroUrl],
-  );
-  const html = useMemo(() => buildEmailHtml({
-    imageSrc: heroUrl,
-    brand: brand || undefined,
-    formData: form,
-    imgWidth: heroDims.w,
-    imgHeight: heroDims.h,
-    variant: 'image-hero',
-    cta: cta.label && cta.url ? cta : undefined,
-    heroWidth: bannerWidth || undefined,
-    heroRadius: bannerWidth ? 10 : 0,
-    order: effectiveOrder,
-  }), [heroUrl, brand, form, heroDims, cta, bannerWidth, effectiveOrder]);
-
-  // ── Deliverability ──────────────────────────────────────────────────────
+  // ── Preview + checker ───────────────────────────────────────────────────
+  const html = useMemo(() => buildBrandedEmail(doc, getBrandStyle(brand)).html, [doc, brand]);
   const report = useMemo(() => {
-    const body = [form.headline, form.introText, form.bodyText, cta.label, form.footerAttribution].filter(Boolean).join('\n');
-    if (!subject.trim() && !body.trim()) return null;
-    return lintDeliverability(subject, body, { ignore: brand ? [brand] : [] });
-  }, [subject, form.headline, form.introText, form.bodyText, cta.label, form.footerAttribution, brand]);
+    const parts: string[] = [];
+    for (const b of doc.blocks) {
+      if (b.type === 'heading' || b.type === 'paragraph') parts.push(b.text);
+      else if (b.type === 'bonus') parts.push(b.offer);
+      else if (b.type === 'cta') parts.push(b.label);
+    }
+    const body = parts.filter(Boolean).join('\n');
+    if (!doc.meta.subject.trim() && !body.trim()) return null;
+    return lintDeliverability(doc.meta.subject, body, { ignore: brand ? [brand] : [] });
+  }, [doc, brand]);
 
   const handleSanitize = () => {
-    setSubject(s => sanitizeContent(s));
-    setForm(p => ({ ...p, headline: sanitizeContent(p.headline), introText: sanitizeContent(p.introText), bodyText: sanitizeContent(p.bodyText), footerAttribution: sanitizeContent(p.footerAttribution) }));
-    setCta(p => ({ ...p, label: sanitizeContent(p.label) }));
+    setDoc(d => ({
+      ...d,
+      meta: { ...d.meta, subject: sanitizeContent(d.meta.subject) },
+      blocks: d.blocks.map(b => {
+        if (b.type === 'heading' || b.type === 'paragraph') return { ...b, text: sanitizeContent(b.text) };
+        if (b.type === 'bonus') return { ...b, offer: sanitizeContent(b.offer) };
+        if (b.type === 'cta') return { ...b, label: sanitizeContent(b.label) };
+        return b;
+      }),
+    }));
   };
 
-  const copyHtml = async () => { try { await navigator.clipboard.writeText(html); setCopied('html'); setTimeout(() => setCopied(null), 1500); } catch { /* blocked */ } };
+  // default template loaded once; re-sync to brand handled in selectBrand
+  useEffect(() => { /* doc seeded in useState initializer */ }, []);
+
+  const copyHtml = async () => { try { await navigator.clipboard.writeText(html); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* blocked */ } };
   const downloadHtml = () => {
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `${(brand || 'email').toLowerCase()}-campaign.html`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   };
-
   const levelBadge = (lvl: string) =>
     lvl === 'clean' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
     : lvl === 'caution' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
     : 'bg-destructive/15 text-destructive';
 
+  // ── Per-block field editors ───────────────────────────────────────────────
+  const renderFields = (b: EmailBlock) => {
+    switch (b.type) {
+      case 'header': return (
+        <div>
+          <Label className="text-[11px] mb-0.5 block">Logo (optional override)</Label>
+          <Input value={b.logoUrl || ''} onChange={e => patchBlock(b.id, { logoUrl: e.target.value } as Partial<EmailBlock>)} placeholder="Brand composite header used by default — paste a URL to override" className="h-8 text-sm" />
+          <p className="text-[10px] text-muted-foreground mt-1">Defaults to the brand's composite header image. Leave blank to use it.</p>
+        </div>
+      );
+      case 'hero': return (
+        <div className="space-y-1.5">
+          <Label className="text-[11px] mb-0.5 block">Hero style</Label>
+          <select value={b.mode} onChange={e => patchBlock(b.id, { mode: e.target.value as 'css' | 'url' | 'banner' } as Partial<EmailBlock>)} className="h-8 text-sm w-full rounded-md border border-border bg-background px-2">
+            <option value="css">CSS (no image)</option>
+            <option value="url">Image</option>
+          </select>
+          {b.mode === 'url' && (
+            <>
+              {b.url ? <img src={b.url} alt="" className="h-12 w-20 object-cover rounded border border-border" /> : null}
+              <div className="flex gap-1.5">
+                <Button type="button" variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => openLib(b.id)}><Images className="w-3.5 h-3.5" /> Browse</Button>
+                <label className="inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-border bg-background text-xs cursor-pointer hover:bg-muted"><Upload className="w-3.5 h-3.5" /> Upload<input type="file" accept="image/*" className="hidden" onChange={e => uploadFor(b.id, e)} /></label>
+              </div>
+              <Input value={b.url || ''} onChange={e => patchBlock(b.id, { url: e.target.value } as Partial<EmailBlock>)} placeholder="…or paste image URL" className="h-8 text-sm" />
+            </>
+          )}
+        </div>
+      );
+      case 'heading': return <div><Label className="text-[11px] mb-0.5 block">Heading</Label><Input value={b.text} onChange={e => patchBlock(b.id, { text: e.target.value } as Partial<EmailBlock>)} className="h-8 text-sm" /></div>;
+      case 'paragraph': return <div><Label className="text-[11px] mb-0.5 block">Text</Label><Textarea value={b.text} onChange={e => patchBlock(b.id, { text: e.target.value } as Partial<EmailBlock>)} className="min-h-[64px] text-sm" /></div>;
+      case 'bonus': return (
+        <div className="grid grid-cols-2 gap-1.5">
+          <div><Label className="text-[11px] mb-0.5 block">Offer line</Label><Input value={b.offer} onChange={e => patchBlock(b.id, { offer: e.target.value } as Partial<EmailBlock>)} placeholder="e.g. Extra value up to USD 500" className="h-8 text-sm" /></div>
+          <div><Label className="text-[11px] mb-0.5 block">Code (optional)</Label><Input value={b.code || ''} onChange={e => patchBlock(b.id, { code: e.target.value } as Partial<EmailBlock>)} className="h-8 text-sm" /></div>
+        </div>
+      );
+      case 'cta': return (
+        <div className="grid grid-cols-2 gap-1.5">
+          <div><Label className="text-[11px] mb-0.5 block">Label</Label><Input value={b.label} onChange={e => patchBlock(b.id, { label: e.target.value } as Partial<EmailBlock>)} placeholder="e.g. See the details" className="h-8 text-sm" /></div>
+          <div><Label className="text-[11px] mb-0.5 block">URL</Label><Input value={b.url} onChange={e => patchBlock(b.id, { url: e.target.value } as Partial<EmailBlock>)} placeholder="https://…" className="h-8 text-sm" /></div>
+        </div>
+      );
+      case 'social': return (
+        <div className="grid grid-cols-2 gap-1.5">
+          <Input value={b.facebook || ''} onChange={e => patchBlock(b.id, { facebook: e.target.value } as Partial<EmailBlock>)} placeholder="Facebook URL" className="h-8 text-sm" />
+          <Input value={b.twitter || ''} onChange={e => patchBlock(b.id, { twitter: e.target.value } as Partial<EmailBlock>)} placeholder="Twitter URL" className="h-8 text-sm" />
+          <Input value={b.instagram || ''} onChange={e => patchBlock(b.id, { instagram: e.target.value } as Partial<EmailBlock>)} placeholder="Instagram URL" className="h-8 text-sm" />
+          <Input value={b.website || ''} onChange={e => patchBlock(b.id, { website: e.target.value } as Partial<EmailBlock>)} placeholder="Website URL" className="h-8 text-sm" />
+        </div>
+      );
+      case 'footer': return (
+        <div className="space-y-1.5">
+          <Input value={b.attribution || ''} onChange={e => patchBlock(b.id, { attribution: e.target.value } as Partial<EmailBlock>)} placeholder="Attribution" className="h-8 text-sm" />
+          <Input value={b.legal || ''} onChange={e => patchBlock(b.id, { legal: e.target.value } as Partial<EmailBlock>)} placeholder="Legal text" className="h-8 text-sm" />
+          <Input value={b.unsubscribeUrl || ''} onChange={e => patchBlock(b.id, { unsubscribeUrl: e.target.value } as Partial<EmailBlock>)} placeholder="Unsubscribe URL" className="h-8 text-sm" />
+        </div>
+      );
+      case 'divider': return <p className="text-[11px] text-muted-foreground">A thin divider line.</p>;
+      case 'wordmark': return <p className="text-[11px] text-muted-foreground">Shows the brand name in the brand font.</p>;
+      default: return null;
+    }
+  };
+
+  const renderStyle = (b: EmailBlock) => {
+    const st = b.style || {};
+    const num = (v: number | undefined) => (v ?? '') as number | '';
+    return (
+      <div className="mt-2 pt-2 border-t border-border grid grid-cols-2 gap-2">
+        <div className="col-span-2 flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Align:</span>
+          {(['left', 'center', 'right'] as const).map(a => (
+            <button key={a} type="button" onClick={() => patchStyle(b.id, 'align', a)} className={`px-2 py-0.5 rounded border text-[11px] capitalize ${st.align === a ? 'border-primary bg-primary/10' : 'border-border text-muted-foreground'}`}>{a}</button>
+          ))}
+        </div>
+        <div><Label className="text-[10px] mb-0.5 block">Font size (px)</Label><Input type="number" value={num(st.fontSize)} onChange={e => patchStyle(b.id, 'fontSize', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
+        <div><Label className="text-[10px] mb-0.5 block">Text color</Label><Input value={st.color || ''} onChange={e => patchStyle(b.id, 'color', e.target.value || undefined)} placeholder="#172b4d" className="h-7 text-xs" /></div>
+        <div><Label className="text-[10px] mb-0.5 block">Space above (px)</Label><Input type="number" value={num(st.spaceTop)} onChange={e => patchStyle(b.id, 'spaceTop', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
+        <div><Label className="text-[10px] mb-0.5 block">Space below (px)</Label><Input type="number" value={num(st.spaceBottom)} onChange={e => patchStyle(b.id, 'spaceBottom', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
+        {b.type === 'hero' && <div><Label className="text-[10px] mb-0.5 block">Image width (px)</Label><Input type="number" value={num(st.width)} onChange={e => patchStyle(b.id, 'width', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>}
+        {(b.type === 'hero' || b.type === 'cta') && <div><Label className="text-[10px] mb-0.5 block">Corner radius (px)</Label><Input type="number" value={num(st.radius)} onChange={e => patchStyle(b.id, 'radius', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>}
+        {b.type === 'cta' && <div className="flex items-end gap-1.5"><button type="button" onClick={() => patchStyle(b.id, 'fullWidth', !st.fullWidth)} className={`px-2 py-1 rounded border text-[11px] ${st.fullWidth ? 'border-primary bg-primary/10' : 'border-border text-muted-foreground'}`}>Full width</button></div>}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5">
-        {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg gradient-primary">
-              <ShieldCheck className="w-4 h-4 text-primary-foreground" />
-            </div>
+            <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg gradient-primary"><ShieldCheck className="w-4 h-4 text-primary-foreground" /></div>
             <div>
               <h1 className="text-lg font-bold text-foreground leading-tight">Email Builder</h1>
-              <p className="text-xs text-muted-foreground">Pick a template &amp; banner, arrange the sections, then check the content for spam risk.</p>
+              <p className="text-xs text-muted-foreground">Brand template → arrange &amp; style blocks → check spam risk → export.</p>
             </div>
           </div>
           <Link to="/"><Button variant="ghost" size="sm" className="gap-1.5"><ArrowLeft className="w-3.5 h-3.5" /> Home</Button></Link>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-4">
-          {/* ── LEFT: controls ── */}
-          <div className="space-y-4 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
-
-            {/* Brand */}
+          {/* LEFT */}
+          <div className="space-y-3 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
             <div className="space-y-1.5">
-              <SectionLabel>Brand</SectionLabel>
+              <Small>Brand</Small>
               <div className="flex flex-wrap gap-1.5">
-                {ALL_BRANDS.map(b => (
-                  <button key={b} type="button" onClick={() => setBrand(p => p === b ? '' : b)}
-                    className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === b ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{b}</button>
+                {BRAND_NAMES.map(b => (
+                  <button key={b} type="button" onClick={() => selectBrand(b)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === b ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{b}</button>
                 ))}
               </div>
             </div>
 
-            {/* Templates */}
             <div className="space-y-1.5">
-              <SectionLabel>Template <span className="font-normal normal-case">(fills the content below)</span></SectionLabel>
+              <Small>Template <span className="font-normal normal-case">(fills the blocks)</span></Small>
               <div className="flex flex-wrap gap-1.5">
                 {EMAIL_TEMPLATES.map(t => (
-                  <button key={t.id} type="button" onClick={() => loadTemplate(t)} title={t.description}
-                    className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${activeTemplate === t.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{t.name}</button>
+                  <button key={t.id} type="button" onClick={() => loadTemplate(t.id)} title={t.description} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${activeTemplate === t.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{t.name}</button>
                 ))}
               </div>
             </div>
 
-            {/* Banner */}
-            <div className="space-y-1.5 rounded-lg border border-border p-2.5">
-              <SectionLabel>Banner image</SectionLabel>
-              {heroUrl ? (
-                <div className="flex items-center gap-2">
-                  <img src={heroUrl} alt="" className="h-12 w-20 object-cover rounded border border-border" />
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setHeroUrl('')}><X className="w-3 h-3" /> Remove</Button>
-                </div>
-              ) : (
-                <p className="text-[11px] text-muted-foreground">No banner — a brand panel is shown instead.</p>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button type="button" variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={openLibrary}><Images className="w-3.5 h-3.5" /> Browse library</Button>
-                <label className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-border bg-background text-xs font-medium cursor-pointer hover:bg-muted transition-colors">
-                  <Upload className="w-3.5 h-3.5" /> Upload
-                  <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-                </label>
-                <div className="flex flex-1 gap-1.5">
-                  <Input placeholder="…or paste image URL" value={pasteUrl} onChange={e => setPasteUrl(e.target.value)} className="h-8 text-xs" />
-                  <Button type="button" size="sm" className="h-8 text-xs gap-1 shrink-0" disabled={!pasteUrl.trim()} onClick={() => { useHero(pasteUrl.trim()); setPasteUrl(''); }}><LinkIcon className="w-3 h-3" /> Use</Button>
-                </div>
-              </div>
-              {/* Banner size */}
-              {heroUrl && (
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  <span className="text-[11px] text-muted-foreground mr-1">Size:</span>
-                  {BANNER_SIZES.map(s => (
-                    <button key={s.label} type="button" onClick={() => setBannerWidth(s.width)}
-                      className={`px-2 py-0.5 rounded border text-[11px] ${bannerWidth === s.width ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{s.label}</button>
-                  ))}
-                </div>
-              )}
-              {showLibrary && (
-                <div className="rounded-md border border-border p-2 max-h-52 overflow-y-auto">
-                  {libLoading ? (
-                    <p className="text-[11px] text-muted-foreground py-4 text-center">Loading…</p>
-                  ) : libImages.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground py-4 text-center">No images in your library yet.</p>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {libImages.slice(0, 60).map(im => (
-                        <button key={im.id} type="button" onClick={() => { useHero(im.url); if (im.brand && !brand) setBrand(im.brand); setShowLibrary(false); }}
-                          className="aspect-square rounded overflow-hidden border border-border hover:border-primary">
-                          <img src={im.url} alt="" loading="lazy" className="w-full h-full object-cover" />
-                        </button>
-                      ))}
+            <div className="grid grid-cols-2 gap-1.5">
+              <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
+              <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>
+            </div>
+
+            {/* Add block */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add:</span>
+              {ADDABLE.map(a => (
+                <button key={a.type} type="button" onClick={() => addBlock(a.type)} className="px-2 py-0.5 rounded border border-border text-[11px] text-muted-foreground hover:text-foreground hover:border-primary">{a.label}</button>
+              ))}
+            </div>
+
+            {/* Block cards */}
+            <div className="space-y-2">
+              {doc.blocks.map((b, i) => (
+                <div key={b.id} className="rounded-lg border border-border bg-card p-2.5">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">{TYPE_LABEL[b.type]}</span>
+                    <div className="flex items-center gap-1">
+                      {b.type !== 'divider' && b.type !== 'wordmark' && (
+                        <button type="button" onClick={() => setOpenStyle(openStyle === b.id ? null : b.id)} title="Style" className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] ${openStyle === b.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}><SlidersHorizontal className="w-3 h-3" /> Style</button>
+                      )}
+                      <button type="button" onClick={() => move(b.id, -1)} disabled={i === 0} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronUp className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => move(b.id, 1)} disabled={i === doc.blocks.length - 1} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => remove(b.id)} title="Remove" className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                  {renderFields(b)}
+                  {openStyle === b.id && renderStyle(b)}
+                  {/* Image picker for this hero block */}
+                  {libFor === b.id && (
+                    <div className="mt-2 rounded-md border border-border p-2 max-h-52 overflow-y-auto">
+                      <div className="flex items-center justify-between mb-1"><span className="text-[11px] text-muted-foreground">Pick an image</span><button type="button" onClick={() => setLibFor(null)} className="text-muted-foreground"><X className="w-3.5 h-3.5" /></button></div>
+                      {libLoading ? <p className="text-[11px] text-muted-foreground py-4 text-center">Loading…</p>
+                        : libImages.length === 0 ? <p className="text-[11px] text-muted-foreground py-4 text-center">No images in your library yet.</p>
+                        : <div className="grid grid-cols-4 gap-1.5">{libImages.slice(0, 60).map(im => (
+                            <button key={im.id} type="button" onClick={() => pickImage(im.url)} className="aspect-square rounded overflow-hidden border border-border hover:border-primary"><img src={im.url} alt="" loading="lazy" className="w-full h-full object-cover" /></button>
+                          ))}</div>}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-
-            {/* Subject + content */}
-            <div className="space-y-2">
-              <SectionLabel>Content</SectionLabel>
-              <div><Label className="text-[11px] mb-0.5 block">Subject line</Label>
-                <Input value={subject} onChange={e => { setSubject(e.target.value); setDirty(true); }} placeholder="e.g. A quick note about your account" className="h-8 text-sm" /></div>
-              <div><Label className="text-[11px] mb-0.5 block">Headline</Label>
-                <Input value={form.headline} onChange={e => field('headline', e.target.value)} className="h-8 text-sm" /></div>
-              <div><Label className="text-[11px] mb-0.5 block">Intro <span className="text-muted-foreground font-normal">(use {'{link}'} to place the link)</span></Label>
-                <Textarea value={form.introText} onChange={e => field('introText', e.target.value)} className="min-h-[56px] text-sm" /></div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <div><Label className="text-[11px] mb-0.5 block">Link text</Label><Input value={form.linkText} onChange={e => field('linkText', e.target.value)} className="h-8 text-sm" /></div>
-                <div><Label className="text-[11px] mb-0.5 block">Link URL</Label><Input value={form.linkUrl} onChange={e => field('linkUrl', e.target.value)} className="h-8 text-sm" /></div>
-              </div>
-              <div><Label className="text-[11px] mb-0.5 block">Body</Label>
-                <Textarea value={form.bodyText} onChange={e => field('bodyText', e.target.value)} className="min-h-[80px] text-sm" /></div>
-            </div>
-
-            {/* CTA */}
-            <div className="space-y-2 rounded-lg border border-border p-2.5">
-              <SectionLabel>CTA button</SectionLabel>
-              <div className="grid grid-cols-2 gap-1.5">
-                <div><Label className="text-[11px] mb-0.5 block">Label</Label><Input value={cta.label} onChange={e => setCtaField('label', e.target.value)} placeholder="e.g. See the details" className="h-8 text-sm" /></div>
-                <div><Label className="text-[11px] mb-0.5 block">URL</Label><Input value={cta.url} onChange={e => setCtaField('url', e.target.value)} placeholder="https://…" className="h-8 text-sm" /></div>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                <div className="flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Align:</span>
-                  {(['left', 'center', 'right'] as const).map(a => (
-                    <button key={a} type="button" onClick={() => setCtaField('align', a)} className={`px-2 py-0.5 rounded border text-[11px] capitalize ${cta.align === a ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>{a}</button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Width:</span>
-                  <button type="button" onClick={() => setCtaField('fullWidth', false)} className={`px-2 py-0.5 rounded border text-[11px] ${!cta.fullWidth ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>Auto</button>
-                  <button type="button" onClick={() => setCtaField('fullWidth', true)} className={`px-2 py-0.5 rounded border text-[11px] ${cta.fullWidth ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>Full</button>
-                </div>
-                <div className="flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Size:</span>
-                  {(Object.keys(CTA_FONT) as (keyof typeof CTA_FONT)[]).map(s => (
-                    <button key={s} type="button" onClick={() => setCtaField('fontSize', CTA_FONT[s])} className={`px-2 py-0.5 rounded border text-[11px] ${cta.fontSize === CTA_FONT[s] ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>{s}</button>
-                  ))}
-                </div>
-                <div className="flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Corners:</span>
-                  {(Object.keys(CTA_RADIUS) as (keyof typeof CTA_RADIUS)[]).map(s => (
-                    <button key={s} type="button" onClick={() => setCtaField('radius', CTA_RADIUS[s])} className={`px-2 py-0.5 rounded border text-[11px] ${cta.radius === CTA_RADIUS[s] ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>{s}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Section order */}
-            <div className="space-y-1.5">
-              <SectionLabel>Layout order <span className="font-normal normal-case">(move sections, or hide them)</span></SectionLabel>
-              <ul className="space-y-1">
-                {order.map((k, i) => (
-                  <li key={k} className={`flex items-center justify-between gap-2 rounded-md border border-border px-2 py-1.5 ${hidden.has(k) ? 'opacity-50' : ''}`}>
-                    <span className="text-xs font-medium">{SECTION_LABELS[k]}</span>
-                    <div className="flex items-center gap-0.5">
-                      <button type="button" onClick={() => toggleHidden(k)} title={hidden.has(k) ? 'Show' : 'Hide'} className="p-1 rounded hover:bg-muted text-muted-foreground">{hidden.has(k) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}</button>
-                      <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronUp className="w-3.5 h-3.5" /></button>
-                      <button type="button" onClick={() => move(i, 1)} disabled={i === order.length - 1} className="p-1 rounded hover:bg-muted disabled:opacity-30 text-muted-foreground"><ChevronDown className="w-3.5 h-3.5" /></button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Footer */}
-            <div className="space-y-2">
-              <SectionLabel>Footer &amp; socials</SectionLabel>
-              <div><Label className="text-[11px] mb-0.5 block">Attribution</Label><Input value={form.footerAttribution} onChange={e => field('footerAttribution', e.target.value)} className="h-8 text-sm" /></div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <Input placeholder="Facebook URL" value={form.facebookUrl} onChange={e => field('facebookUrl', e.target.value)} className="h-8 text-sm" />
-                <Input placeholder="Website URL" value={form.websiteUrl} onChange={e => field('websiteUrl', e.target.value)} className="h-8 text-sm" />
-                <Input placeholder="Unsubscribe URL" value={form.unsubscribeUrl} onChange={e => field('unsubscribeUrl', e.target.value)} className="h-8 text-sm col-span-2" />
-              </div>
+              ))}
             </div>
 
             {/* Deliverability */}
@@ -401,17 +354,15 @@ export default function EmailContentChecker() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck className={`w-3.5 h-3.5 ${report.level === 'clean' ? 'text-emerald-600' : report.level === 'caution' ? 'text-amber-500' : 'text-destructive'}`} />
-                    <SectionLabel>Deliverability</SectionLabel>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(report.level)}`}>
-                      {report.level === 'clean' ? 'Clean' : report.level === 'caution' ? 'Caution' : 'High risk'}{report.score > 0 && ` · risk ${report.score}`}
-                    </span>
+                    <Small>Deliverability</Small>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(report.level)}`}>{report.level === 'clean' ? 'Clean' : report.level === 'caution' ? 'Caution' : 'High risk'}{report.score > 0 && ` · risk ${report.score}`}</span>
                   </div>
                   <Button type="button" onClick={handleSanitize} variant="ghost" size="sm" className="h-6 gap-1 text-[11px] px-2"><Wand2 className="w-3 h-3" /> Clean up</Button>
                 </div>
                 {report.findings.length === 0 ? (
                   <p className="text-[11px] text-emerald-600 dark:text-emerald-400">No spam triggers detected — this copy should deliver well.</p>
                 ) : (
-                  <ul className="space-y-1 max-h-44 overflow-y-auto">
+                  <ul className="space-y-1 max-h-40 overflow-y-auto">
                     {report.findings.map((f, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-[11px] leading-snug">
                         <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
@@ -424,12 +375,12 @@ export default function EmailContentChecker() {
             )}
           </div>
 
-          {/* ── RIGHT: live preview ── */}
+          {/* RIGHT */}
           <div className="lg:sticky lg:top-5 self-start space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <SectionLabel>Live preview</SectionLabel>
+              <Small>Live preview</Small>
               <div className="flex gap-1.5">
-                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied === 'html' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy HTML</Button>
+                <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy HTML</Button>
                 <Button type="button" size="sm" className="h-7 gap-1 text-xs" onClick={downloadHtml}><Download className="w-3 h-3" /> Download</Button>
               </div>
             </div>

@@ -83,6 +83,19 @@ export default function EmailContentChecker() {
 
   const handleClear = () => { setSubject(''); setBody(''); };
 
+  const handleDownloadHtml = () => {
+    if (!previewHtml || !activeTemplate) return;
+    const blob = new Blob([previewHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(brand || 'email').toLowerCase()}-${activeTemplate.id}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleCopy = async (kind: 'subject' | 'body') => {
     try {
       await navigator.clipboard.writeText(kind === 'subject' ? subject : body);

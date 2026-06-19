@@ -628,6 +628,63 @@ export function EmailHtmlConversionModal({ isOpen, onClose, imageUrl, brand }: E
                     className="min-h-[90px] text-sm"
                   />
                 </div>
+
+                {/* Deliverability checker — live spam/hype/currency score */}
+                {deliverability && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-2.5 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className={`w-3.5 h-3.5 ${
+                          deliverability.level === 'clean' ? 'text-emerald-600'
+                          : deliverability.level === 'caution' ? 'text-amber-500'
+                          : 'text-destructive'
+                        }`} />
+                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider">
+                          Deliverability
+                        </p>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                          deliverability.level === 'clean' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          : deliverability.level === 'caution' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                          : 'bg-destructive/15 text-destructive'
+                        }`}>
+                          {deliverability.level === 'clean' ? 'Clean'
+                            : deliverability.level === 'caution' ? 'Caution' : 'High risk'}
+                          {deliverability.score > 0 && ` · risk ${deliverability.score}`}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={handleSanitize}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 gap-1 text-[11px] px-2"
+                        title="Replace currency symbols with codes and remove exclamation marks"
+                      >
+                        <Wand2 className="w-3 h-3" /> Clean up copy
+                      </Button>
+                    </div>
+
+                    {deliverability.findings.length === 0 ? (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                        No spam triggers detected — this copy should deliver well.
+                      </p>
+                    ) : (
+                      <ul className="space-y-1 max-h-32 overflow-y-auto">
+                        {deliverability.findings.map((f, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                            <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${
+                              f.severity === 'high' ? 'text-destructive'
+                              : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'
+                            }`} />
+                            <span className="text-muted-foreground">
+                              {f.message}{f.suggestion ? ` ${f.suggestion}` : ''}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Secondary logo + wordmark */}

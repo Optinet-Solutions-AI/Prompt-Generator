@@ -378,6 +378,41 @@ export default function EmailContentChecker() {
               <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>
             </div>
 
+            {/* AI variations */}
+            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-primary" /><Small>Generate variations</Small></div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-muted-foreground">Count:</span>
+                  {[3, 4, 5].map(n => (
+                    <button key={n} type="button" onClick={() => setVarCount(n)} className={`px-1.5 py-0.5 rounded border text-[11px] ${varCount === n ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>{n}</button>
+                  ))}
+                </div>
+              </div>
+              <Button type="button" onClick={generateVariations} disabled={varLoading} variant="outline" className="w-full h-8 gap-1.5 text-xs">
+                {varLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Rewording the copy…</> : <><Sparkles className="w-3.5 h-3.5" /> Reword the copy with AI</>}
+              </Button>
+              {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{varError}</p>}
+              {variations.length > 0 && (
+                <ul className="space-y-1.5">
+                  {variations.map((v, i) => (
+                    <li key={i} className="rounded-md border border-border bg-background p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate">{v.label}</p>
+                          {v.notes && <p className="text-[10px] text-muted-foreground truncate">{v.notes}</p>}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(v.level)}`}>{v.level === 'clean' ? 'Clean' : v.level === 'caution' ? 'Caution' : 'High risk'}{v.score > 0 && ` · ${v.score}`}</span>
+                          <Button type="button" size="sm" className="h-6 text-[11px] px-2" onClick={() => useVariation(v.edits)}>Use</Button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {/* Add block */}
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add:</span>

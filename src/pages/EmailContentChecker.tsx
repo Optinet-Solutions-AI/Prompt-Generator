@@ -120,11 +120,21 @@ export default function EmailContentChecker() {
   const [libLoading, setLibLoading] = useState(false);
 
   // AI variations
-  interface VariationResult { label: string; notes: string; edits: EditField[]; level: string; score: number }
+  interface VariationResult {
+    label: string;
+    notes: string;
+    edits: EditField[];
+    report: ReturnType<typeof lintDeliverability>;
+    text: string; // plain-text twin (clean copy)
+    html: string; // rendered email for preview
+    fields: { label: string; value: string }[]; // reworded copy, for display
+  }
   const [variations, setVariations] = useState<VariationResult[]>([]);
   const [varLoading, setVarLoading] = useState(false);
   const [varError, setVarError] = useState<string | null>(null);
   const [varCount, setVarCount] = useState(3);
+  const [expandedVar, setExpandedVar] = useState<number | null>(null);
+  const [copiedVar, setCopiedVar] = useState<number | null>(null);
 
   const brand = doc.meta.brand;
 

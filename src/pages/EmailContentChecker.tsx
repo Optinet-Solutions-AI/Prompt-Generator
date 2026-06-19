@@ -414,6 +414,17 @@ export default function EmailContentChecker() {
           <Link to="/"><Button variant="ghost" size="sm" className="gap-1.5"><ArrowLeft className="w-3.5 h-3.5" /> Home</Button></Link>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 rounded-xl bg-muted/50 border border-border mb-4 w-fit">
+          <button type="button" onClick={() => setTab('builder')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'builder' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
+            <LayoutTemplate className="w-3.5 h-3.5" /> Builder
+          </button>
+          <button type="button" onClick={() => setTab('checker')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'checker' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
+            <ShieldCheck className="w-3.5 h-3.5" /> Content Checker
+          </button>
+        </div>
+
+        {tab === 'builder' && (
         <div className="grid lg:grid-cols-2 gap-4">
           {/* LEFT */}
           <div className="space-y-3 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">

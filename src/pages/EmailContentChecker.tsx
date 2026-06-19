@@ -258,7 +258,14 @@ export default function EmailContentChecker() {
     }
   };
 
-  const useVariation = (edits: EditField[]) => { setDoc(d => applyEdits(d, edits)); setDirty(true); setActiveTemplate(''); setVariations([]); };
+  const useVariation = (edits: EditField[]) => { setDoc(d => applyEdits(d, edits)); setDirty(true); setActiveTemplate(''); };
+  const copyVarText = async (i: number, text: string) => { try { await navigator.clipboard.writeText(text); setCopiedVar(i); setTimeout(() => setCopiedVar(null), 1500); } catch { /* blocked */ } };
+  const previewVar = (h: string) => {
+    const blob = new Blob([h], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
 
   const copyHtml = async () => { try { await navigator.clipboard.writeText(html); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* blocked */ } };
   const downloadHtml = () => {

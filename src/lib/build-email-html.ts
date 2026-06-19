@@ -674,6 +674,32 @@ function buildIntroParagraph(data: EmailFormData, linkColor: string = '#0052cc')
   return `<p style="margin:0 0 20px 0;font-size:16px;line-height:1.6;color:${INK_BODY};font-family:${FONT_STACK};">${body}</p>`;
 }
 
+/**
+ * Build the themed CTA button row. Opt-in — returns '' unless a label + url are
+ * given. Uses the brand's button colours; honours full-width / radius / size /
+ * alignment so the builder can size and place it.
+ */
+function buildCtaRow(cta: EmailCta | undefined, style: BrandStyle): string {
+  if (!cta || !cta.label.trim() || !cta.url.trim()) return '';
+  const href = safeUrl(cta.url);
+  const align = cta.align || 'center';
+  const radius = cta.radius ?? 6;
+  const fontSize = cta.fontSize ?? 15;
+  const bg = style.buttonBg || '#0052cc';
+  const fg = style.buttonText || '#ffffff';
+  const shadow = style.buttonShadow || 'rgba(0,0,0,0.25)';
+  const display = cta.fullWidth
+    ? 'display:block;width:100%;box-sizing:border-box;text-align:center;'
+    : 'display:inline-block;';
+  return [
+    '<tr>',
+    `  <td align="${align}" style="padding:8px 40px 20px 40px;font-family:${FONT_STACK};text-align:${align};">`,
+    `    <a href="${escapeHtml(href)}" style="${display}background-color:${bg};color:${fg};font-family:${FONT_STACK};font-size:${fontSize}px;font-weight:700;text-decoration:none;padding:13px 32px;border-radius:${radius}px;box-shadow:0 6px 18px ${shadow};">${escapeHtml(cta.label)}</a>`,
+    '  </td>',
+    '</tr>',
+  ].join('\n');
+}
+
 function buildSocialRow(data: EmailFormData, style: BrandStyle): string {
   const entries = [
     { label: 'Facebook',  url: data.facebookUrl },

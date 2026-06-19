@@ -43,6 +43,29 @@ export default function EmailContentChecker() {
   const [body, setBody] = useState('');
   const [brand, setBrand] = useState<string>('');
   const [copied, setCopied] = useState<'subject' | 'body' | null>(null);
+  const [activeTemplate, setActiveTemplate] = useState<EmailTemplate | null>(null);
+
+  // Live HTML preview of the selected template, rendered through the real email
+  // builder (brand-only variant — no hero image needed, content-first). Updates
+  // when the template or brand changes.
+  const previewHtml = useMemo(() => {
+    if (!activeTemplate) return '';
+    return buildEmailHtml({
+      imageSrc: '',
+      brand: brand || undefined,
+      formData: resolveTemplateForm(activeTemplate, brand),
+      imgWidth: 1200,
+      imgHeight: 630,
+      variant: 'brand-only',
+    });
+  }, [activeTemplate, brand]);
+
+  const loadTemplate = (t: EmailTemplate) => {
+    setActiveTemplate(t);
+    const { subject: s, body: b } = templateCheckerCopy(t, brand);
+    setSubject(s);
+    setBody(b);
+  };
 
   // Same linter the email modal uses. The body is tag-stripped first so pasted
   // HTML is checked on its readable words. The brand name is exempted.

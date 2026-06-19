@@ -21,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/library" element={<ImageLibrary />} />
           <Route path="/assistant/:token" element={<AssistantPage />} />
+          <Route path="/__email-check" element={<EmailCheckPreview />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

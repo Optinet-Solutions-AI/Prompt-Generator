@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Download, Eye, Mail, Loader2, Copy, Check, Sparkles, Image as ImageIcon, LayoutTemplate, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Download, Eye, Mail, Loader2, Copy, Check, Sparkles, Image as ImageIcon, LayoutTemplate, Send, CheckCircle2, AlertCircle, ShieldCheck, Wand2 } from 'lucide-react';
 import { BRAND_STANDARDS } from '@/lib/brand-standards';
+import { lintDeliverability, sanitizeContent } from '@/lib/deliverability';
 import {
   buildEmailHtml,
   buildEmailText,

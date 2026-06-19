@@ -382,11 +382,17 @@ export default function EmailContentChecker() {
             <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-2.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-primary" /><Small>Generate variations</Small></div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <span className="text-[11px] text-muted-foreground">Count:</span>
-                  {[3, 5, 8, 10].map(n => (
-                    <button key={n} type="button" onClick={() => setVarCount(n)} className={`px-1.5 py-0.5 rounded border text-[11px] ${varCount === n ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>{n}</button>
-                  ))}
+                  <Input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={varCount}
+                    onChange={e => setVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+                    className="h-7 w-16 text-xs"
+                  />
+                  <span className="text-[10px] text-muted-foreground">max 10</span>
                 </div>
               </div>
               <Button type="button" onClick={generateVariations} disabled={varLoading} variant="outline" className="w-full h-8 gap-1.5 text-xs">

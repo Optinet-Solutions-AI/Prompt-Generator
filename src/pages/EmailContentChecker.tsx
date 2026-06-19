@@ -157,6 +157,53 @@ export default function EmailContentChecker() {
           </div>
         </div>
 
+        {/* Templates — pick a starting point, preview the branded HTML, load into the checker */}
+        <div className="space-y-1.5 mb-4">
+          <div className="flex items-center gap-1.5">
+            <LayoutTemplate className="w-3.5 h-3.5 text-muted-foreground" />
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Templates <span className="font-normal normal-case">(pick one to preview + load it below)</span>
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {EMAIL_TEMPLATES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => loadTemplate(t)}
+                title={t.description}
+                className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${
+                  activeTemplate?.id === t.id
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+
+          {activeTemplate && previewHtml && (
+            <div className="rounded-lg border border-border overflow-hidden bg-white mt-1.5">
+              <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-border bg-muted/40">
+                <p className="text-[11px] text-muted-foreground">
+                  Preview · <span className="font-medium text-foreground">{activeTemplate.name}</span>
+                  {brand ? ` · ${brand}` : ' · pick a brand for full styling'} · loaded into the checker below
+                </p>
+                <Button type="button" variant="ghost" size="sm" onClick={handleDownloadHtml} className="h-6 gap-1 text-[11px] px-2">
+                  <FileDown className="w-3 h-3" /> Download HTML
+                </Button>
+              </div>
+              <iframe
+                title="Template preview"
+                srcDoc={previewHtml}
+                sandbox=""
+                style={{ width: '100%', height: 420, border: 0, display: 'block' }}
+              />
+            </div>
+          )}
+        </div>
+
         {/* Subject */}
         <div className="mb-3">
           <Label htmlFor="subject" className="text-[11px] mb-0.5 block">Subject line</Label>

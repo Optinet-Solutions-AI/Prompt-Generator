@@ -382,6 +382,10 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
         'a warm, conversational tone as if writing to one person',
         'a clean, professional voice with a single clear call-to-action',
         'a curiosity-driven opener that teases before revealing',
+        'a reassuring, low-pressure tone emphasising ease and security',
+        'a short scenario framing that paints a small picture',
+        'a direct and punchy style — very short sentences',
+        'a value-summary phrasing with one clearly highlighted offer line',
       ];
 
       const SYSTEM = [

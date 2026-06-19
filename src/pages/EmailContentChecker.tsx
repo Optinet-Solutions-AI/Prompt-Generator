@@ -151,6 +151,13 @@ export default function EmailContentChecker() {
   const [expandedVar, setExpandedVar] = useState<number | null>(null);
   const [copiedVar, setCopiedVar] = useState<number | null>(null);
 
+  // View tab + standalone Content Checker (paste any subject/body or HTML)
+  const [tab, setTab] = useState<'builder' | 'checker'>('builder');
+  const [chkBrand, setChkBrand] = useState('');
+  const [chkSubject, setChkSubject] = useState('');
+  const [chkBody, setChkBody] = useState('');
+  const [chkCopied, setChkCopied] = useState<'subject' | 'body' | null>(null);
+
   const brand = doc.meta.brand;
 
   // ── Mutations ─────────────────────────────────────────────────────────────

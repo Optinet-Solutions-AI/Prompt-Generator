@@ -20,7 +20,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/library" element={<ImageLibrary />} />
-          <Route path="/email" element={<EmailBuilder />} />
+          <Route path="/email-content-checker" element={<EmailContentChecker />} />
           <Route path="/assistant/:token" element={<AssistantPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

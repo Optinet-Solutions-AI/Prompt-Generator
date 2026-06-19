@@ -75,7 +75,12 @@ export function buildTemplateDoc(t: EmailTemplate, brand: string, genId: () => s
   const r = (s: string) => s.replace(/\{brand\}/g, brand || 'your brand');
   const doc = defaultEmailDoc(brand, genId);
   let paraSeen = 0;
-  doc.blocks = doc.blocks.map((b) => {
+  // Drop the default CSS hero — the composite header already carries the brand,
+  // so a brand panel right under it just duplicates it. Add an Image hero block
+  // where you want a banner.
+  doc.blocks = doc.blocks
+    .filter((b) => b.type !== 'hero')
+    .map((b) => {
     switch (b.type) {
       case 'heading':   return { ...b, text: r(t.heading) };
       case 'paragraph': return { ...b, text: paraSeen++ === 0 ? r(t.intro) : r(t.body) };

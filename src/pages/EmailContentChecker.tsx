@@ -10,7 +10,7 @@
  * Follows the app's existing email HTML; adds the transfer-package features:
  * brand templates, section reorder + sizing, a CTA block, and spam-risk checking.
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Download,

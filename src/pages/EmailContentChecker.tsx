@@ -23,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { BRAND_STANDARDS } from '@/lib/brand-standards';
 import { lintDeliverability, sanitizeContent } from '@/lib/deliverability';
 import {
-  buildEmailHtml, buildEmailText, EMPTY_EMAIL_FORM,
+  buildEmailHtml, EMPTY_EMAIL_FORM,
   DEFAULT_SECTION_ORDER, type EmailFormData, type EmailCta, type EmailSectionKey,
 } from '@/lib/build-email-html';
 import { EMAIL_TEMPLATES, resolveTemplateForm, type EmailTemplate } from '@/lib/email-templates';

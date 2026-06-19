@@ -318,7 +318,7 @@ export default function EmailContentChecker() {
             <div className="space-y-2">
               <SectionLabel>Content</SectionLabel>
               <div><Label className="text-[11px] mb-0.5 block">Subject line</Label>
-                <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. A quick note about your account" className="h-8 text-sm" /></div>
+                <Input value={subject} onChange={e => { setSubject(e.target.value); setDirty(true); }} placeholder="e.g. A quick note about your account" className="h-8 text-sm" /></div>
               <div><Label className="text-[11px] mb-0.5 block">Headline</Label>
                 <Input value={form.headline} onChange={e => field('headline', e.target.value)} className="h-8 text-sm" /></div>
               <div><Label className="text-[11px] mb-0.5 block">Intro <span className="text-muted-foreground font-normal">(use {'{link}'} to place the link)</span></Label>

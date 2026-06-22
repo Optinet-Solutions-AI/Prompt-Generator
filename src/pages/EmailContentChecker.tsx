@@ -161,6 +161,8 @@ export default function EmailContentChecker() {
   const [doc, setDoc] = useState<EmailDoc>(() => buildTemplateDoc(EMAIL_TEMPLATES[0], '', genId));
   const [activeTemplate, setActiveTemplate] = useState(EMAIL_TEMPLATES[0].id);
   const [dirty, setDirty] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
+  const [chkCleaning, setChkCleaning] = useState(false);
   const [openStyle, setOpenStyle] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 

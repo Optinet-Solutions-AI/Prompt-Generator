@@ -412,10 +412,32 @@ export default function EmailContentChecker() {
     if (!subj && !body) return null;
     return lintDeliverability(subj, body, { ignore: chkBrand ? [chkBrand] : [] });
   }, [chkSubject, chkBody, chkBrand]);
-  const chkSanitize = () => {
+  const chkSanitize = async () => {
+    setChkCleaning(true);
     const ig = chkBrand ? [chkBrand] : [];
-    setChkSubject(s => autoFix(s, { ignore: ig }));
-    setChkBody(s => autoFix(s, { ignore: ig }));
+    const fallback = () => { setChkSubject(s => autoFix(s, { ignore: ig })); setChkBody(s => autoFix(s, { ignore: ig })); };
+    try {
+      const blocks = [
+        { id: 'subject', type: 'heading', text: chkSubject },
+        { id: 'body', type: 'paragraph', text: stripHtml(chkBody) },
+      ].filter(x => x.text.trim());
+      const res = await fetch('/api/clean-email-copy', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: chkSubject, brand: chkBrand, locale: 'en', blocks }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { subject?: string; blocks?: { id: string; text?: string }[] };
+        const byId = new Map((data.blocks || []).map(e => [e.id, e.text || '']));
+        setChkSubject(data.subject || byId.get('subject') || chkSubject);
+        setChkBody(byId.get('body') ?? stripHtml(chkBody));
+      } else {
+        fallback();
+      }
+    } catch {
+      fallback();
+    } finally {
+      setChkCleaning(false);
+    }
   };
   const chkCopy = async (kind: 'subject' | 'body') => {
     try { await navigator.clipboard.writeText(kind === 'subject' ? chkSubject : chkBody); setChkCopied(kind); setTimeout(() => setChkCopied(null), 1500); } catch { /* blocked */ }

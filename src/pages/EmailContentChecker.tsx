@@ -194,6 +194,13 @@ export default function EmailContentChecker() {
   const [chkSubject, setChkSubject] = useState('');
   const [chkBody, setChkBody] = useState('');
   const [chkCopied, setChkCopied] = useState<'subject' | 'body' | null>(null);
+  // Plain-text variations for the Content Checker
+  interface ChkVar { label: string; notes: string; subject: string; body: string; report: ReturnType<typeof lintDeliverability> }
+  const [chkVariations, setChkVariations] = useState<ChkVar[]>([]);
+  const [chkVarLoading, setChkVarLoading] = useState(false);
+  const [chkVarError, setChkVarError] = useState<string | null>(null);
+  const [chkVarCount, setChkVarCount] = useState(3);
+  const [chkVarCopied, setChkVarCopied] = useState<number | null>(null);
 
   const brand = doc.meta.brand;
 

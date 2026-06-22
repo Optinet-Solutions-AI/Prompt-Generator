@@ -24,7 +24,7 @@ import { BRAND_NAMES, getBrandStyle } from '@/lib/brand-standards';
 import { lintDeliverability, sanitizeContent } from '@/lib/deliverability';
 import { buildBrandedEmail } from '@/lib/build-branded-email';
 import {
-  newBlock, moveBlock, removeBlock, updateBlock,
+  newBlock, moveBlock, removeBlock, updateBlock, defaultEmailDoc,
   type EmailDoc, type EmailBlock, type BlockType, type BlockStyle,
 } from '@/lib/email-model';
 import { EMAIL_TEMPLATES, buildTemplateDoc } from '@/lib/email-templates';

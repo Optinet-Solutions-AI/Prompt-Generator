@@ -365,7 +365,10 @@ export default function EmailContentChecker() {
     }
   };
 
-  const useVariation = (edits: EditField[]) => { setDoc(d => applyEdits(d, edits)); setDirty(true); setActiveTemplate(''); };
+  const useVariation = (v: VariationResult) => {
+    setDoc(d => ({ ...applyEdits(d, v.edits), meta: { ...d.meta, subject: v.subject || d.meta.subject, preheader: v.preheader || d.meta.preheader } }));
+    setDirty(true); setActiveTemplate('');
+  };
   const copyVarText = async (i: number, text: string) => { try { await navigator.clipboard.writeText(text); setCopiedVar(i); setTimeout(() => setCopiedVar(null), 1500); } catch { /* blocked */ } };
   const previewVar = (h: string) => {
     const blob = new Blob([h], { type: 'text/html' });

@@ -266,7 +266,9 @@ export function lintDeliverability(
     counts[w] = (counts[w] ?? 0) + 1;
   }
   for (const [w, n] of Object.entries(counts)) {
-    if (n >= 3) {
+    // 4+ is genuinely repetitive; 2–3 occurrences of a normal word (e.g. "account")
+    // is fine and shouldn't be flagged.
+    if (n >= 4) {
       findings.push({
         type: "impression",
         severity: "medium",

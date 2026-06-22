@@ -377,6 +377,45 @@ export default function EmailContentChecker() {
     try { await navigator.clipboard.writeText(kind === 'subject' ? chkSubject : chkBody); setChkCopied(kind); setTimeout(() => setChkCopied(null), 1500); } catch { /* blocked */ }
   };
 
+  // Plain-text variations: rewrite the pasted subject + body N ways, re-score each.
+  const generateChkVariations = async () => {
+    setChkVarError(null); setChkVarLoading(true); setChkVariations([]);
+    const bodyText = stripHtml(chkBody);
+    if (!chkSubject.trim() && !bodyText.trim()) { setChkVarError('Add a subject or body first.'); setChkVarLoading(false); return; }
+    try {
+      const blocks = [
+        { id: 'subject', type: 'heading', text: chkSubject },
+        { id: 'body', type: 'paragraph', text: bodyText },
+      ].filter(x => x.text.trim());
+      const res = await fetch('/api/generate-email-variations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: chkSubject, brand: chkBrand, locale: 'en', blocks, count: chkVarCount }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({} as { error?: string }));
+        setChkVarError(e.error || `Request failed (${res.status})`);
+        return;
+      }
+      const data = await res.json() as { variations: { label: string; notes: string; blocks: { id: string; text?: string }[] }[] };
+      const results: ChkVar[] = (data.variations || []).map(v => {
+        const byId = new Map((v.blocks || []).map(e => [e.id, e.text || '']));
+        const subject = byId.get('subject') ?? chkSubject;
+        const body = byId.get('body') ?? bodyText;
+        const report = lintDeliverability(subject, body, { ignore: chkBrand ? [chkBrand] : [] });
+        return { label: v.label, notes: v.notes, subject, body, report };
+      });
+      setChkVariations(results);
+    } catch {
+      setChkVarError('Could not reach the AI service. Try again.');
+    } finally {
+      setChkVarLoading(false);
+    }
+  };
+  const chkCopyVar = async (i: number, v: ChkVar) => {
+    const txt = `${v.subject ? `Subject: ${v.subject}\n\n` : ''}${v.body}`;
+    try { await navigator.clipboard.writeText(txt); setChkVarCopied(i); setTimeout(() => setChkVarCopied(null), 1500); } catch { /* blocked */ }
+  };
+
   const copyHtml = async () => { try { await navigator.clipboard.writeText(html); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* blocked */ } };
   const downloadHtml = () => {
     const blob = new Blob([html], { type: 'text/html' });

@@ -248,6 +248,26 @@ export function lintDeliverability(
     }
   }
 
+  // Repetitive promotional phrasing — the same notable word used too often reads
+  // as promotional/spammy. Ignores short/common words; the brand name is already
+  // stripped above via opts.ignore.
+  const counts: Record<string, number> = {};
+  for (const w of lower.match(/[a-z]{4,}/g) ?? []) {
+    if (STOPWORDS.has(w)) continue;
+    counts[w] = (counts[w] ?? 0) + 1;
+  }
+  for (const [w, n] of Object.entries(counts)) {
+    if (n >= 3) {
+      findings.push({
+        type: "impression",
+        severity: "medium",
+        match: `${w} ×${n}`,
+        message: `"${w}" is repeated ${n} times — repetitive phrasing reads as promotional.`,
+        suggestion: "Vary the wording or cut the repeats.",
+      });
+    }
+  }
+
   // Score: weighted sum of findings, capped at 100.
   const raw = findings.reduce((sum, f) => sum + SEVERITY_WEIGHT[f.severity], 0);
   const score = Math.min(100, raw);

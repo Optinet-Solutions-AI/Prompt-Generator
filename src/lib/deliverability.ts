@@ -94,6 +94,15 @@ const GAMBLING = [
 
 const SALES_CTA = ["buy now", "order now", "click here", "subscribe now", "sign up now"];
 
+// Common words excluded from the "repetitive phrasing" check (they repeat naturally).
+const STOPWORDS = new Set([
+  "this", "that", "your", "with", "from", "have", "will", "about", "just", "more",
+  "they", "them", "then", "than", "when", "what", "which", "were", "here", "there",
+  "their", "you", "our", "for", "and", "the", "are", "was", "can", "get", "out",
+  "into", "over", "only", "also", "been", "being", "would", "could", "should",
+  "us", "we", "to", "of", "in", "on", "is", "it", "a", "an", "or", "be", "as", "at",
+]);
+
 // ── 3. Currency symbols → safe code ──────────────────────────────────────────
 const CURRENCY: Record<string, string> = {
   $: "USD",

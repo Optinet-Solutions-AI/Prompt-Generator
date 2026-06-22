@@ -493,13 +493,70 @@ export default function EmailContentChecker() {
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50 border border-border mb-4 w-fit">
+          <button type="button" onClick={() => setTab('templates')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'templates' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
+            <LayoutTemplate className="w-3.5 h-3.5" /> Templates
+          </button>
           <button type="button" onClick={() => setTab('builder')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'builder' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
-            <LayoutTemplate className="w-3.5 h-3.5" /> Builder
+            <Pencil className="w-3.5 h-3.5" /> Builder
           </button>
           <button type="button" onClick={() => setTab('checker')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'checker' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
             <ShieldCheck className="w-3.5 h-3.5" /> Content Checker
           </button>
         </div>
+
+        {tab === 'templates' && (
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <Small>Brand <span className="font-normal normal-case">— preview templates for this brand</span></Small>
+              <div className="flex flex-wrap gap-1.5">
+                {BRAND_NAMES.map(bn => (
+                  <button key={bn} type="button" onClick={() => selectBrand(bn)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === bn ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{bn}</button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Small>Brand templates <span className="font-normal normal-case">— pick one to edit</span></Small>
+              <div className="flex flex-wrap gap-3 mt-2">
+                {templatePreviews.map(({ t, html }) => (
+                  <div key={t.id} className="rounded-lg border border-border bg-card overflow-hidden flex flex-col shadow-sm" style={{ width: 270 }}>
+                    <Thumb html={html} />
+                    <div className="p-2.5 space-y-1.5 flex-1 flex flex-col">
+                      <p className="text-sm font-semibold leading-tight">{t.name}</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug flex-1">{t.description}</p>
+                      <Button type="button" size="sm" className="w-full h-7 text-xs gap-1" onClick={() => chooseTemplate(t.id)}><Pencil className="w-3 h-3" /> Use &amp; edit</Button>
+                    </div>
+                  </div>
+                ))}
+                <button type="button" onClick={startBlank} className="rounded-lg border-2 border-dashed border-border hover:border-primary text-muted-foreground hover:text-foreground flex flex-col items-center justify-center gap-2 transition-colors" style={{ width: 270 }}>
+                  <Plus className="w-6 h-6" />
+                  <span className="text-sm font-medium">Start blank</span>
+                  <span className="text-[11px]">Build a custom email from scratch</span>
+                </button>
+              </div>
+            </div>
+
+            {customPreviews.length > 0 && (
+              <div>
+                <Small>Your custom templates</Small>
+                <div className="flex flex-wrap gap-3 mt-2">
+                  {customPreviews.map(({ ct, html }) => (
+                    <div key={ct.id} className="rounded-lg border border-border bg-card overflow-hidden flex flex-col shadow-sm" style={{ width: 270 }}>
+                      <Thumb html={html} />
+                      <div className="p-2.5 space-y-1.5">
+                        <p className="text-sm font-semibold leading-tight truncate">{ct.name}</p>
+                        <div className="flex gap-1.5">
+                          <Button type="button" size="sm" className="flex-1 h-7 text-xs gap-1" onClick={() => useCustom(ct.id)}><Pencil className="w-3 h-3" /> Edit</Button>
+                          <Button type="button" size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => deleteCustom(ct.id)} title="Delete"><Trash2 className="w-3 h-3" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {tab === 'builder' && (
         <>

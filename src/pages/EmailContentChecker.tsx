@@ -322,10 +322,20 @@ export default function EmailContentChecker() {
   const renderFields = (b: EmailBlock) => {
     switch (b.type) {
       case 'header': return (
-        <div>
-          <Label className="text-[11px] mb-0.5 block">Logo (optional override)</Label>
-          <Input value={b.logoUrl || ''} onChange={e => patchBlock(b.id, { logoUrl: e.target.value } as Partial<EmailBlock>)} placeholder="Brand composite header used by default — paste a URL to override" className="h-8 text-sm" />
-          <p className="text-[10px] text-muted-foreground mt-1">Defaults to the brand's composite header image. Leave blank to use it.</p>
+        <div className="space-y-1.5">
+          <Label className="text-[11px] mb-0.5 block">Header style</Label>
+          <select value={b.mode ?? 'banner'} onChange={e => patchBlock(b.id, { mode: e.target.value as 'banner' | 'logo' | 'text' } as Partial<EmailBlock>)} className="h-8 text-sm w-full rounded-md border border-border bg-background px-2">
+            <option value="banner">Composite band (brand header image)</option>
+            <option value="logo">Logo only</option>
+            <option value="text">Brand name (text)</option>
+          </select>
+          {b.mode !== 'text' && (
+            <>
+              <Label className="text-[11px] mb-0.5 block">Logo (optional override)</Label>
+              <Input value={b.logoUrl || ''} onChange={e => patchBlock(b.id, { logoUrl: e.target.value } as Partial<EmailBlock>)} placeholder="Brand logo used by default — paste a URL to override" className="h-8 text-sm" />
+            </>
+          )}
+          <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set size (width) and position (align).</p>
         </div>
       );
       case 'hero': return (

@@ -145,18 +145,18 @@ export const BRAND_STANDARDS: Record<string, BrandStyle> = {
     buttonShadow: 'rgba(184,134,11,0.6)',
   },
 
-  // ── Deep space navy / rocket-flame orange — email tool only (no scraped
-  //    assets yet; uses a wordmark header or a pasted logo override). ─────────
+  // ── White & gold / cyan reactor on deep space — RocketSpin brand identity
+  //    (white-and-gold armor, champagne-gold "RS" coins, cyan arc reactor). ───
   RocketSpin: {
     fontFamily: "'Exo 2', 'Trebuchet MS', Arial, sans-serif",
     googleFont: 'Exo+2:wght@700;800',
-    panelBg: '#0A0F2C',
+    panelBg: '#070B16',
     headlineColor: '#FFFFFF',
-    bodyColor: '#D6E0FF',
-    accentColor: '#FF5A36',
-    buttonBg: '#FF5A36',
-    buttonText: '#FFFFFF',
-    buttonShadow: 'rgba(255,90,54,0.6)',
+    bodyColor: '#CFE3FF',
+    accentColor: '#E8C36B',
+    buttonBg: '#E0A82E',
+    buttonText: '#1A1206',
+    buttonShadow: 'rgba(224,168,46,0.55)',
   },
 };
 

@@ -82,6 +82,27 @@ const Small = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{children}</p>
 );
 
+// Custom templates persisted in localStorage.
+interface CustomTemplate { id: string; name: string; doc: EmailDoc }
+const CUSTOM_KEY = 'pg_email_custom_templates';
+function loadCustom(): CustomTemplate[] {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]') as CustomTemplate[]; } catch { return []; }
+}
+function saveCustom(list: CustomTemplate[]): void {
+  try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch { /* full/blocked */ }
+}
+
+// Scaled, non-interactive thumbnail of a rendered email (600px design scaled to fit a card).
+function Thumb({ html, w = 270, h = 300 }: { html: string; w?: number; h?: number }) {
+  const scale = w / 600;
+  return (
+    <div className="overflow-hidden bg-white border-b border-border" style={{ width: w, height: h }}>
+      <iframe srcDoc={html} sandbox="" scrolling="no" tabIndex={-1} title="Template preview"
+        style={{ width: 600, height: h / scale, border: 0, transformOrigin: 'top left', transform: `scale(${scale})`, pointerEvents: 'none' }} />
+    </div>
+  );
+}
+
 // Color control: a swatch picker (easy) + a text box (for hex / keyword / rgb codes).
 function ColorField({ value, onChange, placeholder }: { value?: string; onChange: (v: string | undefined) => void; placeholder?: string }) {
   const hex = value && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : '#ffffff';

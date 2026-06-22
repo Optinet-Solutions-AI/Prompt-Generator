@@ -359,12 +359,13 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
     // generate-branded-variation, ported to OpenAI.
     if (action === 'generate-email-variations') {
       const data = req.body || {};
-      const subject = (data.subject || '').toString();
-      const brand   = (data.brand   || '').toString();
-      const locale  = (data.locale  || 'en').toString();
-      const blocks  = Array.isArray(data.blocks) ? data.blocks : [];
-      const count   = Math.min(Math.max(Number(data.count) || 3, 1), 10);
-      if (!blocks.length) return res.status(400).json({ error: 'No editable blocks provided.' });
+      const subject   = (data.subject   || '').toString();
+      const preheader = (data.preheader || '').toString();
+      const brand     = (data.brand     || '').toString();
+      const locale    = (data.locale    || 'en').toString();
+      const blocks    = Array.isArray(data.blocks) ? data.blocks : [];
+      const count     = Math.min(Math.max(Number(data.count) || 3, 1), 10);
+      if (!blocks.length && !subject && !preheader) return res.status(400).json({ error: 'No content provided.' });
 
       const RULES = [
         'Deliverability rules (follow strictly):',

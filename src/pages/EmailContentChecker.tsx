@@ -824,7 +824,7 @@ export default function EmailContentChecker() {
                       </span>
                     </AccordionTrigger>
                     <AccordionContent className="pb-3 space-y-2">
-                      <div className="flex justify-end"><Button type="button" onClick={handleSanitize} variant="ghost" size="sm" className="h-6 gap-1 text-[11px] px-2"><Wand2 className="w-3 h-3" /> Clean up</Button></div>
+                      <div className="flex justify-end"><Button type="button" onClick={handleSanitize} disabled={cleaning} variant="ghost" size="sm" className="h-6 gap-1 text-[11px] px-2">{cleaning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} {cleaning ? 'Cleaning…' : 'Clean up'}</Button></div>
                       {report.findings.length === 0 ? (
                         <p className="text-[11px] text-emerald-600 dark:text-emerald-400">No spam triggers detected — this copy should deliver well.</p>
                       ) : (

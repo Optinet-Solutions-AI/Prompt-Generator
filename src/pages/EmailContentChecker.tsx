@@ -300,7 +300,8 @@ export default function EmailContentChecker() {
     return lintDeliverability(doc.meta.subject, body, { ignore: brand ? [brand] : [] });
   }, [doc, brand]);
 
-  const handleSanitize = () => {
+  // Mechanical fallback (used offline / if the AI clean is unavailable).
+  const mechanicalClean = () => {
     const fix = (s: string) => autoFix(s, { ignore: brand ? [brand] : [] });
     setDoc(d => ({
       ...d,
@@ -312,6 +313,31 @@ export default function EmailContentChecker() {
         return b;
       }),
     }));
+    setDirty(true);
+  };
+  // AI clean: rewrites to remove ALL flagged issues (incl. repetition); falls back to mechanical.
+  const handleSanitize = async () => {
+    setCleaning(true);
+    try {
+      const res = await fetch('/api/clean-email-copy', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: doc.meta.subject, preheader: doc.meta.preheader, brand, locale: doc.meta.locale, blocks: editableBlocks(doc) }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { subject?: string; preheader?: string; blocks?: EditField[] };
+        setDoc(d => {
+          const withBlocks = applyEdits(d, (data.blocks || []) as EditField[]);
+          return { ...withBlocks, meta: { ...withBlocks.meta, subject: data.subject || d.meta.subject, preheader: data.preheader || d.meta.preheader } };
+        });
+        setDirty(true);
+      } else {
+        mechanicalClean();
+      }
+    } catch {
+      mechanicalClean();
+    } finally {
+      setCleaning(false);
+    }
   };
 
   // default template loaded once; re-sync to brand handled in selectBrand

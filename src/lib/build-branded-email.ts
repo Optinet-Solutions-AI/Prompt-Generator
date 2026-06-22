@@ -47,8 +47,13 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       if (mode === 'banner' && composite) {
         const mw = st.width && st.width < WIDTH ? st.width : WIDTH;
         const inset = mw < WIDTH;
-        const td = inset ? `padding:16px 32px;text-align:${align};` : 'padding:0;line-height:0;font-size:0;';
-        return `<tr><td align="${align}" style="${td}"><img src="${esc(safeUrl(composite))}" alt="${esc(brand)}" width="${mw}" style="display:${inset ? 'inline-block' : 'block'};width:100%;max-width:${mw}px;height:auto;border:0;outline:none;border-radius:${st.radius ?? 0}px;-ms-interpolation-mode:bicubic;"/></td></tr>`;
+        const dt = inset ? 16 : 0;
+        const mgn = align === 'left'
+          ? `${st.spaceTop ?? dt}px auto ${st.spaceBottom ?? dt}px 0`
+          : align === 'right'
+          ? `${st.spaceTop ?? dt}px 0 ${st.spaceBottom ?? dt}px auto`
+          : `${st.spaceTop ?? dt}px auto ${st.spaceBottom ?? dt}px auto`;
+        return `<tr><td align="${align}" style="padding:0 ${inset ? '32px' : '0'};line-height:0;font-size:0;"><img src="${esc(safeUrl(composite))}" alt="${esc(brand)}" width="${mw}" style="display:block;width:100%;max-width:${mw}px;height:auto;border:0;outline:none;margin:${mgn};border-radius:${st.radius ?? 0}px;-ms-interpolation-mode:bicubic;"/></td></tr>`;
       }
       // Text: brand wordmark on a panel.
       if (mode === 'text') {

@@ -855,8 +855,9 @@ export default function EmailContentChecker() {
                   </div>
                 </div>
                 <div className="flex gap-1.5">
-                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={saveAsTemplate}><Save className="w-3 h-3" /> Save as template</Button>
-                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy HTML</Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => previewVar(html)}><Eye className="w-3 h-3" /> Full preview</Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={saveAsTemplate}><Save className="w-3 h-3" /> Save</Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
                   <Button type="button" size="sm" className="h-7 gap-1 text-xs" onClick={downloadHtml}><Download className="w-3 h-3" /> Download</Button>
                 </div>
               </div>

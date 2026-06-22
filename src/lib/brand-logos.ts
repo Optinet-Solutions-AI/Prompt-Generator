@@ -12,12 +12,13 @@
 const BASE = '/brand-references';
 
 // Brands with a scraped logo on disk (others fall back to a wordmark/override).
-const ASSET_BRANDS = ['Roosterbet', 'FortunePlay', 'SpinJo', 'LuckyVibe', 'SpinsUp', 'PlayMojo', 'Lucky7even', 'NovaDreams', 'Rollero'];
+const ASSET_BRANDS = ['Roosterbet', 'FortunePlay', 'SpinJo', 'LuckyVibe', 'SpinsUp', 'PlayMojo', 'Lucky7even', 'NovaDreams', 'Rollero', 'RocketSpin'];
 
 // Most brands expose scraped/logo-1.svg; a couple use a "long" lockup.
 const LOGO_FILE: Record<string, string> = {
   novadreams: 'scraped/logo-long.svg',
   rollero: 'scraped/logo-long.svg',
+  rocketspin: 'scraped/logo-long.svg', // scraped from rocketspin.com (dark text + cyan icon)
 };
 
 export const BRAND_LOGOS: Record<string, string> = Object.fromEntries(

@@ -324,6 +324,7 @@ export default function EmailContentChecker() {
         const applied = applyEdits(doc, v.blocks);
         const built = buildBrandedEmail(applied, style);
         const parts: string[] = [];
+        if (applied.meta.preheader) parts.push(applied.meta.preheader);
         for (const b of applied.blocks) {
           if (b.type === 'heading' || b.type === 'paragraph') parts.push(b.text);
           else if (b.type === 'bonus') parts.push(b.offer);

@@ -82,6 +82,17 @@ const Small = ({ children }: { children: React.ReactNode }) => (
   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{children}</p>
 );
 
+// Color control: a swatch picker (easy) + a text box (for hex / keyword / rgb codes).
+function ColorField({ value, onChange, placeholder }: { value?: string; onChange: (v: string | undefined) => void; placeholder?: string }) {
+  const hex = value && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : '#ffffff';
+  return (
+    <div className="flex items-center gap-1.5">
+      <input type="color" value={hex} onChange={e => onChange(e.target.value)} title="Pick a color" aria-label="Pick a color" className="h-7 w-8 shrink-0 rounded border border-border bg-background p-0.5 cursor-pointer" />
+      <Input value={value || ''} onChange={e => onChange(e.target.value || undefined)} placeholder={placeholder} className="h-7 text-xs flex-1 min-w-0" />
+    </div>
+  );
+}
+
 // ── Variation helpers (text-only edits applied back to the doc by id) ────────
 interface EditField { id: string; type: string; text?: string; offer?: string; code?: string; label?: string }
 

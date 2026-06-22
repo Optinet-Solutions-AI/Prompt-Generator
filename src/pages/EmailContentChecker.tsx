@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { BRAND_NAMES, getBrandStyle } from '@/lib/brand-standards';
-import { lintDeliverability, sanitizeContent } from '@/lib/deliverability';
+import { lintDeliverability, autoFix } from '@/lib/deliverability';
 import { buildBrandedEmail } from '@/lib/build-branded-email';
 import {
   newBlock, moveBlock, removeBlock, updateBlock, defaultEmailDoc,

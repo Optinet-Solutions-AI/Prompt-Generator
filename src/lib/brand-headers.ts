@@ -10,7 +10,7 @@ const BASE = '/brand-references';
 
 // Brands that actually have a composite header asset on disk. Others (e.g.
 // RocketSpin) fall back to a wordmark/logo-override so no broken image shows.
-const ASSET_BRANDS = ['Roosterbet', 'FortunePlay', 'SpinJo', 'LuckyVibe', 'SpinsUp', 'PlayMojo', 'Lucky7even', 'NovaDreams', 'Rollero'];
+const ASSET_BRANDS = ['Roosterbet', 'FortunePlay', 'SpinJo', 'LuckyVibe', 'SpinsUp', 'PlayMojo', 'Lucky7even', 'NovaDreams', 'Rollero', 'RocketSpin'];
 
 // Bucket folders are the lowercased brand name (e.g. "FortunePlay" -> "fortuneplay").
 export const BRAND_HEADERS: Record<string, string> = Object.fromEntries(

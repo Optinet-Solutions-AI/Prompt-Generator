@@ -26,6 +26,9 @@ dist-ssr
 .env*.local
 .gitnexus
 
-# Scraped brand assets — kept local only, never pushed
-public/brand-references/*/scraped/
+# Scraped brand assets — kept local only, EXCEPT the brand logos the email
+# builder serves (logo-only header mode needs these deployed).
+public/brand-references/*/scraped/*
+!public/brand-references/*/scraped/logo-1.svg
+!public/brand-references/*/scraped/logo-long.svg
 public/brand-references/_scrape-report*.json

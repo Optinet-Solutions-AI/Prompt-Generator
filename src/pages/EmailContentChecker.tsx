@@ -577,25 +577,18 @@ export default function EmailContentChecker() {
               <Accordion type="multiple" defaultValue={['brand', 'blocks']} className="space-y-2">
 
                 <AccordionItem value="brand" className="border border-border rounded-lg bg-card px-3">
-                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Brand &amp; template</span></AccordionTrigger>
+                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Brand &amp; subject</span></AccordionTrigger>
                   <AccordionContent className="pb-3 space-y-2.5">
                     <div className="flex flex-wrap gap-1.5">
                       {BRAND_NAMES.map(b => (
                         <button key={b} type="button" onClick={() => selectBrand(b)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === b ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{b}</button>
                       ))}
                     </div>
-                    <div>
-                      <Small>Template <span className="font-normal normal-case">(fills the blocks)</span></Small>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {EMAIL_TEMPLATES.map(t => (
-                          <button key={t.id} type="button" onClick={() => loadTemplate(t.id)} title={t.description} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${activeTemplate === t.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{t.name}</button>
-                        ))}
-                      </div>
-                    </div>
                     <div className="grid grid-cols-2 gap-1.5">
                       <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
                       <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>
                     </div>
+                    <button type="button" onClick={() => setTab('templates')} className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"><LayoutTemplate className="w-3 h-3" /> Change template</button>
                   </AccordionContent>
                 </AccordionItem>
 

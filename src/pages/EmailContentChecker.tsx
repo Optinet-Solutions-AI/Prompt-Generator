@@ -857,6 +857,43 @@ export default function EmailContentChecker() {
                 </p>
               </div>
             )}
+
+            {/* Plain-text variations */}
+            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-primary" /><Small>Generate variations <span className="font-normal normal-case">— plain text</span></Small></div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">Count:</span>
+                  <Input type="number" min={1} max={10} value={chkVarCount} onChange={e => setChkVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))} className="h-7 w-16 text-xs" />
+                  <span className="text-[10px] text-muted-foreground">max 10</span>
+                </div>
+              </div>
+              <Button type="button" onClick={generateChkVariations} disabled={chkVarLoading || (!chkSubject && !chkBody)} variant="outline" className="w-full h-8 gap-1.5 text-xs">
+                {chkVarLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Rewording…</> : <><Sparkles className="w-3.5 h-3.5" /> Reword as plain text with AI</>}
+              </Button>
+              {chkVarError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{chkVarError}</p>}
+              {chkVariations.length > 0 && (
+                <ul className="space-y-2">
+                  {chkVariations.map((v, i) => (
+                    <li key={i} className="rounded-md border border-border bg-background p-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate">{v.label}</p>
+                          {v.notes && <p className="text-[10px] text-muted-foreground truncate">{v.notes}</p>}
+                        </div>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>
+                      </div>
+                      {v.subject && <p className="text-[11px]"><span className="text-muted-foreground font-medium">Subject: </span>{v.subject}</p>}
+                      {v.body && <p className="text-[11px] whitespace-pre-wrap leading-snug text-foreground/80">{v.body}</p>}
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => chkCopyVar(i, v)}>{chkVarCopied === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
+                        <Button type="button" size="sm" className="h-6 text-[11px] px-2 ml-auto" onClick={() => { setChkSubject(v.subject); setChkBody(v.body); }}>Use</Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
       </div>

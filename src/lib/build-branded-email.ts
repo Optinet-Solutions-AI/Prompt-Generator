@@ -62,7 +62,8 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       // Logo (and banner fallback when no composite exists): a sized, positioned logo.
       const logo = b.logoUrl || getBrandLogo(brand) || c.logo_url || '';
       const lw = st.width ?? 180;
-      const bg = st.background || (mode === 'logo' ? '#ffffff' : s.panelBg);
+      // A logo sits on white (safe for any logo colour); a bare wordmark uses the dark brand panel.
+      const bg = st.background || (logo ? '#ffffff' : s.panelBg);
       const m = `margin:${st.spaceTop ?? 0}px 0 ${st.spaceBottom ?? 0}px;`;
       const inner = logo
         ? `<img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="${lw}" style="display:inline-block;${m}border:0;width:${lw}px;max-width:80%;height:auto;-ms-interpolation-mode:bicubic;"/>`

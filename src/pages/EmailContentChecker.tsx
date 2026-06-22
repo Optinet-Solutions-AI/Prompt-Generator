@@ -712,7 +712,7 @@ export default function EmailContentChecker() {
                                   <div className="flex items-center gap-1.5 pt-0.5">
                                     <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy text</Button>
                                     <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
-                                    <Button type="button" size="sm" className="h-6 text-[11px] px-2 ml-auto" onClick={() => useVariation(v.edits)}>Use this</Button>
+                                    <Button type="button" size="sm" className="h-6 text-[11px] px-2 ml-auto" onClick={() => useVariation(v)}>Use this</Button>
                                   </div>
                                 </div>
                               )}

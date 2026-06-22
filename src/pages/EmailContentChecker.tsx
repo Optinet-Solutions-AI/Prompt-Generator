@@ -173,6 +173,8 @@ export default function EmailContentChecker() {
   interface VariationResult {
     label: string;
     notes: string;
+    subject: string;   // reworded subject line
+    preheader: string; // reworded preheader
     edits: EditField[];
     report: ReturnType<typeof lintDeliverability>;
     text: string; // plain-text twin (clean copy)

@@ -297,13 +297,14 @@ export default function EmailContentChecker() {
   }, [doc, brand]);
 
   const handleSanitize = () => {
+    const fix = (s: string) => autoFix(s, { ignore: brand ? [brand] : [] });
     setDoc(d => ({
       ...d,
-      meta: { ...d.meta, subject: sanitizeContent(d.meta.subject) },
+      meta: { ...d.meta, subject: fix(d.meta.subject), preheader: fix(d.meta.preheader) },
       blocks: d.blocks.map(b => {
-        if (b.type === 'heading' || b.type === 'paragraph') return { ...b, text: sanitizeContent(b.text) };
-        if (b.type === 'bonus') return { ...b, offer: sanitizeContent(b.offer) };
-        if (b.type === 'cta') return { ...b, label: sanitizeContent(b.label) };
+        if (b.type === 'heading' || b.type === 'paragraph') return { ...b, text: fix(b.text) };
+        if (b.type === 'bonus') return { ...b, offer: fix(b.offer) };
+        if (b.type === 'cta') return { ...b, label: fix(b.label) };
         return b;
       }),
     }));

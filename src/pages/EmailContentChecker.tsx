@@ -684,7 +684,7 @@ export default function EmailContentChecker() {
                                 </button>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>
-                                  <Button type="button" size="sm" className="h-6 text-[11px] px-2" onClick={() => useVariation(v.edits)}>Use</Button>
+                                  <Button type="button" size="sm" className="h-6 text-[11px] px-2" onClick={() => useVariation(v)}>Use</Button>
                                 </div>
                               </div>
                               {open && (

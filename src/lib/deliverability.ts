@@ -324,6 +324,10 @@ export function autoFix(text: string, opts: LintOptions = {}): string {
       return /^[A-Z]/.test(match) ? alt.charAt(0).toUpperCase() + alt.slice(1) : alt;
     });
   }
+  // De-shout ALL-CAPS words (keep currency codes) → Title case.
+  out = out.replace(/\b[A-Z]{4,}\b/g, (w) =>
+    (['USD', 'EUR', 'GBP', 'JPY'].includes(w) ? w : w.charAt(0) + w.slice(1).toLowerCase()),
+  );
   return sanitizeContent(out);
 }
 

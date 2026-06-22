@@ -301,6 +301,32 @@ export function sanitizeContent(text: string): string {
     .replace(/\.{2,}/g, "."); // tidy any ".." this produced
 }
 
+/**
+ * Aggressively clean copy: replace spam-trigger WORDS with their safer
+ * alternatives (boundary-aware, case-preserving), then apply the mechanical
+ * sanitize (currency symbols → codes, drop exclamation marks). This is what the
+ * "Clean up copy" button uses — so it actually rewrites, not just suggests.
+ * Caller-supplied `ignore` terms (e.g. the brand name) are never touched.
+ */
+export function autoFix(text: string, opts: LintOptions = {}): string {
+  const ignore = new Set((opts.ignore ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean));
+  let out = text;
+  // Longest phrases first so "limited time offer" wins over "limited time".
+  for (const term of Object.keys(SPAM_WORDS).sort((a, b) => b.length - a.length)) {
+    if (ignore.has(term)) continue;
+    const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const left = /^[a-z0-9]/i.test(term) ? "\\b" : "";
+    const right = /[a-z0-9]$/i.test(term) ? "\\b" : "";
+    const re = new RegExp(`${left}${esc}${right}`, "gi");
+    out = out.replace(re, (match) => {
+      const alt = SPAM_WORDS[term];
+      // Preserve leading capitalization of the original match.
+      return /^[A-Z]/.test(match) ? alt.charAt(0).toUpperCase() + alt.slice(1) : alt;
+    });
+  }
+  return sanitizeContent(out);
+}
+
 /** One-line guidance block appended to the AI prompt so copy avoids these. */
 export const DELIVERABILITY_AI_RULES = [
   "Deliverability rules (follow strictly):",

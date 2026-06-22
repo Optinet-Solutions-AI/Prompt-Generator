@@ -373,7 +373,11 @@ export default function EmailContentChecker() {
     if (!subj && !body) return null;
     return lintDeliverability(subj, body, { ignore: chkBrand ? [chkBrand] : [] });
   }, [chkSubject, chkBody, chkBrand]);
-  const chkSanitize = () => { setChkSubject(s => sanitizeContent(s)); setChkBody(s => sanitizeContent(s)); };
+  const chkSanitize = () => {
+    const ig = chkBrand ? [chkBrand] : [];
+    setChkSubject(s => autoFix(s, { ignore: ig }));
+    setChkBody(s => autoFix(s, { ignore: ig }));
+  };
   const chkCopy = async (kind: 'subject' | 'body') => {
     try { await navigator.clipboard.writeText(kind === 'subject' ? chkSubject : chkBody); setChkCopied(kind); setTimeout(() => setChkCopied(null), 1500); } catch { /* blocked */ }
   };

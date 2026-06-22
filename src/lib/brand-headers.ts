@@ -21,13 +21,17 @@ const NORMALIZED: Record<string, string> = Object.fromEntries(
   Object.entries(BRAND_HEADERS).map(([name, url]) => [name.toLowerCase().replace(/[^a-z0-9]/g, ''), url]),
 );
 
+// Bump when a header image's pixels change, so browsers/CDN don't serve a stale
+// cached copy (the filename stays the same).
+const ASSET_V = '3';
+
 // Absolutize against the current origin so the image resolves everywhere the
 // HTML lands — the inline iframe, a blob: preview tab, the downloaded file, and
 // (on the deployed domain) a real sent email.
 function absolutize(path: string): string {
   if (!path) return '';
   const o = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-  return o ? `${o}${path}` : path;
+  return `${o}${path}?v=${ASSET_V}`;
 }
 
 export function getBrandHeader(brand?: string | null): string {

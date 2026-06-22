@@ -321,34 +321,40 @@ export default function EmailContentChecker() {
     try {
       const res = await fetch('/api/generate-email-variations', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: doc.meta.subject, brand, locale: doc.meta.locale, blocks: editableBlocks(doc), count: varCount }),
+        body: JSON.stringify({ subject: doc.meta.subject, preheader: doc.meta.preheader, brand, locale: doc.meta.locale, blocks: editableBlocks(doc), count: varCount }),
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({} as { error?: string }));
         setVarError(e.error || `Request failed (${res.status})`);
         return;
       }
-      const data = await res.json() as { variations: { label: string; notes: string; blocks: EditField[] }[] };
+      const data = await res.json() as { variations: { label: string; notes: string; subject?: string; preheader?: string; blocks: EditField[] }[] };
       const style = getBrandStyle(brand);
       const results: VariationResult[] = (data.variations || []).map(v => {
-        const applied = applyEdits(doc, v.blocks);
+        const subject = v.subject || doc.meta.subject;
+        const preheader = v.preheader || doc.meta.preheader;
+        const applied: EmailDoc = { ...applyEdits(doc, v.blocks), meta: { ...doc.meta, subject, preheader } };
         const built = buildBrandedEmail(applied, style);
         const parts: string[] = [];
-        if (applied.meta.preheader) parts.push(applied.meta.preheader);
+        if (preheader) parts.push(preheader);
         for (const b of applied.blocks) {
           if (b.type === 'heading' || b.type === 'paragraph') parts.push(b.text);
           else if (b.type === 'bonus') parts.push(b.offer);
           else if (b.type === 'cta') parts.push(b.label);
         }
-        const report = lintDeliverability(applied.meta.subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [] });
-        const fields = (v.blocks || []).map(e => {
-          if (e.type === 'heading') return { label: 'Heading', value: e.text || '' };
-          if (e.type === 'paragraph') return { label: 'Text', value: e.text || '' };
-          if (e.type === 'bonus') return { label: 'Bonus', value: [e.offer, e.code ? `(code ${e.code})` : ''].filter(Boolean).join(' ') };
-          if (e.type === 'cta') return { label: 'CTA', value: e.label || '' };
-          return { label: e.type, value: '' };
-        }).filter(f => f.value);
-        return { label: v.label, notes: v.notes, edits: v.blocks, report, text: built.text, html: built.html, fields };
+        const report = lintDeliverability(subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [] });
+        const fields = [
+          ...(subject ? [{ label: 'Subject', value: subject }] : []),
+          ...(preheader ? [{ label: 'Preheader', value: preheader }] : []),
+          ...(v.blocks || []).map(e => {
+            if (e.type === 'heading') return { label: 'Heading', value: e.text || '' };
+            if (e.type === 'paragraph') return { label: 'Text', value: e.text || '' };
+            if (e.type === 'bonus') return { label: 'Bonus', value: [e.offer, e.code ? `(code ${e.code})` : ''].filter(Boolean).join(' ') };
+            if (e.type === 'cta') return { label: 'CTA', value: e.label || '' };
+            return { label: e.type, value: '' };
+          }),
+        ].filter(f => f.value);
+        return { label: v.label, notes: v.notes, subject, preheader, edits: v.blocks, report, text: built.text, html: built.html, fields };
       });
       setVariations(results);
       setExpandedVar(results.length ? 0 : null);

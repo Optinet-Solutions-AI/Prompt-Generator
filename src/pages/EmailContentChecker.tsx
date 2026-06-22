@@ -414,8 +414,8 @@ export default function EmailContentChecker() {
           ))}
         </div>
         <div><Label className="text-[10px] mb-0.5 block">Font size (px)</Label><Input type="number" value={num(st.fontSize)} onChange={e => patchStyle(b.id, 'fontSize', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
-        <div><Label className="text-[10px] mb-0.5 block">Text color</Label><Input value={st.color || ''} onChange={e => patchStyle(b.id, 'color', e.target.value || undefined)} placeholder="#172b4d" className="h-7 text-xs" /></div>
-        {((b.type === 'hero' && b.mode !== 'url') || b.type === 'header') && <div><Label className="text-[10px] mb-0.5 block">Background</Label><Input value={st.background || ''} onChange={e => patchStyle(b.id, 'background', e.target.value || undefined)} placeholder="white / #0b1b2b" className="h-7 text-xs" /></div>}
+        <div><Label className="text-[10px] mb-0.5 block">Text color</Label><ColorField value={st.color} onChange={v => patchStyle(b.id, 'color', v)} placeholder="#172b4d" /></div>
+        {((b.type === 'hero' && b.mode !== 'url') || b.type === 'header') && <div><Label className="text-[10px] mb-0.5 block">Background</Label><ColorField value={st.background} onChange={v => patchStyle(b.id, 'background', v)} placeholder="white / #0b1b2b" /></div>}
         <div><Label className="text-[10px] mb-0.5 block">Space above (px)</Label><Input type="number" value={num(st.spaceTop)} onChange={e => patchStyle(b.id, 'spaceTop', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
         <div><Label className="text-[10px] mb-0.5 block">Space below (px)</Label><Input type="number" value={num(st.spaceBottom)} onChange={e => patchStyle(b.id, 'spaceBottom', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
         {(b.type === 'hero' || b.type === 'header') && <div><Label className="text-[10px] mb-0.5 block">Width (px)</Label><Input type="number" value={num(st.width)} onChange={e => patchStyle(b.id, 'width', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>}

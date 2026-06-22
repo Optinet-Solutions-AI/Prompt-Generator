@@ -625,10 +625,13 @@ export default function EmailContentChecker() {
                               </div>
                               {open && (
                                 <div className="border-t border-border p-2 space-y-2 bg-muted/20">
-                                  <div className="space-y-1">
-                                    {v.fields.map((f, j) => (
-                                      <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{f.label}: </span>{f.value}</p>
-                                    ))}
+                                  <div className="flex gap-2">
+                                    <Thumb html={v.html} w={150} h={150} />
+                                    <div className="space-y-1 flex-1 min-w-0">
+                                      {v.fields.map((f, j) => (
+                                        <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{f.label}: </span>{f.value}</p>
+                                      ))}
+                                    </div>
                                   </div>
                                   {v.report.findings.length > 0 ? (
                                     <ul className="space-y-1 max-h-32 overflow-y-auto border-t border-border pt-1.5">

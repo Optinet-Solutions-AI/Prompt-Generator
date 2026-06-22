@@ -444,6 +444,61 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       return res.status(200).json({ variations });
     }
 
+    // ── CLEAN EMAIL COPY — minimal-change rewrite that fixes ALL deliverability
+    // issues (spam words, caps, currency, exclamation, urgency, gambling, AND
+    // repetitive phrasing) while preserving meaning/structure. Powers "Clean up".
+    if (action === 'clean-email-copy') {
+      const data = req.body || {};
+      const subject   = (data.subject   || '').toString();
+      const preheader = (data.preheader || '').toString();
+      const brand     = (data.brand     || '').toString();
+      const locale    = (data.locale    || 'en').toString();
+      const blocks    = Array.isArray(data.blocks) ? data.blocks : [];
+      if (!blocks.length && !subject && !preheader) return res.status(400).json({ error: 'No content provided.' });
+
+      const RULES = [
+        '- Replace spam-trigger words (bonus, free spins, promotion, deals, play, win, 100%, guaranteed, instant cash, claim now, risk free, jackpot, free money, limited time offer, etc.) with neutral equivalents.',
+        '- Use sentence case — no SHOUTING / excessive capitalization.',
+        '- Remove ALL exclamation marks. Replace currency symbols ($ € £ ¥) with codes (USD, EUR, GBP, JPY).',
+        '- Remove false urgency and gambling vocabulary.',
+        '- Eliminate repeated / duplicated words and phrasing — vary the wording.',
+        '- Keep the brand name exactly as given.',
+      ].join('\n');
+
+      const SYSTEM = [
+        'You CLEAN marketing email copy for deliverability with MINIMAL changes.',
+        'Fix every deliverability issue below while preserving the original meaning, tone, structure, and length as closely as possible. Do NOT be creative or add new ideas — only remove the problems.',
+        RULES,
+        'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',
+      ].join('\n');
+
+      const KEYS = `{"subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
+      const userPrompt = [
+        `Brand: ${brand || 'n/a'}. Locale: ${locale}.`,
+        `Subject: ${subject || '(none)'}`,
+        `Preheader: ${preheader || '(none)'}`,
+        '',
+        'BLOCKS (JSON):',
+        JSON.stringify(blocks),
+        '',
+        'Clean the subject, preheader, and each block. Return strict JSON with exactly these keys:',
+        KEYS,
+      ].join('\n');
+
+      try {
+        const raw = await chatCompletion({ systemPrompt: SYSTEM, userPrompt, temperature: 0.2, model: 'gpt-4o-mini', maxTokens: 1400 });
+        const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+        const parsed = JSON.parse(cleaned) as { subject?: string; preheader?: string; blocks?: unknown[] };
+        return res.status(200).json({
+          subject: (parsed.subject ?? subject).toString(),
+          preheader: (parsed.preheader ?? preheader).toString(),
+          blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
+        });
+      } catch {
+        return res.status(502).json({ error: 'Clean up failed. Try again.' });
+      }
+    }
+
     // ── CONVERT TO HTML — direct OpenAI with vision (was n8n) ──────────────
     if (action === 'convert-to-html') {
       const data = req.body;

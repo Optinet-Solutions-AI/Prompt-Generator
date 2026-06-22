@@ -278,6 +278,7 @@ export default function EmailContentChecker() {
   const html = useMemo(() => buildBrandedEmail(doc, getBrandStyle(brand)).html, [doc, brand]);
   const report = useMemo(() => {
     const parts: string[] = [];
+    if (doc.meta.preheader) parts.push(doc.meta.preheader); // preheader is checked too
     for (const b of doc.blocks) {
       if (b.type === 'heading' || b.type === 'paragraph') parts.push(b.text);
       else if (b.type === 'bonus') parts.push(b.offer);

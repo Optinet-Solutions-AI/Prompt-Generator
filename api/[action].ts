@@ -390,19 +390,22 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       ];
 
       const SYSTEM = [
-        "You rewrite the TEXT of a marketing email's blocks into a NEW variation.",
+        "You rewrite the TEXT of a marketing email into a NEW variation.",
         'Keep the SAME offer, intent, brand, and language/locale as the source.',
-        'Change the wording — do not copy phrases verbatim. Do NOT add or remove blocks; keep each id and type.',
-        'Only return the text fields for each block (heading/paragraph -> text, bonus -> offer/code, cta -> label).',
+        'Rewrite the subject line and the preheader too. Change the wording — do not copy phrases verbatim.',
+        'Do NOT add or remove blocks; keep each id and type. Only return text fields per block (heading/paragraph -> text, bonus -> offer/code, cta -> label).',
+        'The subject should be a compelling 4-9 words; the preheader a short complementary line (<=110 chars).',
         'SANITIZE for deliverability — this is mandatory:',
         RULES,
         'Return ONLY strict JSON — no markdown, no code fences, no commentary.',
       ].join('\n');
 
-      const KEYS = `{"label": string (3-5 words), "notes": string (one line: what changed), "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
+      const KEYS = `{"label": string (3-5 words), "notes": string (one line: what changed), "subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
 
       const buildPrompt = (angle: string) => [
-        `Brand: ${brand || 'n/a'}. Locale: ${locale}. Subject: ${subject || '(none)'}.`,
+        `Brand: ${brand || 'n/a'}. Locale: ${locale}.`,
+        `Current subject: ${subject || '(none)'}`,
+        `Current preheader: ${preheader || '(none)'}`,
         '',
         'BLOCKS TO REWRITE (JSON):',
         JSON.stringify(blocks),
@@ -421,19 +424,21 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
           maxTokens: 1200,
         });
         const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-        const parsed = JSON.parse(cleaned) as { label?: string; notes?: string; blocks?: unknown[] };
+        const parsed = JSON.parse(cleaned) as { label?: string; notes?: string; subject?: string; preheader?: string; blocks?: unknown[] };
         return {
           label: (parsed.label || `Variation ${i + 1}`).toString(),
           notes: (parsed.notes || '').toString(),
+          subject: (parsed.subject || '').toString(),
+          preheader: (parsed.preheader || '').toString(),
           blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
         };
       })());
 
       const settled = await Promise.allSettled(tasks);
       const variations = settled
-        .filter((r): r is PromiseFulfilledResult<{ label: string; notes: string; blocks: unknown[] }> => r.status === 'fulfilled')
+        .filter((r): r is PromiseFulfilledResult<{ label: string; notes: string; subject: string; preheader: string; blocks: unknown[] }> => r.status === 'fulfilled')
         .map(r => r.value)
-        .filter(v => v.blocks.length > 0);
+        .filter(v => v.blocks.length > 0 || v.subject || v.preheader);
 
       if (!variations.length) return res.status(502).json({ error: 'The AI returned no usable variations. Try again.' });
       return res.status(200).json({ variations });

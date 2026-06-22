@@ -224,6 +224,36 @@ export default function EmailContentChecker() {
     setDirty(false);
   };
 
+  // Template gallery → builder
+  const chooseTemplate = (id: string) => { loadTemplate(id); setTab('builder'); };
+  const startBlank = () => { setDoc(defaultEmailDoc(brand, genId)); setActiveTemplate(''); setDirty(true); setTab('builder'); };
+  const useCustom = (id: string) => {
+    const ct = customTemplates.find(c => c.id === id);
+    if (!ct) return;
+    setDoc(JSON.parse(JSON.stringify(ct.doc)) as EmailDoc);
+    setActiveTemplate(''); setDirty(true); setTab('builder');
+  };
+  const deleteCustom = (id: string) => {
+    const next = customTemplates.filter(c => c.id !== id);
+    setCustomTemplates(next); saveCustom(next);
+  };
+  const saveAsTemplate = () => {
+    const name = window.prompt('Name this template:', doc.meta.subject || 'My template');
+    if (!name) return;
+    const next = [...customTemplates, { id: `ct-${genId()}`, name, doc: JSON.parse(JSON.stringify(doc)) as EmailDoc }];
+    setCustomTemplates(next); saveCustom(next);
+  };
+
+  // Rendered previews for the gallery
+  const templatePreviews = useMemo(
+    () => EMAIL_TEMPLATES.map(t => ({ t, html: buildBrandedEmail(buildTemplateDoc(t, brand, genId), getBrandStyle(brand)).html })),
+    [brand],
+  );
+  const customPreviews = useMemo(
+    () => customTemplates.map(ct => ({ ct, html: buildBrandedEmail(ct.doc, getBrandStyle(ct.doc.meta.brand)).html })),
+    [customTemplates],
+  );
+
   // ── Image picker ──────────────────────────────────────────────────────────
   const openLib = useCallback(async (blockId: string) => {
     setLibFor(blockId);

@@ -889,7 +889,7 @@ export default function EmailContentChecker() {
             <div><Label className="text-[11px] mb-0.5 block">Email body or HTML</Label><Textarea value={chkBody} onChange={e => setChkBody(e.target.value)} placeholder="Paste your copy here. You can paste full HTML too — it's checked on the visible text." className="min-h-[220px] text-sm font-mono" /></div>
 
             <div className="flex flex-wrap gap-2">
-              <Button type="button" onClick={chkSanitize} className="gap-1.5 h-8 text-xs" disabled={!chkSubject && !chkBody}><Wand2 className="w-3.5 h-3.5" /> Clean up copy</Button>
+              <Button type="button" onClick={chkSanitize} className="gap-1.5 h-8 text-xs" disabled={chkCleaning || (!chkSubject && !chkBody)}>{chkCleaning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />} {chkCleaning ? 'Cleaning…' : 'Clean up copy'}</Button>
               <Button type="button" variant="outline" onClick={() => chkCopy('subject')} className="gap-1.5 h-8 text-xs" disabled={!chkSubject}>{chkCopied === 'subject' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy subject</Button>
               <Button type="button" variant="outline" onClick={() => chkCopy('body')} className="gap-1.5 h-8 text-xs" disabled={!chkBody}>{chkCopied === 'body' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy body</Button>
               <Button type="button" variant="ghost" onClick={() => { setChkSubject(''); setChkBody(''); }} className="gap-1.5 h-8 text-xs ml-auto" disabled={!chkSubject && !chkBody}><Eraser className="w-3.5 h-3.5" /> Clear</Button>

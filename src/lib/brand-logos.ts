@@ -32,10 +32,11 @@ const NORMALIZED: Record<string, string> = Object.fromEntries(
   Object.entries(BRAND_LOGOS).map(([name, url]) => [name.toLowerCase().replace(/[^a-z0-9]/g, ''), url]),
 );
 
+const ASSET_V = '3';
 function absolutize(path: string): string {
   if (!path) return '';
   const o = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-  return o ? `${o}${path}` : path;
+  return `${o}${path}?v=${ASSET_V}`;
 }
 
 export function getBrandLogo(brand?: string | null): string {

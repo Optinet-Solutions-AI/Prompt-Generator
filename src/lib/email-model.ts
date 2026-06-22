@@ -63,7 +63,7 @@ export const BLOCK_TYPES: BlockType[] = [
 
 export function newBlock(type: BlockType, id: string): EmailBlock {
   switch (type) {
-    case 'header': return { id, type, logoUrl: '' };
+    case 'header': return { id, type, logoUrl: '', mode: 'banner' };
     case 'hero': return { id, type, mode: 'css', url: '' };
     case 'heading': return { id, type, text: '' };
     case 'paragraph': return { id, type, text: '' };

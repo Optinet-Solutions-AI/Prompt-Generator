@@ -40,15 +40,28 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
   const st: BlockStyle = b.style ?? {};
   switch (b.type) {
     case 'header': {
-      const headerImg = getBrandHeader(brand) || c.header_url || '';
-      if (headerImg) {
-        return `<tr><td style="padding:0;line-height:0;font-size:0;"><img src="${esc(safeUrl(headerImg))}" alt="${esc(brand)}" width="${WIDTH}" style="display:block;width:100%;max-width:${WIDTH}px;height:auto;border:0;outline:none;-ms-interpolation-mode:bicubic;"/></td></tr>`;
+      const align = st.align ?? 'center';
+      const mode = b.mode ?? 'banner';
+      const composite = getBrandHeader(brand) || c.header_url || '';
+      // Banner: the full-width composite header image (optionally sized smaller).
+      if (mode === 'banner' && composite) {
+        const mw = st.width && st.width < WIDTH ? st.width : WIDTH;
+        const inset = mw < WIDTH;
+        const td = inset ? `padding:16px 32px;text-align:${align};` : 'padding:0;line-height:0;font-size:0;';
+        return `<tr><td align="${align}" style="${td}"><img src="${esc(safeUrl(composite))}" alt="${esc(brand)}" width="${mw}" style="display:${inset ? 'inline-block' : 'block'};width:100%;max-width:${mw}px;height:auto;border:0;outline:none;border-radius:${st.radius ?? 0}px;-ms-interpolation-mode:bicubic;"/></td></tr>`;
       }
+      // Text: brand wordmark on a panel.
+      if (mode === 'text') {
+        return `<tr><td align="${align}" style="background:${st.background || s.panelBg};padding:26px 32px;text-align:${align};"><span style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;font-weight:700;color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span></td></tr>`;
+      }
+      // Logo (and banner fallback when no composite exists): a sized, positioned logo.
       const logo = b.logoUrl || getBrandLogo(brand) || c.logo_url || '';
+      const lw = st.width ?? 180;
+      const bg = st.background || (mode === 'logo' ? '#ffffff' : s.panelBg);
       const inner = logo
-        ? `<img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="150" style="display:block;border:0;margin:0 auto;max-width:55%;height:auto;-ms-interpolation-mode:bicubic;"/>`
-        : `<span style="font-family:${s.fontFamily};font-size:24px;font-weight:700;color:${s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span>`;
-      return `<tr><td align="center" style="background:${s.panelBg};padding:26px 32px;">${inner}</td></tr>`;
+        ? `<img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="${lw}" style="display:inline-block;border:0;width:${lw}px;max-width:80%;height:auto;-ms-interpolation-mode:bicubic;"/>`
+        : `<span style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;font-weight:700;color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span>`;
+      return `<tr><td align="${align}" style="background:${bg};padding:24px 32px;text-align:${align};">${inner}</td></tr>`;
     }
     case 'hero': {
       const src = b.mode === 'banner' ? (c.banner_url || '') : b.mode === 'url' ? (b.url || '') : '';

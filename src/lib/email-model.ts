@@ -26,7 +26,7 @@ interface BlockBase {
 }
 
 export type EmailBlock =
-  | (BlockBase & { type: 'header'; logoUrl?: string })
+  | (BlockBase & { type: 'header'; logoUrl?: string; mode?: 'banner' | 'logo' | 'text' })
   | (BlockBase & { type: 'hero'; mode: 'banner' | 'url' | 'css'; url?: string })
   | (BlockBase & { type: 'heading'; text: string })
   | (BlockBase & { type: 'paragraph'; text: string })

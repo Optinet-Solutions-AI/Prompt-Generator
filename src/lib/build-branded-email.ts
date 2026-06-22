@@ -63,9 +63,10 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const logo = b.logoUrl || getBrandLogo(brand) || c.logo_url || '';
       const lw = st.width ?? 180;
       const bg = st.background || (mode === 'logo' ? '#ffffff' : s.panelBg);
+      const m = `margin:${st.spaceTop ?? 0}px 0 ${st.spaceBottom ?? 0}px;`;
       const inner = logo
-        ? `<img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="${lw}" style="display:inline-block;border:0;width:${lw}px;max-width:80%;height:auto;-ms-interpolation-mode:bicubic;"/>`
-        : `<span style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;font-weight:700;color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span>`;
+        ? `<img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="${lw}" style="display:inline-block;${m}border:0;width:${lw}px;max-width:80%;height:auto;-ms-interpolation-mode:bicubic;"/>`
+        : `<span style="display:inline-block;${m}font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;font-weight:700;color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span>`;
       return `<tr><td align="${align}" style="background:${bg};padding:24px 32px;text-align:${align};">${inner}</td></tr>`;
     }
     case 'hero': {

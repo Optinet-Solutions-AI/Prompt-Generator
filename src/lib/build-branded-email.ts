@@ -90,7 +90,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       return `<tr><td align="${align}" style="padding:0 32px;"><img src="${esc(safeUrl(src))}" alt="${esc(brand)}" width="${mw}" style="display:block;border:0;width:100%;max-width:${mw}px;height:auto;margin:${mgn};border-radius:${st.radius ?? 10}px;-ms-interpolation-mode:bicubic;"/></td></tr>`;
     }
     case 'heading':
-      return cell(`<h1 style="${spacing(st, 24, 0)}font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;line-height:1.3;color:${st.color || INK_HEADLINE};text-align:${st.align ?? 'left'};">${esc(b.text)}</h1>`);
+      return cell(`<h1 style="${spacing(st, 24, 0)}font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;line-height:1.3;color:${st.color || pal.headline};text-align:${st.align ?? 'left'};">${esc(b.text)}</h1>`);
     case 'paragraph':
       return cell(`<p style="${spacing(st, 14, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 15}px;line-height:1.65;color:${st.color || INK_BODY};text-align:${st.align ?? 'left'};">${esc(b.text).replace(/\n/g, '<br/>')}</p>`);
     case 'bonus': {
@@ -99,7 +99,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
         : '';
       const rule = st.hideRule ? '' : `border-left:3px solid ${s.accentColor};`;
       return cell(`<div style="${spacing(st, 20, 0)}${rule}background:${st.background || FOOTER_BG};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
-        `<div style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 18}px;font-weight:700;color:${st.color || INK_HEADLINE};">${esc(b.offer)}</div>${code}</div>`);
+        `<div style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 18}px;font-weight:700;color:${st.color || pal.headline};">${esc(b.offer)}</div>${code}</div>`);
     }
     case 'cta': {
       const href = safeUrl(b.url) || '#';

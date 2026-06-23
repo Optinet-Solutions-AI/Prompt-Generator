@@ -185,3 +185,38 @@ export function getBrandStyle(brand: string | undefined | null): BrandStyle {
   if (BRAND_STANDARDS[brand]) return BRAND_STANDARDS[brand];
   return NORMALIZED_STYLES[brand.toLowerCase().replace(/[^a-z0-9]/g, '')] ?? DEFAULT_BRAND_STYLE;
 }
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const m = hex.replace('#', '');
+  const n = m.length === 3 ? m.split('').map((x) => x + x).join('') : m;
+  if (!/^[0-9a-f]{6}$/i.test(n)) return null;
+  return { r: parseInt(n.slice(0, 2), 16), g: parseInt(n.slice(2, 4), 16), b: parseInt(n.slice(4, 6), 16) };
+}
+
+/**
+ * Build a full BrandStyle from a single signature colour (for custom brands).
+ * The colour becomes the accent + CTA button; a dark tint of it is the panel
+ * background; button text flips to dark on light colours for contrast. Accepts
+ * a hex (#rgb/#rrggbb) or any CSS colour keyword (e.g. "orange").
+ */
+export function styleFromColor(color: string): BrandStyle {
+  const c = (color || '').trim();
+  const rgb = hexToRgb(c);
+  if (!rgb) {
+    // Non-hex (e.g. "red"/"orange"): use it directly; keep a neutral dark panel.
+    return { ...DEFAULT_BRAND_STYLE, accentColor: c || DEFAULT_BRAND_STYLE.accentColor, buttonBg: c || DEFAULT_BRAND_STYLE.buttonBg, panelBg: '#0D0D0D', buttonShadow: 'rgba(0,0,0,0.4)' };
+  }
+  const { r, g, b } = rgb;
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  const dk = (v: number) => Math.round(v * 0.16).toString(16).padStart(2, '0'); // 16% → dark tint
+  return {
+    ...DEFAULT_BRAND_STYLE,
+    panelBg: `#${dk(r)}${dk(g)}${dk(b)}`,
+    headlineColor: '#FFFFFF',
+    bodyColor: '#E8E8EE',
+    accentColor: c,
+    buttonBg: c,
+    buttonText: lum > 0.62 ? '#1A1206' : '#FFFFFF',
+    buttonShadow: `rgba(${r},${g},${b},0.5)`,
+  };
+}

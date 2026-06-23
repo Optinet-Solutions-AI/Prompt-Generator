@@ -369,7 +369,7 @@ export default function EmailContentChecker() {
 
   // Mechanical fallback (used offline / if the AI clean is unavailable).
   const mechanicalClean = () => {
-    const fix = (s: string) => autoFix(s, { ignore: brand ? [brand] : [] });
+    const fix = (s: string) => autoFix(s, { ignore: brand ? [brand] : [], locale: doc.meta.locale });
     setDoc(d => ({
       ...d,
       meta: { ...d.meta, subject: fix(d.meta.subject), preheader: fix(d.meta.preheader) },

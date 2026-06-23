@@ -869,7 +869,7 @@ export default function EmailContentChecker() {
           {opts.badge}
         </div>
         {opts.note && <p className="text-[10px] text-muted-foreground line-clamp-1">{opts.note}</p>}
-        <div className="flex items-center gap-1 mt-auto pt-1">{opts.actions}</div>
+        <div className="flex flex-wrap items-center gap-1 mt-auto pt-1">{opts.actions}</div>
       </div>
     </div>
   );

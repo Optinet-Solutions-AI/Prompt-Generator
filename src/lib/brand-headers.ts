@@ -23,7 +23,7 @@ const NORMALIZED: Record<string, string> = Object.fromEntries(
 
 // Bump when a header image's pixels change, so browsers/CDN don't serve a stale
 // cached copy (the filename stays the same).
-const ASSET_V = '3';
+const ASSET_V = '4';
 
 // Absolutize against the current origin so the image resolves everywhere the
 // HTML lands — the inline iframe, a blob: preview tab, the downloaded file, and

@@ -284,6 +284,13 @@ export default function EmailContentChecker() {
     reader.onload = () => { if (reader.result) patchBlock(blockId, { mode: 'url', url: reader.result as string } as Partial<EmailBlock>); };
     reader.readAsDataURL(file); e.target.value = '';
   };
+  // Upload a header logo (for custom brands / overrides) — stored as a data URI.
+  const uploadLogo = (blockId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { if (reader.result) patchBlock(blockId, { logoUrl: reader.result as string } as Partial<EmailBlock>); };
+    reader.readAsDataURL(file); e.target.value = '';
+  };
 
   // ── Preview + checker ───────────────────────────────────────────────────
   const html = useMemo(() => buildBrandedEmail(doc, getBrandStyle(brand)).html, [doc, brand]);

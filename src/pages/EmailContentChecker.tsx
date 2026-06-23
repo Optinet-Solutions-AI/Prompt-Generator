@@ -546,7 +546,12 @@ export default function EmailContentChecker() {
           </select>
           {b.mode === 'url' && (
             <>
-              {b.url ? <img src={b.url} alt="" className="h-12 w-20 object-cover rounded border border-border" /> : null}
+              {b.url ? (
+                <div className="flex items-center gap-2">
+                  <img src={b.url} alt="" className="h-12 w-20 object-cover rounded border border-border" />
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-destructive" onClick={() => patchBlock(b.id, { url: '' } as Partial<EmailBlock>)}><X className="w-3 h-3" /> Remove image</Button>
+                </div>
+              ) : null}
               <div className="flex gap-1.5">
                 <Button type="button" variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={() => openLib(b.id)}><Images className="w-3.5 h-3.5" /> Browse</Button>
                 <label className="inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-border bg-background text-xs cursor-pointer hover:bg-muted"><Upload className="w-3.5 h-3.5" /> Upload<input type="file" accept="image/*" className="hidden" onChange={e => uploadFor(b.id, e)} /></label>

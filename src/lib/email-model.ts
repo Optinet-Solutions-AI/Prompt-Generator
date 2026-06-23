@@ -18,7 +18,8 @@ export interface BlockStyle {
   width?: number; // px max-width — image hero
   fullWidth?: boolean; // cta stretches to full width
   radius?: number; // px corner radius — image / button
-  hideRule?: boolean; // bonus: hide the left accent rule
+  hideRule?: boolean; // bonus: hide the accent rule (legacy — superseded by ruleSide)
+  ruleSide?: 'none' | 'left' | 'right'; // bonus: which side the accent rule sits on
 }
 
 interface BlockBase {

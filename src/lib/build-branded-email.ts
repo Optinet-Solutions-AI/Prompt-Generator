@@ -32,7 +32,7 @@ function spacing(st: BlockStyle, dTop: number, dBottom: number): string {
   return `margin:${st.spaceTop ?? dTop}px 0 ${st.spaceBottom ?? dBottom}px;`;
 }
 
-function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: string): string {
+function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: string, pal: Palette): string {
   const st: BlockStyle = b.style ?? {};
   switch (b.type) {
     case 'header': {

@@ -743,6 +743,9 @@ export default function EmailContentChecker() {
           <button type="button" onClick={() => setTab('builder')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'builder' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
             <Pencil className="w-3.5 h-3.5" /> Builder
           </button>
+          <button type="button" onClick={() => setTab('ai')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'ai' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
+            <Sparkles className="w-3.5 h-3.5" /> AI Tools
+          </button>
           <button type="button" onClick={() => setTab('checker')} className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === 'checker' ? 'bg-card shadow-sm text-foreground border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
             <ShieldCheck className="w-3.5 h-3.5" /> Content Checker
           </button>

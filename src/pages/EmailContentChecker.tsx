@@ -674,7 +674,17 @@ export default function EmailContentChecker() {
         {(b.type === 'hero' || b.type === 'header') && <div><Label className="text-[10px] mb-0.5 block">Width (px)</Label><Input type="number" value={num(st.width)} onChange={e => patchStyle(b.id, 'width', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>}
         {(b.type === 'hero' || b.type === 'cta' || b.type === 'header') && <div><Label className="text-[10px] mb-0.5 block">Corner radius (px)</Label><Input type="number" value={num(st.radius)} onChange={e => patchStyle(b.id, 'radius', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>}
         {b.type === 'cta' && <div className="flex items-end gap-1.5"><button type="button" onClick={() => patchStyle(b.id, 'fullWidth', !st.fullWidth)} className={`px-2 py-1 rounded border text-[11px] ${st.fullWidth ? 'border-primary bg-primary/10' : 'border-border text-muted-foreground'}`}>Full width</button></div>}
-        {b.type === 'bonus' && <div className="col-span-2 flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Left accent rule:</span><button type="button" onClick={() => patchStyle(b.id, 'hideRule', !st.hideRule)} className={`px-2 py-0.5 rounded border text-[11px] ${!st.hideRule ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>{st.hideRule ? 'Off' : 'On'}</button></div>}
+        {b.type === 'bonus' && (() => {
+          // Resolve current side: explicit ruleSide wins; fall back to legacy hideRule.
+          const side = st.ruleSide ?? (st.hideRule ? 'none' : 'left');
+          return (
+            <div className="col-span-2 flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Accent rule:</span>
+              {(['none', 'left', 'right'] as const).map(opt => (
+                <button key={opt} type="button" onClick={() => patchStyle(b.id, 'ruleSide', opt)} className={`px-2 py-0.5 rounded border text-[11px] capitalize ${side === opt ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>{opt}</button>
+              ))}
+            </div>
+          );
+        })()}
       </div>
     );
   };

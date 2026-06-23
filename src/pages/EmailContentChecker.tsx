@@ -890,7 +890,9 @@ export default function EmailContentChecker() {
         <Button type="button" size="sm" className="h-7 gap-1 text-xs ml-auto" onClick={generateVariations} disabled={varLoading}>
           {varLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} {varLoading ? 'Generating…' : variations.length ? 'Regenerate' : 'Generate'}
         </Button>
+        {variations.some(v => v.report.level !== 'clean') && <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={fixAllVariations} title="Clean the deliverability of every flagged variation"><Wand2 className="w-3 h-3" /> Fix all</Button>}
         {variations.length > 0 && <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={saveAllVariations} title="Save every variation to your templates"><Save className="w-3 h-3" /> Save all</Button>}
+        {variations.length > 0 && <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={downloadAllVariations} title="Download every variation as an HTML file"><Download className="w-3 h-3" /> Download all</Button>}
       </div>
       {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded m-3 px-2 py-1">{varError}</p>}
       <div className="p-3 overflow-y-auto">

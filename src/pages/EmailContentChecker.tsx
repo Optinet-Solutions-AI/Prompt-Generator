@@ -1046,16 +1046,18 @@ export default function EmailContentChecker() {
                       })}
                     </ul>
                   )}
-                </div>
-              )}
+                  </AccordionContent>
+                </AccordionItem>
 
-              {/* Step 5 — Deliverability / spam check */}
-              {step === 4 && report && (
-                <div className="border border-border rounded-lg bg-card p-3 space-y-2">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold">
-                    <ShieldCheck className={`w-3.5 h-3.5 ${report.level === 'clean' ? 'text-emerald-600' : report.level === 'caution' ? 'text-amber-500' : 'text-destructive'}`} /> Deliverability
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(report.level)}`}>{report.level === 'clean' ? 'Clean' : report.level === 'caution' ? 'Caution' : 'High risk'}{report.score > 0 && ` · ${report.score}`}</span>
-                  </span>
+                {report && (
+                  <AccordionItem value="check" className="border border-border rounded-lg bg-card px-3">
+                    <AccordionTrigger className="py-2.5 hover:no-underline">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold">
+                        <ShieldCheck className={`w-3.5 h-3.5 ${report.level === 'clean' ? 'text-emerald-600' : report.level === 'caution' ? 'text-amber-500' : 'text-destructive'}`} /> Deliverability
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(report.level)}`}>{report.level === 'clean' ? 'Clean' : report.level === 'caution' ? 'Caution' : 'High risk'}{report.score > 0 && ` · ${report.score}`}</span>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-3 space-y-2">
                       <div className="flex justify-end"><Button type="button" onClick={handleSanitize} disabled={cleaning} variant="ghost" size="sm" className="h-6 gap-1 text-[11px] px-2">{cleaning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />} {cleaning ? 'Cleaning…' : 'Clean up'}</Button></div>
                       {report.findings.length === 0 ? (
                         <p className="text-[11px] text-emerald-600 dark:text-emerald-400">No spam triggers detected — this copy should deliver well.</p>

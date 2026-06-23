@@ -275,7 +275,7 @@ export function lintDeliverability(
     }
   }
 
-  for (const word of GAMBLING) {
+  for (const word of pack.gambling) {
     if (countMatches(lower, `\\b${word}\\b`) > 0) {
       findings.push({
         type: "impression",

@@ -535,7 +535,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
 
       const KEYS = `{"subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
       const userPrompt = [
-        `Brand: ${brand || 'n/a'}. Target language: ${langName(locale)} (${locale}).`,
+        `Brand: ${brand || 'n/a'}. Target language: ${langName(locale)} (${locale}). Target currency: ${targetCurrency}.`,
         `Subject: ${subject || '(none)'}`,
         `Preheader: ${preheader || '(none)'}`,
         '',

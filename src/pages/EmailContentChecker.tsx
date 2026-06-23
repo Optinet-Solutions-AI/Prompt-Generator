@@ -515,11 +515,15 @@ export default function EmailContentChecker() {
           </select>
           {b.mode !== 'text' && (
             <>
-              <Label className="text-[11px] mb-0.5 block">Logo (optional override)</Label>
-              <Input value={b.logoUrl || ''} onChange={e => patchBlock(b.id, { logoUrl: e.target.value } as Partial<EmailBlock>)} placeholder="Brand logo used by default — paste a URL to override" className="h-8 text-sm" />
+              <Label className="text-[11px] mb-0.5 block">Logo {b.logoUrl ? '' : '(optional override)'}</Label>
+              {b.logoUrl && <img src={b.logoUrl} alt="" className="h-9 max-w-[140px] object-contain rounded border border-border bg-white p-0.5" />}
+              <div className="flex gap-1.5">
+                <Input value={b.logoUrl || ''} onChange={e => patchBlock(b.id, { logoUrl: e.target.value } as Partial<EmailBlock>)} placeholder="Paste a logo URL…" className="h-8 text-sm" />
+                <label className="inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-border bg-background text-xs cursor-pointer hover:bg-muted shrink-0"><Upload className="w-3.5 h-3.5" /> Upload<input type="file" accept="image/*" className="hidden" onChange={e => uploadLogo(b.id, e)} /></label>
+              </div>
             </>
           )}
-          <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set size (width) and position (align).</p>
+          <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set size (width), position (align) &amp; background.</p>
         </div>
       );
       case 'hero': return (

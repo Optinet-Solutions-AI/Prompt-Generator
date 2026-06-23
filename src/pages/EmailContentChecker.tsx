@@ -534,7 +534,7 @@ export default function EmailContentChecker() {
         const byId = new Map((v.blocks || []).map(e => [e.id, e.text || '']));
         const subject = byId.get('subject') ?? chkSubject;
         const body = byId.get('body') ?? bodyText;
-        const report = lintDeliverability(subject, body, { ignore: chkBrand ? [chkBrand] : [] });
+        const report = lintDeliverability(subject, body, { ignore: chkBrand ? [chkBrand] : [], locale: chkLocale });
         return { label: v.label, notes: v.notes, subject, body, report };
       });
       setChkVariations(results);

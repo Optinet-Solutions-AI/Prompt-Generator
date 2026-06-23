@@ -178,7 +178,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const legal = b.legal || c.legal_text || '';
       const unsub = safeUrl(b.unsubscribeUrl || c.unsubscribe_url || '');
       const unsubLine = unsub
-        ? `<div style="margin-top:8px;"><a href="${esc(unsub)}" style="color:${pal.muted};text-decoration:underline;">Unsubscribe</a></div>`
+        ? `<div style="margin-top:8px;"><a href="${esc(unsub)}" style="color:${pal.muted};text-decoration:underline;">${esc(lbl.unsubscribe)}</a></div>`
         : '';
       const fAlign = st.align ?? 'left';
       return `<tr><td style="background:${pal.footerBg};border-top:2px solid ${s.accentColor};padding:22px 32px;font-family:${FONT_STACK};font-size:${st.fontSize ?? 12}px;line-height:1.6;color:${st.color || pal.light};text-align:${fAlign};">` +

@@ -225,7 +225,7 @@ export default function EmailContentChecker() {
       const t = EMAIL_TEMPLATES.find(x => x.id === activeTemplate);
       if (t) { setDoc(buildTemplateDoc(t, nb, genId)); return; }
     }
-    setDoc(d => ({ ...d, meta: { ...d.meta, brand: nb } }));
+    setDoc(d => ({ ...d, meta: { ...d.meta, brand: nb, themeColor: undefined } }));
   };
   const loadTemplate = (id: string) => {
     const t = EMAIL_TEMPLATES.find(x => x.id === id);

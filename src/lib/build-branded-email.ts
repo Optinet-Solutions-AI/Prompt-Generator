@@ -109,7 +109,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       return cell(`<div style="text-align:${st.align ?? 'center'};${spacing(st, 26, 6)}"><a href="${esc(href)}" style="${disp}background:${s.buttonBg};color:${s.buttonText};font-family:${s.fontFamily};font-size:${st.fontSize ?? 15}px;font-weight:700;text-decoration:none;padding:13px 32px;border-radius:${st.radius ?? 6}px;box-shadow:0 6px 18px ${s.buttonShadow};">${esc(b.label)}</a></div>`);
     }
     case 'divider':
-      return cell(`<div style="border-top:1px solid ${st.color || LINE_COLOR};${spacing(st, 24, 0)}"></div>`);
+      return cell(`<div style="border-top:1px solid ${st.color || pal.line};${spacing(st, 24, 0)}"></div>`);
     case 'wordmark': {
       const mark = `<span style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 20}px;font-weight:700;color:${st.color || s.accentColor};letter-spacing:.04em;">${esc(brand)}</span>`;
       const inner = c.wordmark_dark_bg

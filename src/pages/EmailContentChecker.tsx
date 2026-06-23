@@ -974,6 +974,10 @@ export default function EmailContentChecker() {
                     <button type="button" onClick={() => setDevice('desktop')} title="Desktop" className={`p-1 rounded transition-colors ${device === 'desktop' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Monitor className="w-3.5 h-3.5" /></button>
                     <button type="button" onClick={() => setDevice('mobile')} title="Mobile" className={`p-1 rounded transition-colors ${device === 'mobile' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Smartphone className="w-3.5 h-3.5" /></button>
                   </div>
+                  <div className="flex gap-0.5 p-0.5 rounded-md bg-muted border border-border">
+                    <button type="button" onClick={() => patchMeta({ dark: false })} title="Light background" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${!doc.meta.dark ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Light</button>
+                    <button type="button" onClick={() => patchMeta({ dark: true })} title="Dark background" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${doc.meta.dark ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Dark</button>
+                  </div>
                 </div>
                 <div className="flex gap-1.5">
                   <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => previewVar(html)}><Eye className="w-3 h-3" /> Full preview</Button>

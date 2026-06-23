@@ -187,10 +187,11 @@ export function lintDeliverability(
     if (t) text = text.replace(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
   }
   const lower = text.toLowerCase();
+  const pack = packFor(opts.locale);
 
   // 1. Spam words — boundary-aware (longer phrases first so they win over substrings).
   const seen = new Set<string>();
-  for (const term of Object.keys(SPAM_WORDS).sort((a, b) => b.length - a.length)) {
+  for (const term of Object.keys(pack.spam).sort((a, b) => b.length - a.length)) {
     if (!matchesTerm(lower, term)) continue;
     if (seen.has(term)) continue;
     seen.add(term);
@@ -199,7 +200,7 @@ export function lintDeliverability(
       severity: term.includes(" ") ? "high" : "medium",
       match: term,
       message: `"${term}" is a high-risk spam trigger.`,
-      suggestion: `Try "${SPAM_WORDS[term]}".`,
+      suggestion: `Try "${pack.spam[term]}".`,
     });
   }
 

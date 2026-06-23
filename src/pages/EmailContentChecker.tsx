@@ -927,12 +927,13 @@ export default function EmailContentChecker() {
                       {translateError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1 mt-1">{translateError}</p>}
                     </div>
                     <button type="button" onClick={() => setTab('templates')} className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"><LayoutTemplate className="w-3 h-3" /> Change template</button>
-                  </AccordionContent>
-                </AccordionItem>
+                </div>
+              )}
 
-                <AccordionItem value="blocks" className="border border-border rounded-lg bg-card px-3">
-                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><LayoutTemplate className="w-3.5 h-3.5 text-primary" /> Email blocks <span className="text-[10px] font-normal text-muted-foreground">({doc.blocks.length})</span></span></AccordionTrigger>
-                  <AccordionContent className="pb-3 space-y-2">
+              {/* Step 3 — Build blocks */}
+              {step === 2 && (
+                <div className="border border-border rounded-lg bg-card p-3 space-y-2">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold"><LayoutTemplate className="w-3.5 h-3.5 text-primary" /> Email blocks <span className="text-[10px] font-normal text-muted-foreground">({doc.blocks.length})</span></span>
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add:</span>
                       {ADDABLE.map(a => (

@@ -436,7 +436,7 @@ export default function EmailContentChecker() {
           else if (b.type === 'bonus') parts.push(b.offer);
           else if (b.type === 'cta') parts.push(b.label);
         }
-        const report = lintDeliverability(subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [] });
+        const report = lintDeliverability(subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [], locale: doc.meta.locale });
         const fields = [
           ...(subject ? [{ label: 'Subject', value: subject }] : []),
           ...(preheader ? [{ label: 'Preheader', value: preheader }] : []),

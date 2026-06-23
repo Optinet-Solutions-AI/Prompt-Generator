@@ -804,6 +804,87 @@ export default function EmailContentChecker() {
     </div>
   );
 
+  // Variation card used inside the inline panel (Original + each generated variation).
+  const varCard = (
+    opts: { thumb: string; title: string; badge?: React.ReactNode; note?: string; rows: { label: string; value: string }[]; actions: React.ReactNode; highlight?: boolean },
+  ) => (
+    <div className={`rounded-lg border bg-background overflow-hidden flex flex-col ${opts.highlight ? 'border-2 border-primary/40' : 'border-border'}`}>
+      <Thumb html={opts.thumb} w={330} h={170} />
+      <div className="p-2.5 space-y-1.5 flex-1 flex flex-col">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold truncate">{opts.title}</p>
+          {opts.badge}
+        </div>
+        {opts.note && <p className="text-[10px] text-muted-foreground leading-snug">{opts.note}</p>}
+        <div className="space-y-0.5 flex-1">
+          {opts.rows.map((r, j) => (
+            <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{r.label}: </span>{r.value}</p>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">{opts.actions}</div>
+      </div>
+    </div>
+  );
+
+  // Inline variations panel — sits to the RIGHT of the live preview (no popup).
+  // Pick how many, Generate, then keep/use any of them (plus the original).
+  const variationsPanel = (
+    <div className="lg:sticky lg:top-5 self-start rounded-xl border border-border bg-card flex flex-col" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
+      <div className="flex items-center justify-between gap-2 p-3 border-b border-border">
+        <span className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="w-4 h-4 text-primary" /> Variations{variations.length > 0 && <span className="text-xs font-normal text-muted-foreground">(orig + {variations.length})</span>}</span>
+        <button type="button" onClick={() => setVarPanelOpen(false)} title="Close" className="p-1 rounded hover:bg-muted text-muted-foreground"><X className="w-4 h-4" /></button>
+      </div>
+      <div className="p-3 border-b border-border flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-muted-foreground">How many:</span>
+        <Input type="number" min={1} max={10} value={varCount} onChange={e => setVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))} className="h-7 w-14 text-xs" />
+        <span className="text-[10px] text-muted-foreground">max 10</span>
+        <Button type="button" size="sm" className="h-7 gap-1 text-xs ml-auto" onClick={generateVariations} disabled={varLoading}>
+          {varLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} {varLoading ? 'Generating…' : variations.length ? 'Regenerate' : 'Generate'}
+        </Button>
+        {variations.length > 0 && <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={saveAllVariations} title="Save every variation to your templates"><Save className="w-3 h-3" /> Save all</Button>}
+      </div>
+      {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded m-3 px-2 py-1">{varError}</p>}
+      <div className="p-3 space-y-3 overflow-y-auto">
+        {variations.length === 0 && !varLoading && (
+          <p className="text-xs text-muted-foreground text-center py-8">Choose how many, then <strong>Generate</strong> — reworded versions appear here next to your email.</p>
+        )}
+        {variations.length > 0 && varCard({
+          thumb: html,
+          title: 'Original',
+          highlight: true,
+          badge: <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-primary/15 text-primary">Current</span>,
+          note: 'Your email as it is now.',
+          rows: [
+            ...(doc.meta.subject ? [{ label: 'Subject', value: doc.meta.subject }] : []),
+            ...(doc.meta.preheader ? [{ label: 'Preheader', value: doc.meta.preheader }] : []),
+          ],
+          actions: (<>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => previewVar(html)}><Eye className="w-3 h-3" /> Preview</Button>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={saveAsTemplate}><Save className="w-3 h-3" /> Save</Button>
+          </>),
+        })}
+        {variations.map((v, i) => {
+          const saved = savedVarIdx.includes(i);
+          return (
+            <div key={i}>{varCard({
+              thumb: v.html,
+              title: v.label,
+              badge: <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>,
+              note: v.notes,
+              rows: v.fields,
+              actions: (<>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => saveVariation(v, i)} disabled={saved}>{saved ? <><Check className="w-3 h-3" /> Saved</> : <><Save className="w-3 h-3" /> Save</>}</Button>
+                <Button type="button" size="sm" className="h-7 text-[11px] px-2 ml-auto" onClick={() => useVariation(v)}>Use</Button>
+              </>),
+            })}</div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5">

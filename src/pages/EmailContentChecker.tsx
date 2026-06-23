@@ -914,12 +914,21 @@ export default function EmailContentChecker() {
                           onDrop={() => { if (dragIdx !== null) reorderBlocks(dragIdx, i); setDragIdx(null); }}
                           className={`rounded-lg border bg-background p-2.5 transition-shadow ${dragIdx === i ? 'opacity-40' : ''} ${dragIdx !== null && dragIdx !== i ? 'border-dashed border-primary/50' : 'border-border'}`}
                         >
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                          {/* The whole top bar is the drag handle — a big grab area, so the block
+                              can be picked up anywhere across it (not just the tiny grip icon). */}
+                          <div
+                            draggable
+                            onDragStart={() => setDragIdx(i)}
+                            onDragEnd={() => setDragIdx(null)}
+                            title="Drag to reorder"
+                            className="flex items-center justify-between gap-2 mb-1.5 cursor-grab active:cursor-grabbing select-none"
+                          >
                             <span className="flex items-center gap-1 min-w-0">
-                              <span draggable onDragStart={() => setDragIdx(i)} onDragEnd={() => setDragIdx(null)} title="Drag to reorder" className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"><GripVertical className="w-3.5 h-3.5" /></span>
+                              <span className="text-muted-foreground"><GripVertical className="w-3.5 h-3.5" /></span>
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">{TYPE_LABEL[b.type]}</span>
                             </span>
-                            <div className="flex items-center gap-1">
+                            {/* Action buttons: stop drag from starting so clicks/taps register cleanly. */}
+                            <div className="flex items-center gap-1" draggable={false} onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                               {b.type !== 'divider' && b.type !== 'wordmark' && (
                                 <button type="button" onClick={() => setOpenStyle(openStyle === b.id ? null : b.id)} title="Style" className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] ${openStyle === b.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}><SlidersHorizontal className="w-3 h-3" /> Style</button>
                               )}

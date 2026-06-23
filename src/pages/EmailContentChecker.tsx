@@ -482,7 +482,7 @@ export default function EmailContentChecker() {
   const chkSanitize = async () => {
     setChkCleaning(true);
     const ig = chkBrand ? [chkBrand] : [];
-    const fallback = () => { setChkSubject(s => autoFix(s, { ignore: ig })); setChkBody(s => autoFix(s, { ignore: ig })); };
+    const fallback = () => { setChkSubject(s => autoFix(s, { ignore: ig, locale: chkLocale })); setChkBody(s => autoFix(s, { ignore: ig, locale: chkLocale })); };
     try {
       const blocks = [
         { id: 'subject', type: 'heading', text: chkSubject },
@@ -490,7 +490,7 @@ export default function EmailContentChecker() {
       ].filter(x => x.text.trim());
       const res = await fetch('/api/clean-email-copy', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: chkSubject, brand: chkBrand, locale: 'en', blocks }),
+        body: JSON.stringify({ subject: chkSubject, brand: chkBrand, locale: chkLocale, blocks }),
       });
       if (res.ok) {
         const data = await res.json() as { subject?: string; blocks?: { id: string; text?: string }[] };

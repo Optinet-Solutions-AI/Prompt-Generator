@@ -168,6 +168,8 @@ const SEVERITY_WEIGHT: Record<Severity, number> = { high: 18, medium: 9, low: 4 
 export interface LintOptions {
   /** Terms to exempt from detection — e.g. the brand name, so "Fortune Play" isn't read as "play". */
   ignore?: string[];
+  /** Language for the term lists: 'en' (default) | 'de' | 'no' | 'it'. */
+  locale?: string;
 }
 
 export function lintDeliverability(

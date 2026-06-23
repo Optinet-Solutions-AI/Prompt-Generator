@@ -41,7 +41,9 @@ export type BlockType = EmailBlock['type'];
 
 export interface EmailDoc {
   // `locale` is the language to write content in; `country` is the picker selection it's derived from.
-  meta: { brand: string; locale: string; subject: string; preheader: string; country?: string };
+  // `themeColor` (optional) overrides the brand palette with a single signature
+  // colour — used for custom brands not built into the app.
+  meta: { brand: string; locale: string; subject: string; preheader: string; country?: string; themeColor?: string };
   blocks: EmailBlock[];
 }
 

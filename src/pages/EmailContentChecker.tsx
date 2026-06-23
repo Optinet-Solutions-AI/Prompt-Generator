@@ -978,13 +978,12 @@ export default function EmailContentChecker() {
                         </div>
                       ))}
                     </div>
-                </div>
-              )}
+                  </AccordionContent>
+                </AccordionItem>
 
-              {/* Step 4 — Generate variations */}
-              {step === 3 && (
-                <div className="border border-border rounded-lg bg-card p-3 space-y-2">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Generate variations{variations.length > 0 && <span className="text-[10px] font-normal text-muted-foreground">({variations.length})</span>}</span>
+                <AccordionItem value="variations" className="border border-border rounded-lg bg-card px-3">
+                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Generate variations{variations.length > 0 && <span className="text-[10px] font-normal text-muted-foreground">({variations.length})</span>}</span></AccordionTrigger>
+                  <AccordionContent className="pb-3 space-y-2">
                   <div className="flex items-center justify-end gap-1.5">
                     <span className="text-[11px] text-muted-foreground">Count:</span>
                     <Input type="number" min={1} max={10} value={varCount} onChange={e => setVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))} className="h-7 w-16 text-xs" />

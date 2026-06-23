@@ -809,8 +809,8 @@ export default function EmailContentChecker() {
   const varCard = (
     opts: { thumb: string; title: string; badge?: ReactNode; note?: string; actions: ReactNode },
   ) => (
-    <div className="rounded-lg border border-border bg-background overflow-hidden flex flex-col">
-      <Thumb html={opts.thumb} w={190} h={116} />
+    <div className="rounded-lg border border-border bg-background overflow-hidden flex flex-col w-full">
+      <Thumb html={opts.thumb} w={230} h={150} />
       <div className="p-2 flex-1 flex flex-col gap-1">
         <div className="flex items-center justify-between gap-1">
           <p className="text-[11px] font-semibold truncate">{opts.title}</p>

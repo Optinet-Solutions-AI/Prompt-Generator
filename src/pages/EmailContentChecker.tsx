@@ -390,18 +390,36 @@ export default function EmailContentChecker() {
     setDirty(true);
   };
   // AI clean: rewrites to remove ALL flagged issues (incl. repetition); falls back to mechanical.
+  // Whatever comes back, we ALSO run the deterministic locale-aware autoFix as a
+  // guaranteed final pass — so flagged terms (incl. German/Norwegian/Italian like
+  // "angebot") are removed even if the AI prompt misses them.
   const handleSanitize = async () => {
     setCleaning(true);
+    const fix = (s: string) => autoFix(s, { ignore: brand ? [brand] : [], locale: doc.meta.locale });
+    // The exact flagged spam terms + safer alternatives, so the AI fixes the right words in any language.
+    const terms = (report?.findings ?? [])
+      .filter(f => f.type === 'spam_word')
+      .map(f => ({ from: f.match, to: f.suggestion?.match(/"([^"]+)"/)?.[1] || '' }))
+      .filter(t => t.to);
     try {
       const res = await fetch('/api/clean-email-copy', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: doc.meta.subject, preheader: doc.meta.preheader, brand, locale: doc.meta.locale, blocks: editableBlocks(doc) }),
+        body: JSON.stringify({ subject: doc.meta.subject, preheader: doc.meta.preheader, brand, locale: doc.meta.locale, blocks: editableBlocks(doc), terms }),
       });
       if (res.ok) {
         const data = await res.json() as { subject?: string; preheader?: string; blocks?: EditField[] };
         setDoc(d => {
           const withBlocks = applyEdits(d, (data.blocks || []) as EditField[]);
-          return { ...withBlocks, meta: { ...withBlocks.meta, subject: data.subject || d.meta.subject, preheader: data.preheader || d.meta.preheader } };
+          return {
+            ...withBlocks,
+            meta: { ...withBlocks.meta, subject: fix(data.subject || d.meta.subject), preheader: fix(data.preheader || d.meta.preheader) },
+            blocks: withBlocks.blocks.map(b => {
+              if (b.type === 'heading' || b.type === 'paragraph') return { ...b, text: fix(b.text) };
+              if (b.type === 'bonus') return { ...b, offer: fix(b.offer) };
+              if (b.type === 'cta') return { ...b, label: fix(b.label) };
+              return b;
+            }),
+          };
         });
         setDirty(true);
       } else {

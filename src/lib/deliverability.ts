@@ -132,6 +132,33 @@ function matchesTerm(haystack: string, term: string): boolean {
   return new RegExp(`${left}${esc}${right}`, "i").test(haystack);
 }
 
+// ── Localized term packs (DE / NO / IT). English uses the constants above. ───
+interface LangPack { spam: Record<string, string>; urgency: string[]; gambling: string[]; salesCta: string[] }
+const PACKS: Record<string, LangPack> = {
+  de: {
+    spam: { gratis: 'inklusive', kostenlos: 'ohne Aufpreis', gewinnen: 'erhalten', gewinn: 'Vorteil', garantiert: 'zuverlässig', bonus: 'Mehrwert', freispiele: 'Freirunden', aktion: 'Update', angebot: 'Option', 'limitiertes angebot': 'aktuelle Verfügbarkeit', jackpot: 'Hauptpreis', sofort: 'schnell', bargeld: 'Guthaben' },
+    urgency: ['nur heute', 'letzte chance', 'läuft ab', 'beeil dich', 'verpassen sie nicht', 'jetzt zugreifen'],
+    gambling: ['casino', 'wetten', 'spielautomaten', 'poker', 'roulette', 'glücksspiel', 'jackpot'],
+    salesCta: ['jetzt kaufen', 'jetzt bestellen', 'hier klicken', 'jetzt anmelden'],
+  },
+  no: {
+    spam: { gratis: 'inkludert', vinn: 'få', vinne: 'få', gevinst: 'fordel', garantert: 'pålitelig', bonus: 'ekstra verdi', gratisspinn: 'gratisrunder', kampanje: 'oppdatering', tilbud: 'alternativ', umiddelbar: 'rask', kontanter: 'saldo', jackpot: 'toppgevinst' },
+    urgency: ['kun i dag', 'siste sjanse', 'utløper', 'skynd deg', 'ikke gå glipp av'],
+    gambling: ['casino', 'betting', 'spilleautomater', 'poker', 'rulett', 'pengespill', 'jackpot'],
+    salesCta: ['kjøp nå', 'bestill nå', 'klikk her', 'registrer deg nå'],
+  },
+  it: {
+    spam: { gratis: 'incluso', gratuito: 'incluso', vinci: 'ottieni', vincere: 'ottenere', vincita: 'vantaggio', garantito: 'affidabile', bonus: 'valore extra', 'giri gratis': 'giri inclusi', promozione: 'aggiornamento', offerta: 'opzione', istantaneo: 'rapido', contanti: 'saldo', jackpot: 'premio principale' },
+    urgency: ['solo oggi', 'ultima possibilità', 'scade', 'affrettati', 'non perdere'],
+    gambling: ['casinò', 'scommesse', 'slot', 'poker', 'roulette', "gioco d'azzardo", 'jackpot'],
+    salesCta: ['compra ora', 'ordina ora', 'clicca qui', 'registrati ora'],
+  },
+};
+function packFor(locale?: string): LangPack {
+  if (locale && PACKS[locale]) return PACKS[locale];
+  return { spam: SPAM_WORDS, urgency: URGENCY, gambling: GAMBLING, salesCta: SALES_CTA };
+}
+
 const SEVERITY_WEIGHT: Record<Severity, number> = { high: 18, medium: 9, low: 4 };
 
 /**

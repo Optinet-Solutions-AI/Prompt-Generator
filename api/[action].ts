@@ -524,7 +524,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
         'You write fresh marketing email copy for a brand and an offer.',
         'Return ONLY the requested fields as JSON — concise, natural, and specific, like a real 1:1 email.',
         brand ? `Keep the brand name "${brand}" exactly as given.` : '',
-        `Write in this language/locale: ${locale}.`,
+        `Write the entire email in ${langName(locale)}.`,
         'Do NOT include any HTML, styling, or layout — only text.',
         'SANITIZE for deliverability — mandatory:',
         RULES,

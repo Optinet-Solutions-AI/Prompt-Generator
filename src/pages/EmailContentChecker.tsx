@@ -1078,11 +1078,15 @@ export default function EmailContentChecker() {
                           ))}
                         </ul>
                       )}
-                    </AccordionContent>
-                  </AccordionItem>
-                )}
+                </div>
+              )}
 
-              </Accordion>
+              {/* Back / Next navigation */}
+              <div className="flex items-center justify-between pt-1">
+                <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs" disabled={step === 0} onClick={() => setStep(s => Math.max(0, s - 1))}><ChevronLeft className="w-3.5 h-3.5" /> Back</Button>
+                <span className="text-[10px] text-muted-foreground">Step {step + 1} of {BUILDER_STEPS.length}</span>
+                <Button type="button" size="sm" className="h-8 gap-1 text-xs" disabled={step === BUILDER_STEPS.length - 1} onClick={() => setStep(s => Math.min(BUILDER_STEPS.length - 1, s + 1))}>Next <ChevronRight className="w-3.5 h-3.5" /></Button>
+              </div>
             </div>
 
             {/* RIGHT: shared live preview */}
@@ -1091,7 +1095,7 @@ export default function EmailContentChecker() {
         </>
         )}
 
-        {tab === 'ai' && (
+        {false && (
         <div className="grid lg:grid-cols-2 gap-4">
           {/* LEFT: AI tools, pulled out of the builder rail to keep it uncluttered */}
           <div className="lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1 space-y-3">

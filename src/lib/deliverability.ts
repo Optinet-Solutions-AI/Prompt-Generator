@@ -263,7 +263,7 @@ export function lintDeliverability(
     }
   }
 
-  for (const phrase of SALES_CTA) {
+  for (const phrase of pack.salesCta) {
     if (lower.includes(phrase) && !seen.has(phrase)) {
       findings.push({
         type: "impression",

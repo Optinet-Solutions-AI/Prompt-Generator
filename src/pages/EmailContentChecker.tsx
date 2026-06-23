@@ -477,8 +477,8 @@ export default function EmailContentChecker() {
     const subj = chkSubject.trim();
     const body = stripHtml(chkBody);
     if (!subj && !body) return null;
-    return lintDeliverability(subj, body, { ignore: chkBrand ? [chkBrand] : [] });
-  }, [chkSubject, chkBody, chkBrand]);
+    return lintDeliverability(subj, body, { ignore: chkBrand ? [chkBrand] : [], locale: chkLocale });
+  }, [chkSubject, chkBody, chkBrand, chkLocale]);
   const chkSanitize = async () => {
     setChkCleaning(true);
     const ig = chkBrand ? [chkBrand] : [];

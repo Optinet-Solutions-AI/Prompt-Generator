@@ -854,6 +854,23 @@ export default function EmailContentChecker() {
                       <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
                       <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>
                     </div>
+                    {/* Language: available for ANY template (not only AI drafting). Pick a
+                        language, then "Translate" rewrites the current email in place. */}
+                    <div>
+                      <Label className="text-[11px] mb-0.5 block">Language</Label>
+                      <div className="flex items-center gap-1.5">
+                        <select value={doc.meta.locale} onChange={e => patchMeta({ locale: e.target.value })} className="h-8 text-sm rounded-md border border-border bg-background px-2 flex-1">
+                          <option value="en">English</option>
+                          <option value="de">German</option>
+                          <option value="no">Norwegian</option>
+                          <option value="it">Italian</option>
+                        </select>
+                        <Button type="button" variant="outline" size="sm" className="h-8 gap-1 text-xs whitespace-nowrap" onClick={translateEmail} disabled={translating} title="Translate this email's copy into the selected language">
+                          {translating ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Translating…</> : <><Sparkles className="w-3.5 h-3.5" /> Translate</>}
+                        </Button>
+                      </div>
+                      {translateError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1 mt-1">{translateError}</p>}
+                    </div>
                     <button type="button" onClick={() => setTab('templates')} className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"><LayoutTemplate className="w-3 h-3" /> Change template</button>
                   </AccordionContent>
                 </AccordionItem>

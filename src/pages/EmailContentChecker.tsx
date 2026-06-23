@@ -869,8 +869,8 @@ export default function EmailContentChecker() {
               thumb: v.html,
               title: v.label,
               badge: <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>,
-              note: v.notes,
-              rows: v.fields,
+              note: v.subject || v.notes,
+              rows: [],
               actions: (<>
                 <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
                 <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>

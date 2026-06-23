@@ -698,6 +698,8 @@ export default function EmailContentChecker() {
                         <button key={b} type="button" onClick={() => selectBrand(b)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === b ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{b}</button>
                       ))}
                     </div>
+                    <div><Label className="text-[11px] mb-0.5 block">Brand name <span className="font-normal normal-case text-muted-foreground">(type any — for a custom brand)</span></Label>
+                      <Input value={brand} onChange={e => patchMeta({ brand: e.target.value })} placeholder="e.g. My New Brand" className="h-8 text-sm" /></div>
                     <div className="grid grid-cols-2 gap-1.5">
                       <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
                       <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>

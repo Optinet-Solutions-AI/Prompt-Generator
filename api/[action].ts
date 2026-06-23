@@ -504,6 +504,56 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       }
     }
 
+    // ── TRANSLATE EMAIL — translate the current email's copy into a language ─
+    // Mirrors clean-email-copy's shape (subject/preheader/blocks in, same out)
+    // but ONLY translates — keeps meaning, offer, structure, ids and types. Lets
+    // ANY template be localised in place without re-drafting from a brief.
+    if (action === 'translate-email') {
+      const data = req.body || {};
+      const subject   = (data.subject   || '').toString();
+      const preheader = (data.preheader || '').toString();
+      const brand     = (data.brand     || '').toString();
+      const locale    = (data.locale    || 'en').toString();
+      const blocks    = Array.isArray(data.blocks) ? data.blocks : [];
+      if (!blocks.length && !subject && !preheader) return res.status(400).json({ error: 'No content provided.' });
+
+      const SYSTEM = [
+        `You are a professional marketing translator. Translate the email copy into ${langName(locale)}.`,
+        'Keep the SAME meaning, offer, tone, and structure — translate faithfully, do not rewrite or add content.',
+        'Use natural, idiomatic marketing language for the target language (not a word-for-word literal translation).',
+        brand ? `Keep the brand name "${brand}" exactly as given — never translate it.` : '',
+        'Keep any bonus codes, URLs, numbers, and currency codes (USD, EUR, GBP) unchanged.',
+        'Do NOT introduce exclamation marks, currency symbols, or spam-trigger wording.',
+        'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',
+      ].filter(Boolean).join('\n');
+
+      const KEYS = `{"subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
+      const userPrompt = [
+        `Brand: ${brand || 'n/a'}. Target language: ${langName(locale)} (${locale}).`,
+        `Subject: ${subject || '(none)'}`,
+        `Preheader: ${preheader || '(none)'}`,
+        '',
+        'BLOCKS (JSON):',
+        JSON.stringify(blocks),
+        '',
+        'Translate the subject, preheader, and each block. Return strict JSON with exactly these keys:',
+        KEYS,
+      ].join('\n');
+
+      try {
+        const raw = await chatCompletion({ systemPrompt: SYSTEM, userPrompt, temperature: 0.3, model: 'gpt-4o-mini', maxTokens: 1400 });
+        const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+        const parsed = JSON.parse(cleaned) as { subject?: string; preheader?: string; blocks?: unknown[] };
+        return res.status(200).json({
+          subject: (parsed.subject ?? subject).toString(),
+          preheader: (parsed.preheader ?? preheader).toString(),
+          blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
+        });
+      } catch {
+        return res.status(502).json({ error: 'Translation failed. Try again.' });
+      }
+    }
+
     // ── DRAFT EMAIL — write a full branded email from a one-line brief ──────
     // Returns subject + preheader + heading + intro + bonus + body + cta label,
     // deliverability-sanitised. The builder maps these onto the doc's blocks.

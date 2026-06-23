@@ -253,6 +253,31 @@ export default function EmailContentChecker() {
     setDirty(false);
   };
 
+  // Draft a full email from a one-line idea (subject, preheader, heading, body, bonus, CTA).
+  const draftEmail = async () => {
+    if (!brief.trim()) { setDraftError('Describe the email idea first.'); return; }
+    setDrafting(true); setDraftError(null);
+    try {
+      const res = await fetch('/api/draft-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief: brief.trim(), brand, locale: doc.meta.locale }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({} as { error?: string }));
+        setDraftError(e.error || `Request failed (${res.status})`);
+        return;
+      }
+      const d = await res.json() as DraftFields;
+      setDoc(cur => applyDraft(cur, d));
+      setDirty(true);
+      setActiveTemplate('');
+    } catch {
+      setDraftError('Could not reach the AI service. Try again.');
+    } finally {
+      setDrafting(false);
+    }
+  };
+
   // Template gallery → builder
   const chooseTemplate = (id: string) => { loadTemplate(id); setTab('builder'); };
   const startBlank = () => { setDoc(defaultEmailDoc(brand, genId)); setActiveTemplate(''); setDirty(true); setTab('builder'); };

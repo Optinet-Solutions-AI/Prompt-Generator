@@ -983,40 +983,109 @@ export default function EmailContentChecker() {
               </Accordion>
             </div>
 
-            {/* RIGHT: framed preview with device toggle */}
-            <div className="lg:sticky lg:top-5 self-start space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Small>Live preview</Small>
-                  <div className="flex gap-0.5 p-0.5 rounded-md bg-muted border border-border">
-                    <button type="button" onClick={() => setDevice('desktop')} title="Desktop" className={`p-1 rounded transition-colors ${device === 'desktop' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Monitor className="w-3.5 h-3.5" /></button>
-                    <button type="button" onClick={() => setDevice('mobile')} title="Mobile" className={`p-1 rounded transition-colors ${device === 'mobile' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Smartphone className="w-3.5 h-3.5" /></button>
-                  </div>
-                  <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted border border-border">
-                    {/* Light / Dark clear any custom colour; Custom reveals a colour picker. */}
-                    <button type="button" onClick={() => patchMeta({ dark: false, bgColor: undefined })} title="Light background" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${!doc.meta.dark && !doc.meta.bgColor ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Light</button>
-                    <button type="button" onClick={() => patchMeta({ dark: true, bgColor: undefined })} title="Dark background" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${doc.meta.dark && !doc.meta.bgColor ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Dark</button>
-                    <button type="button" onClick={() => patchMeta({ bgColor: doc.meta.bgColor || '#f4ede2' })} title="Custom background colour" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${doc.meta.bgColor ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Custom</button>
-                    {doc.meta.bgColor && (
-                      <input type="color" value={doc.meta.bgColor} onChange={e => patchMeta({ bgColor: e.target.value })} title="Pick background colour" className="w-6 h-6 rounded border border-border bg-transparent cursor-pointer p-0" />
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-1.5">
-                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => previewVar(html)}><Eye className="w-3 h-3" /> Full preview</Button>
-                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={saveAsTemplate}><Save className="w-3 h-3" /> Save</Button>
-                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
-                  <Button type="button" size="sm" className="h-7 gap-1 text-xs" onClick={downloadHtml}><Download className="w-3 h-3" /> Download</Button>
-                </div>
-              </div>
-              <div className="rounded-xl border border-border bg-muted/40 p-3 flex justify-center overflow-auto" style={{ height: 'calc(100vh - 10rem)' }}>
-                <div className="bg-white rounded-lg shadow-md overflow-hidden h-full" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: device === 'mobile' ? 390 : 680, transition: 'width .2s ease' }}>
-                  <iframe title="Email preview" srcDoc={html} sandbox="" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
-                </div>
-              </div>
-            </div>
+            {/* RIGHT: shared live preview */}
+            {previewPane}
           </div>
         </>
+        )}
+
+        {tab === 'ai' && (
+        <div className="grid lg:grid-cols-2 gap-4">
+          {/* LEFT: AI tools, pulled out of the builder rail to keep it uncluttered */}
+          <div className="lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1 space-y-3">
+            <p className="text-xs text-muted-foreground">AI tools work on the current email — results update the live preview and the blocks in the Builder tab.</p>
+
+            {/* Write with AI */}
+            <div className="border border-primary/30 rounded-lg bg-primary/5 p-3 space-y-2">
+              <span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Write with AI</span>
+              <p className="text-[11px] text-muted-foreground">Describe the email — AI drafts the subject, preheader, heading, body, bonus &amp; CTA, then fills the blocks.</p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">Language:</span>
+                <select value={doc.meta.locale} onChange={e => patchMeta({ locale: e.target.value })} className="h-7 text-xs rounded-md border border-border bg-background px-2 flex-1">
+                  <option value="en">English</option>
+                  <option value="de">German</option>
+                  <option value="no">Norwegian</option>
+                  <option value="it">Italian</option>
+                </select>
+              </div>
+              <Textarea value={brief} onChange={e => setBrief(e.target.value)} placeholder="e.g. Welcome offer: extra value up to USD 200, no deposit, ends Friday" className="min-h-[56px] text-sm" />
+              <Button type="button" onClick={draftEmail} disabled={drafting || !brief.trim()} className="w-full h-8 gap-1.5 text-xs">
+                {drafting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Drafting…</> : <><Sparkles className="w-3.5 h-3.5" /> Draft the email</>}
+              </Button>
+              {draftError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{draftError}</p>}
+            </div>
+
+            {/* Generate variations */}
+            <div className="border border-border rounded-lg bg-card p-3 space-y-2">
+              <span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Generate variations{variations.length > 0 && <span className="text-[10px] font-normal text-muted-foreground">({variations.length})</span>}</span>
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-[11px] text-muted-foreground">Count:</span>
+                <Input type="number" min={1} max={10} value={varCount} onChange={e => setVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))} className="h-7 w-16 text-xs" />
+                <span className="text-[10px] text-muted-foreground">max 10</span>
+              </div>
+              <Button type="button" onClick={generateVariations} disabled={varLoading} variant="outline" className="w-full h-8 gap-1.5 text-xs">
+                {varLoading ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Rewording the copy…</> : <><Sparkles className="w-3.5 h-3.5" /> Reword the copy with AI</>}
+              </Button>
+              {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{varError}</p>}
+              {variations.length > 0 && (
+                <ul className="space-y-1.5">
+                  {variations.map((v, i) => {
+                    const open = expandedVar === i;
+                    return (
+                      <li key={i} className="rounded-md border border-border bg-background overflow-hidden">
+                        <div className="flex items-center justify-between gap-2 p-2">
+                          <button type="button" onClick={() => setExpandedVar(open ? null : i)} className="flex items-center gap-1.5 min-w-0 text-left flex-1">
+                            {open ? <ChevronUp className="w-3.5 h-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+                            <span className="min-w-0">
+                              <span className="block text-xs font-semibold truncate">{v.label}</span>
+                              {v.notes && <span className="block text-[10px] text-muted-foreground truncate">{v.notes}</span>}
+                            </span>
+                          </button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>
+                            <Button type="button" size="sm" className="h-6 text-[11px] px-2" onClick={() => useVariation(v)}>Use</Button>
+                          </div>
+                        </div>
+                        {open && (
+                          <div className="border-t border-border p-2 space-y-2 bg-muted/20">
+                            <div className="flex gap-2">
+                              <Thumb html={v.html} w={150} h={150} />
+                              <div className="space-y-1 flex-1 min-w-0">
+                                {v.fields.map((f, j) => (
+                                  <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{f.label}: </span>{f.value}</p>
+                                ))}
+                              </div>
+                            </div>
+                            {v.report.findings.length > 0 ? (
+                              <ul className="space-y-1 max-h-32 overflow-y-auto border-t border-border pt-1.5">
+                                {v.report.findings.map((f, j) => (
+                                  <li key={j} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                                    <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                                    <span className="text-muted-foreground">{f.message}{f.suggestion ? ` ${f.suggestion}` : ''}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 border-t border-border pt-1.5">No spam triggers — clean.</p>
+                            )}
+                            <div className="flex items-center gap-1.5 pt-0.5">
+                              <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy text</Button>
+                              <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
+                              <Button type="button" size="sm" className="h-6 text-[11px] px-2 ml-auto" onClick={() => useVariation(v)}>Use this</Button>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT: shared live preview */}
+          {previewPane}
+        </div>
         )}
 
         {tab === 'checker' && (

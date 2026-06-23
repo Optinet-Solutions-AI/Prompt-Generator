@@ -196,7 +196,7 @@ function blockText(b: EmailBlock, c: BrandEmailConfig, brand: string, lbl: Label
     case 'header': return brand;
     case 'heading': return b.text;
     case 'paragraph': return b.text;
-    case 'bonus': return b.offer + (b.code ? `\nUse code: ${b.code}` : '');
+    case 'bonus': return b.offer + (b.code ? `\n${lbl.useCode} ${b.code}` : '');
     case 'cta': return `${b.label}: ${safeUrl(b.url)}`;
     case 'wordmark': return brand;
     case 'social': {

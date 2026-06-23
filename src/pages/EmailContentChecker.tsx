@@ -910,8 +910,10 @@ export default function EmailContentChecker() {
                   badge: <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>,
                   note: v.subject || v.notes,
                   actions: (<>
+                    {v.report.level !== 'clean' && <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0 text-amber-600 border-amber-300" title={`Fix deliverability (${v.report.level === 'caution' ? 'caution' : 'high risk'})`} onClick={() => fixVariation(i)}><Wand2 className="w-3 h-3" /></Button>}
                     <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0" title="Copy text" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}</Button>
                     <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0" title="Preview" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /></Button>
+                    <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0" title="Download HTML" onClick={() => downloadVariationHtml(v, i)}><Download className="w-3 h-3" /></Button>
                     <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0" title={saved ? 'Saved' : 'Save to templates'} disabled={saved} onClick={() => saveVariation(v, i)}>{saved ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}</Button>
                     <Button type="button" size="sm" className="h-7 px-2 text-[11px] ml-auto" onClick={() => useVariation(v)}>Use</Button>
                   </>),

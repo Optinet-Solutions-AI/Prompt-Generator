@@ -806,7 +806,7 @@ export default function EmailContentChecker() {
 
   // Variation card used inside the inline panel (Original + each generated variation).
   const varCard = (
-    opts: { thumb: string; title: string; badge?: React.ReactNode; note?: string; rows: { label: string; value: string }[]; actions: React.ReactNode; highlight?: boolean },
+    opts: { thumb: string; title: string; badge?: ReactNode; note?: string; rows: { label: string; value: string }[]; actions: ReactNode; highlight?: boolean },
   ) => (
     <div className={`rounded-lg border bg-background overflow-hidden flex flex-col ${opts.highlight ? 'border-2 border-primary/40' : 'border-border'}`}>
       <Thumb html={opts.thumb} w={330} h={170} />

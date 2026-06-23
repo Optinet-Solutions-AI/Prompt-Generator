@@ -251,7 +251,7 @@ export function lintDeliverability(
     });
   }
 
-  for (const phrase of URGENCY) {
+  for (const phrase of pack.urgency) {
     if (lower.includes(phrase)) {
       findings.push({
         type: "impression",

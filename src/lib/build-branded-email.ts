@@ -223,7 +223,8 @@ export function buildBrandedEmail(
   const brand = doc.meta.brand || 'Brand';
   // Custom background colour (if set) wins over the Light/Dark toggle.
   const pal = doc.meta.bgColor ? paletteForBg(doc.meta.bgColor) : doc.meta.dark ? DARK : LIGHT;
-  const blocksHtml = doc.blocks.map((b) => renderBlock(b, style, config, brand, pal)).join('');
+  const lbl = labelsFor(doc.meta.locale);
+  const blocksHtml = doc.blocks.map((b) => renderBlock(b, style, config, brand, pal, lbl)).join('');
   const fontHref = `https://fonts.googleapis.com/css2?family=${style.googleFont}&display=swap`;
   const html =
 `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

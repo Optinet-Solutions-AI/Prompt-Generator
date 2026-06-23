@@ -499,6 +499,59 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       }
     }
 
+    // ── DRAFT EMAIL — write a full branded email from a one-line brief ──────
+    // Returns subject + preheader + heading + intro + bonus + body + cta label,
+    // deliverability-sanitised. The builder maps these onto the doc's blocks.
+    if (action === 'draft-email') {
+      const data = req.body || {};
+      const brief  = (data.brief  || '').toString().trim();
+      const brand  = (data.brand  || '').toString();
+      const locale = (data.locale || 'en').toString();
+      if (!brief) return res.status(400).json({ error: 'Describe the email idea first.' });
+
+      const RULES = [
+        'Do NOT use spam-trigger words (bonus, free spins, promotion, deals, play, win, 100%, guaranteed, instant cash, claim now, risk free, jackpot, free money, limited time offer).',
+        'No excessive capitalization, NO exclamation marks, at most one emoji, no false urgency, no aggressive CTAs, no gambling vocabulary.',
+        'Never use currency symbols ($ € £ ¥) — write USD / EUR / GBP / JPY instead.',
+        'Do not repeat the same notable word more than twice.',
+      ].join('\n');
+
+      const SYSTEM = [
+        'You write fresh marketing email copy for a brand and an offer.',
+        'Return ONLY the requested fields as JSON — concise, natural, and specific, like a real 1:1 email.',
+        brand ? `Keep the brand name "${brand}" exactly as given.` : '',
+        `Write in this language/locale: ${locale}.`,
+        'Do NOT include any HTML, styling, or layout — only text.',
+        'SANITIZE for deliverability — mandatory:',
+        RULES,
+        'Return ONLY strict JSON — no markdown, no code fences.',
+      ].filter(Boolean).join('\n');
+
+      const KEYS = `{"subject": string, "preheader": string (<=110 chars), "headline": string, "intro": string, "bonusOffer": string (e.g. "Extra value up to USD 200 plus 50 complimentary rounds"), "bonusCode": string (short code or ""), "body": string, "ctaLabel": string (2-4 words)}`;
+      const userPrompt = [
+        brand ? `Brand: ${brand}.` : '', `Brief / offer / goal: ${brief}`, '',
+        'Write fresh email copy. Return strict JSON with exactly these keys:', KEYS,
+      ].filter(Boolean).join('\n');
+
+      try {
+        const raw = await chatCompletion({ systemPrompt: SYSTEM, userPrompt, temperature: 0.8, model: 'gpt-4o-mini', maxTokens: 900 });
+        const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+        const p = JSON.parse(cleaned) as Record<string, string>;
+        return res.status(200).json({
+          subject: (p.subject || '').toString(),
+          preheader: (p.preheader || '').toString(),
+          headline: (p.headline || '').toString(),
+          intro: (p.intro || '').toString(),
+          bonusOffer: (p.bonusOffer || '').toString(),
+          bonusCode: (p.bonusCode || '').toString(),
+          body: (p.body || '').toString(),
+          ctaLabel: (p.ctaLabel || '').toString(),
+        });
+      } catch {
+        return res.status(502).json({ error: 'Could not draft the email. Try again.' });
+      }
+    }
+
     // ── CONVERT TO HTML — direct OpenAI with vision (was n8n) ──────────────
     if (action === 'convert-to-html') {
       const data = req.body;

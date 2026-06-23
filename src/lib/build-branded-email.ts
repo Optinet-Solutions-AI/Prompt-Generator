@@ -240,6 +240,6 @@ export function buildBrandedEmail(
 ${blocksHtml}
 <tr><td style="height:28px;"></td></tr>
 </table></td></tr></table></body></html>`;
-  const text = doc.blocks.map((b) => blockText(b, config, brand)).filter(Boolean).join('\n\n');
+  const text = doc.blocks.map((b) => blockText(b, config, brand, lbl)).filter(Boolean).join('\n\n');
   return { html, text };
 }

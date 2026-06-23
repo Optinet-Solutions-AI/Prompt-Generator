@@ -21,17 +21,16 @@ const NORMALIZED: Record<string, string> = Object.fromEntries(
   Object.entries(BRAND_HEADERS).map(([name, url]) => [name.toLowerCase().replace(/[^a-z0-9]/g, ''), url]),
 );
 
-// Bump when a header image's pixels change, so browsers/CDN don't serve a stale
-// cached copy (the filename stays the same).
-const ASSET_V = '8';
-
 // Absolutize against the current origin so the image resolves everywhere the
 // HTML lands — the inline iframe, a blob: preview tab, the downloaded file, and
-// (on the deployed domain) a real sent email.
+// (on the deployed domain) a real sent email. No query string: on Vercel the SPA
+// rewrite (everything → index.html) can intercept the query-variant of an asset
+// URL and return HTML instead of the PNG (broken image), so we keep the clean
+// static path. New deploys still serve fresh pixels on the same path.
 function absolutize(path: string): string {
   if (!path) return '';
   const o = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-  return `${o}${path}?v=${ASSET_V}`;
+  return `${o}${path}`;
 }
 
 export function getBrandHeader(brand?: string | null): string {

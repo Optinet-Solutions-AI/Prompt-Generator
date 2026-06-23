@@ -1129,6 +1129,42 @@ export default function EmailContentChecker() {
           </div>
         )}
       </div>
+
+      {/* Generated-variations showcase — pops up after "Reword the copy with AI" */}
+      {varModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto" onClick={() => setVarModalOpen(false)}>
+          <div className="bg-card rounded-xl border border-border shadow-xl w-full max-w-5xl my-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 p-4 border-b border-border sticky top-0 bg-card rounded-t-xl z-10">
+              <span className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="w-4 h-4 text-primary" /> Generated variations <span className="text-xs font-normal text-muted-foreground">({variations.length})</span></span>
+              <button type="button" onClick={() => setVarModalOpen(false)} className="p-1 rounded hover:bg-muted text-muted-foreground"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {variations.map((v, i) => (
+                <div key={i} className="rounded-lg border border-border bg-background overflow-hidden flex flex-col">
+                  <Thumb html={v.html} w={260} h={190} />
+                  <div className="p-2.5 space-y-1.5 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold truncate">{v.label}</p>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>
+                    </div>
+                    {v.notes && <p className="text-[10px] text-muted-foreground leading-snug">{v.notes}</p>}
+                    <div className="space-y-0.5 flex-1">
+                      {v.fields.map((f, j) => (
+                        <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{f.label}: </span>{f.value}</p>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
+                      <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
+                      <Button type="button" size="sm" className="h-7 text-[11px] px-2 ml-auto" onClick={() => { useVariation(v); setVarModalOpen(false); }}>Use this</Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

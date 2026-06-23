@@ -513,6 +513,12 @@ export default function EmailContentChecker() {
             <option value="logo">Logo only</option>
             <option value="text">Brand name (text)</option>
           </select>
+          {b.mode === 'text' && (
+            <div>
+              <Label className="text-[11px] mb-0.5 block">Header text (brand name)</Label>
+              <Input value={brand} onChange={e => patchMeta({ brand: e.target.value })} placeholder="e.g. Galaxy Bets" className="h-8 text-sm" />
+            </div>
+          )}
           {b.mode !== 'text' && (
             <>
               <Label className="text-[11px] mb-0.5 block">Logo {b.logoUrl ? '' : '(optional override)'}</Label>

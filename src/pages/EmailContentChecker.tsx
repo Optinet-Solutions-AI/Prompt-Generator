@@ -731,6 +731,8 @@ export default function EmailContentChecker() {
                     </div>
                     <div><Label className="text-[11px] mb-0.5 block">Brand name <span className="font-normal normal-case text-muted-foreground">(type any — for a custom brand)</span></Label>
                       <Input value={brand} onChange={e => patchMeta({ brand: e.target.value })} placeholder="e.g. My New Brand" className="h-8 text-sm" /></div>
+                    <div><Label className="text-[11px] mb-0.5 block">Brand color <span className="font-normal normal-case text-muted-foreground">(signature colour — themes the whole email)</span></Label>
+                      <ColorField value={doc.meta.themeColor} onChange={v => patchMeta({ themeColor: v })} placeholder="e.g. #E11D2A or orange" /></div>
                     <div className="grid grid-cols-2 gap-1.5">
                       <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
                       <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>

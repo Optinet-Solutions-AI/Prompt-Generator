@@ -181,6 +181,8 @@ export default function EmailContentChecker() {
   const [brief, setBrief] = useState('');
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
   const [openStyle, setOpenStyle] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 

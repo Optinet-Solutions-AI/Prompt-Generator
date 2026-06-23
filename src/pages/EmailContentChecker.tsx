@@ -410,6 +410,33 @@ export default function EmailContentChecker() {
     }
   };
 
+  // Translate the CURRENT email (any template) into doc.meta.locale, in place —
+  // so you don't have to re-draft from scratch to get another language.
+  const translateEmail = async () => {
+    setTranslateError(null); setTranslating(true);
+    try {
+      const res = await fetch('/api/translate-email', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: doc.meta.subject, preheader: doc.meta.preheader, brand, locale: doc.meta.locale, blocks: editableBlocks(doc) }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({} as { error?: string }));
+        setTranslateError(e.error || `Request failed (${res.status})`);
+        return;
+      }
+      const data = await res.json() as { subject?: string; preheader?: string; blocks?: EditField[] };
+      setDoc(d => {
+        const withBlocks = applyEdits(d, (data.blocks || []) as EditField[]);
+        return { ...withBlocks, meta: { ...withBlocks.meta, subject: data.subject || d.meta.subject, preheader: data.preheader || d.meta.preheader } };
+      });
+      setDirty(true);
+    } catch {
+      setTranslateError('Could not reach the AI service. Try again.');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   // default template loaded once; re-sync to brand handled in selectBrand
   useEffect(() => { /* doc seeded in useState initializer */ }, []);
 

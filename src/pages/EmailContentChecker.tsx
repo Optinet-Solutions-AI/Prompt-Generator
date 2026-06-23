@@ -522,7 +522,7 @@ export default function EmailContentChecker() {
       ].filter(x => x.text.trim());
       const res = await fetch('/api/generate-email-variations', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: chkSubject, brand: chkBrand, locale: 'en', blocks, count: chkVarCount }),
+        body: JSON.stringify({ subject: chkSubject, brand: chkBrand, locale: chkLocale, blocks, count: chkVarCount }),
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({} as { error?: string }));

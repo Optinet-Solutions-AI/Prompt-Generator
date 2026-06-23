@@ -115,7 +115,7 @@ function ColorField({ value, onChange, placeholder }: { value?: string; onChange
 }
 
 // ── Variation helpers (text-only edits applied back to the doc by id) ────────
-interface EditField { id: string; type: string; text?: string; offer?: string; code?: string; label?: string }
+interface EditField { id: string; type: string; text?: string; offer?: string; code?: string; label?: string; attribution?: string; legal?: string }
 
 function editableBlocks(doc: EmailDoc): EditField[] {
   const out: EditField[] = [];
@@ -123,6 +123,8 @@ function editableBlocks(doc: EmailDoc): EditField[] {
     if (b.type === 'heading' || b.type === 'paragraph') out.push({ id: b.id, type: b.type, text: b.text });
     else if (b.type === 'bonus') out.push({ id: b.id, type: b.type, offer: b.offer, code: b.code });
     else if (b.type === 'cta') out.push({ id: b.id, type: b.type, label: b.label });
+    // Footer attribution + legal are real copy and must travel with translate/clean/variations.
+    else if (b.type === 'footer') out.push({ id: b.id, type: b.type, attribution: b.attribution, legal: b.legal });
   }
   return out;
 }
@@ -137,6 +139,7 @@ function applyEdits(doc: EmailDoc, edits: EditField[]): EmailDoc {
       if (b.type === 'heading' || b.type === 'paragraph') return { ...b, text: e.text ?? b.text };
       if (b.type === 'bonus') return { ...b, offer: e.offer ?? b.offer, code: e.code ?? b.code };
       if (b.type === 'cta') return { ...b, label: e.label ?? b.label };
+      if (b.type === 'footer') return { ...b, attribution: e.attribution ?? b.attribution, legal: e.legal ?? b.legal };
       return b;
     }),
   };

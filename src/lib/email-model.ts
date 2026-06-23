@@ -44,7 +44,7 @@ export interface EmailDoc {
   // `locale` is the language to write content in; `country` is the picker selection it's derived from.
   // `themeColor` (optional) overrides the brand palette with a single signature
   // colour — used for custom brands not built into the app.
-  meta: { brand: string; locale: string; subject: string; preheader: string; country?: string; themeColor?: string };
+  meta: { brand: string; locale: string; subject: string; preheader: string; country?: string; themeColor?: string; dark?: boolean };
   blocks: EmailBlock[];
 }
 

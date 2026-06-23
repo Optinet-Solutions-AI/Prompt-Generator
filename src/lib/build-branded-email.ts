@@ -210,7 +210,8 @@ export function buildBrandedEmail(
   config: BrandEmailConfig = {},
 ): { html: string; text: string } {
   const brand = doc.meta.brand || 'Brand';
-  const pal = doc.meta.dark ? DARK : LIGHT;
+  // Custom background colour (if set) wins over the Light/Dark toggle.
+  const pal = doc.meta.bgColor ? paletteForBg(doc.meta.bgColor) : doc.meta.dark ? DARK : LIGHT;
   const blocksHtml = doc.blocks.map((b) => renderBlock(b, style, config, brand, pal)).join('');
   const fontHref = `https://fonts.googleapis.com/css2?family=${style.googleFont}&display=swap`;
   const html =

@@ -98,7 +98,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
         ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${pal.muted};">Use code: <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`
         : '';
       const rule = st.hideRule ? '' : `border-left:3px solid ${s.accentColor};`;
-      return cell(`<div style="${spacing(st, 20, 0)}${rule}background:${st.background || FOOTER_BG};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
+      return cell(`<div style="${spacing(st, 20, 0)}${rule}background:${st.background || pal.footerBg};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
         `<div style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 18}px;font-weight:700;color:${st.color || pal.headline};">${esc(b.offer)}</div>${code}</div>`);
     }
     case 'cta': {
@@ -135,7 +135,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
         ? `<div style="margin-top:8px;"><a href="${esc(unsub)}" style="color:${pal.muted};text-decoration:underline;">Unsubscribe</a></div>`
         : '';
       const fAlign = st.align ?? 'left';
-      return `<tr><td style="background:${FOOTER_BG};border-top:2px solid ${s.accentColor};padding:22px 32px;font-family:${FONT_STACK};font-size:${st.fontSize ?? 12}px;line-height:1.6;color:${st.color || pal.light};text-align:${fAlign};">` +
+      return `<tr><td style="background:${pal.footerBg};border-top:2px solid ${s.accentColor};padding:22px 32px;font-family:${FONT_STACK};font-size:${st.fontSize ?? 12}px;line-height:1.6;color:${st.color || pal.light};text-align:${fAlign};">` +
         (attribution ? `<div style="color:${st.color || pal.muted};">${esc(attribution)}</div>` : '') +
         (legal ? `<div style="margin-top:6px;">${esc(legal)}</div>` : '') +
         unsubLine + `</td></tr>`;

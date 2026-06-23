@@ -17,6 +17,17 @@ const DARK: Palette  = { headline: '#FFFFFF', body: '#C7CDD6', muted: '#9AA3B2',
 const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
 const WIDTH = 600;
 
+// Localized chrome labels for the few strings the renderer hardcodes (not user
+// copy), so a translated email doesn't leak English in the bonus / footer.
+interface Labels { useCode: string; unsubscribe: string }
+const LABELS: Record<string, Labels> = {
+  en: { useCode: 'Use code:', unsubscribe: 'Unsubscribe' },
+  de: { useCode: 'Code verwenden:', unsubscribe: 'Abmelden' },
+  no: { useCode: 'Bruk kode:', unsubscribe: 'Meld deg av' },
+  it: { useCode: 'Usa il codice:', unsubscribe: 'Annulla iscrizione' },
+};
+const labelsFor = (locale?: string): Labels => LABELS[(locale || 'en').toLowerCase()] || LABELS.en;
+
 // Parse a #rrggbb / #rgb hex into [r,g,b]; returns null if not a hex colour.
 function hexRgb(hex = ''): [number, number, number] | null {
   let h = hex.trim().replace(/^#/, '');

@@ -234,6 +234,18 @@ export default function EmailContentChecker() {
     setDirty(true);
   };
   const move = (id: string, dir: -1 | 1) => setDoc(d => ({ ...d, blocks: moveBlock(d.blocks, id, dir) }));
+  // Drag-and-drop reorder
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const reorderBlocks = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    setDoc(d => {
+      const arr = d.blocks.slice();
+      const [m] = arr.splice(from, 1);
+      arr.splice(to, 0, m);
+      return { ...d, blocks: arr };
+    });
+    setDirty(true);
+  };
   const remove = (id: string) => { setDoc(d => ({ ...d, blocks: removeBlock(d.blocks, id) })); setDirty(true); };
   const addBlock = (type: BlockType) => { setDoc(d => ({ ...d, blocks: [...d.blocks, newBlock(type, genId())] })); setDirty(true); };
 

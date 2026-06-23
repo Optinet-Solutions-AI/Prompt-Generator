@@ -188,7 +188,7 @@ export function buildBrandedEmail(
 </head><body>
 <span style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(doc.meta.preheader || '')}</span>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${pal.pageBg};"><tr><td align="center" style="padding:24px 0;">
-<table role="presentation" class="container" width="${WIDTH}" cellspacing="0" cellpadding="0" border="0" style="width:${WIDTH}px;max-width:${WIDTH}px;background:#ffffff;border-radius:0 0 8px 8px;overflow:hidden;">
+<table role="presentation" class="container" width="${WIDTH}" cellspacing="0" cellpadding="0" border="0" style="width:${WIDTH}px;max-width:${WIDTH}px;background:${pal.cardBg};border-radius:0 0 8px 8px;overflow:hidden;">
 ${blocksHtml}
 <tr><td style="height:28px;"></td></tr>
 </table></td></tr></table></body></html>`;

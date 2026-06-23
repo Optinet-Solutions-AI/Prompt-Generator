@@ -364,7 +364,7 @@ export default function EmailContentChecker() {
     }
     const body = parts.filter(Boolean).join('\n');
     if (!doc.meta.subject.trim() && !body.trim()) return null;
-    return lintDeliverability(doc.meta.subject, body, { ignore: brand ? [brand] : [] });
+    return lintDeliverability(doc.meta.subject, body, { ignore: brand ? [brand] : [], locale: doc.meta.locale });
   }, [doc, brand]);
 
   // Mechanical fallback (used offline / if the AI clean is unavailable).

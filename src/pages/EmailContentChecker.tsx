@@ -857,28 +857,7 @@ export default function EmailContentChecker() {
           <div className="grid lg:grid-cols-2 gap-4">
             {/* LEFT: grouped, collapsible */}
             <div className="lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1">
-              <Accordion type="multiple" defaultValue={['ai', 'brand', 'blocks']} className="space-y-2">
-
-                <AccordionItem value="ai" className="border border-primary/30 rounded-lg bg-primary/5 px-3">
-                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Write with AI</span></AccordionTrigger>
-                  <AccordionContent className="pb-3 space-y-2">
-                    <p className="text-[11px] text-muted-foreground">Describe the email — AI drafts the subject, preheader, heading, body, bonus &amp; CTA, then fills the blocks below.</p>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-muted-foreground">Language:</span>
-                      <select value={doc.meta.locale} onChange={e => patchMeta({ locale: e.target.value })} className="h-7 text-xs rounded-md border border-border bg-background px-2 flex-1">
-                        <option value="en">English</option>
-                        <option value="de">German</option>
-                        <option value="no">Norwegian</option>
-                        <option value="it">Italian</option>
-                      </select>
-                    </div>
-                    <Textarea value={brief} onChange={e => setBrief(e.target.value)} placeholder="e.g. Welcome offer: extra value up to USD 200, no deposit, ends Friday" className="min-h-[56px] text-sm" />
-                    <Button type="button" onClick={draftEmail} disabled={drafting || !brief.trim()} className="w-full h-8 gap-1.5 text-xs">
-                      {drafting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Drafting…</> : <><Sparkles className="w-3.5 h-3.5" /> Draft the email</>}
-                    </Button>
-                    {draftError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{draftError}</p>}
-                  </AccordionContent>
-                </AccordionItem>
+              <Accordion type="multiple" defaultValue={['brand', 'blocks']} className="space-y-2">
 
                 <AccordionItem value="brand" className="border border-border rounded-lg bg-card px-3">
                   <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Brand &amp; subject</span></AccordionTrigger>

@@ -92,7 +92,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
     case 'heading':
       return cell(`<h1 style="${spacing(st, 24, 0)}font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;line-height:1.3;color:${st.color || pal.headline};text-align:${st.align ?? 'left'};">${esc(b.text)}</h1>`);
     case 'paragraph':
-      return cell(`<p style="${spacing(st, 14, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 15}px;line-height:1.65;color:${st.color || INK_BODY};text-align:${st.align ?? 'left'};">${esc(b.text).replace(/\n/g, '<br/>')}</p>`);
+      return cell(`<p style="${spacing(st, 14, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 15}px;line-height:1.65;color:${st.color || pal.body};text-align:${st.align ?? 'left'};">${esc(b.text).replace(/\n/g, '<br/>')}</p>`);
     case 'bonus': {
       const code = b.code
         ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${INK_MUTED};">Use code: <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`

@@ -721,6 +721,42 @@ export default function EmailContentChecker() {
     );
   };
 
+  // Shared live-preview pane — rendered on BOTH the Builder and AI Tools tabs so
+  // drafting / variations show their result without switching tabs.
+  const previewPane = (
+    <div className="lg:sticky lg:top-5 self-start space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Small>Live preview</Small>
+          <div className="flex gap-0.5 p-0.5 rounded-md bg-muted border border-border">
+            <button type="button" onClick={() => setDevice('desktop')} title="Desktop" className={`p-1 rounded transition-colors ${device === 'desktop' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Monitor className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => setDevice('mobile')} title="Mobile" className={`p-1 rounded transition-colors ${device === 'mobile' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Smartphone className="w-3.5 h-3.5" /></button>
+          </div>
+          <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted border border-border">
+            {/* Light / Dark clear any custom colour; Custom reveals a colour picker. */}
+            <button type="button" onClick={() => patchMeta({ dark: false, bgColor: undefined })} title="Light background" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${!doc.meta.dark && !doc.meta.bgColor ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Light</button>
+            <button type="button" onClick={() => patchMeta({ dark: true, bgColor: undefined })} title="Dark background" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${doc.meta.dark && !doc.meta.bgColor ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Dark</button>
+            <button type="button" onClick={() => patchMeta({ bgColor: doc.meta.bgColor || '#f4ede2' })} title="Custom background colour" className={`px-1.5 py-1 rounded text-[11px] transition-colors ${doc.meta.bgColor ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Custom</button>
+            {doc.meta.bgColor && (
+              <input type="color" value={doc.meta.bgColor} onChange={e => patchMeta({ bgColor: e.target.value })} title="Pick background colour" className="w-6 h-6 rounded border border-border bg-transparent cursor-pointer p-0" />
+            )}
+          </div>
+        </div>
+        <div className="flex gap-1.5">
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => previewVar(html)}><Eye className="w-3 h-3" /> Full preview</Button>
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={saveAsTemplate}><Save className="w-3 h-3" /> Save</Button>
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={copyHtml}>{copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
+          <Button type="button" size="sm" className="h-7 gap-1 text-xs" onClick={downloadHtml}><Download className="w-3 h-3" /> Download</Button>
+        </div>
+      </div>
+      <div className="rounded-xl border border-border bg-muted/40 p-3 flex justify-center overflow-auto" style={{ height: 'calc(100vh - 10rem)' }}>
+        <div className="bg-white rounded-lg shadow-md overflow-hidden h-full" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: device === 'mobile' ? 390 : 680, transition: 'width .2s ease' }}>
+          <iframe title="Email preview" srcDoc={html} sandbox="" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-5">

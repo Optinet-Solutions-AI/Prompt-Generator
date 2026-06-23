@@ -369,7 +369,6 @@ export default function EmailContentChecker() {
         return;
       }
       const data = await res.json() as { variations: { label: string; notes: string; subject?: string; preheader?: string; blocks: EditField[] }[] };
-      const style = getBrandStyle(brand);
       const results: VariationResult[] = (data.variations || []).map(v => {
         const subject = v.subject || doc.meta.subject;
         const preheader = v.preheader || doc.meta.preheader;

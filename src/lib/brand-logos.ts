@@ -32,11 +32,12 @@ const NORMALIZED: Record<string, string> = Object.fromEntries(
   Object.entries(BRAND_LOGOS).map(([name, url]) => [name.toLowerCase().replace(/[^a-z0-9]/g, ''), url]),
 );
 
-const ASSET_V = '3';
+// No query string: on Vercel the SPA rewrite can intercept query-variant asset
+// URLs and return index.html (broken image). Clean static path only.
 function absolutize(path: string): string {
   if (!path) return '';
   const o = typeof window !== 'undefined' && window.location ? window.location.origin : '';
-  return `${o}${path}?v=${ASSET_V}`;
+  return `${o}${path}`;
 }
 
 export function getBrandLogo(brand?: string | null): string {

@@ -317,6 +317,27 @@ export default function EmailContentChecker() {
     setCustomTemplates(next); saveCustom(next);
   };
 
+  // Build a full EmailDoc from a generated variation (so each can be SAVED/kept,
+  // not just the one you "Use"). This is how all generated HTML is retained.
+  const docFromVariation = (v: VariationResult): EmailDoc => ({
+    ...applyEdits(doc, v.edits),
+    meta: { ...doc.meta, subject: v.subject || doc.meta.subject, preheader: v.preheader || doc.meta.preheader },
+  });
+  // Track which variations have been saved (for a "Saved ✓" affordance).
+  const [savedVarIdx, setSavedVarIdx] = useState<number[]>([]);
+  const saveVariation = (v: VariationResult, i: number) => {
+    const name = `${doc.meta.subject || 'Email'} — ${v.label}`;
+    const next = [...customTemplates, { id: `ct-${genId()}`, name, doc: JSON.parse(JSON.stringify(docFromVariation(v))) as EmailDoc }];
+    setCustomTemplates(next); saveCustom(next);
+    setSavedVarIdx(p => p.includes(i) ? p : [...p, i]);
+  };
+  const saveAllVariations = () => {
+    const items = variations.map(v => ({ id: `ct-${genId()}`, name: `${doc.meta.subject || 'Email'} — ${v.label}`, doc: JSON.parse(JSON.stringify(docFromVariation(v))) as EmailDoc }));
+    const next = [...customTemplates, ...items];
+    setCustomTemplates(next); saveCustom(next);
+    setSavedVarIdx(variations.map((_, i) => i));
+  };
+
   // Rendered previews for the gallery
   const templatePreviews = useMemo(
     () => EMAIL_TEMPLATES.map(t => ({ t, html: buildBrandedEmail(buildTemplateDoc(t, brand, genId), getBrandStyle(brand)).html })),

@@ -95,7 +95,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       return cell(`<p style="${spacing(st, 14, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 15}px;line-height:1.65;color:${st.color || pal.body};text-align:${st.align ?? 'left'};">${esc(b.text).replace(/\n/g, '<br/>')}</p>`);
     case 'bonus': {
       const code = b.code
-        ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${INK_MUTED};">Use code: <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`
+        ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${pal.muted};">Use code: <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`
         : '';
       const rule = st.hideRule ? '' : `border-left:3px solid ${s.accentColor};`;
       return cell(`<div style="${spacing(st, 20, 0)}${rule}background:${st.background || FOOTER_BG};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
@@ -125,18 +125,18 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const items = links
         .map(([n, u]) => `<a href="${esc(safeUrl(u))}" style="color:${s.accentColor};text-decoration:none;">${n}</a>`)
         .join(' <span style="color:#c1c7d0;">|</span> ');
-      return cell(`<div style="text-align:${st.align ?? 'center'};${spacing(st, 24, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 13}px;color:${INK_MUTED};">${items}</div>`);
+      return cell(`<div style="text-align:${st.align ?? 'center'};${spacing(st, 24, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 13}px;color:${pal.muted};">${items}</div>`);
     }
     case 'footer': {
       const attribution = b.attribution || c.footer_attribution || '';
       const legal = b.legal || c.legal_text || '';
       const unsub = safeUrl(b.unsubscribeUrl || c.unsubscribe_url || '');
       const unsubLine = unsub
-        ? `<div style="margin-top:8px;"><a href="${esc(unsub)}" style="color:${INK_MUTED};text-decoration:underline;">Unsubscribe</a></div>`
+        ? `<div style="margin-top:8px;"><a href="${esc(unsub)}" style="color:${pal.muted};text-decoration:underline;">Unsubscribe</a></div>`
         : '';
       const fAlign = st.align ?? 'left';
       return `<tr><td style="background:${FOOTER_BG};border-top:2px solid ${s.accentColor};padding:22px 32px;font-family:${FONT_STACK};font-size:${st.fontSize ?? 12}px;line-height:1.6;color:${st.color || INK_LIGHT};text-align:${fAlign};">` +
-        (attribution ? `<div style="color:${st.color || INK_MUTED};">${esc(attribution)}</div>` : '') +
+        (attribution ? `<div style="color:${st.color || pal.muted};">${esc(attribution)}</div>` : '') +
         (legal ? `<div style="margin-top:6px;">${esc(legal)}</div>` : '') +
         unsubLine + `</td></tr>`;
     }

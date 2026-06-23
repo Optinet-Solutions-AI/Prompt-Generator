@@ -10,14 +10,10 @@ import { getBrandLogo } from './brand-logos';
 import { getBrandHeader } from './brand-headers';
 import type { BlockStyle, BrandEmailConfig, EmailBlock, EmailDoc } from './email-model';
 
-// Neutral ink palette — body sits on a white canvas; brand color is a restrained cue.
-const INK_HEADLINE = '#172b4d';
-const INK_BODY = '#42526e';
-const INK_MUTED = '#5e6c84';
-const INK_LIGHT = '#97a0af';
-const LINE_COLOR = '#ebecf0';
-const PAGE_BG = '#ffffff';
-const FOOTER_BG = '#fafbfc';
+// Ink palette — light (white canvas) or dark. Brand color stays a restrained cue.
+interface Palette { headline: string; body: string; muted: string; light: string; line: string; pageBg: string; cardBg: string; footerBg: string }
+const LIGHT: Palette = { headline: '#172b4d', body: '#42526e', muted: '#5e6c84', light: '#97a0af', line: '#ebecf0', pageBg: '#ffffff', cardBg: '#ffffff', footerBg: '#fafbfc' };
+const DARK: Palette  = { headline: '#FFFFFF', body: '#C7CDD6', muted: '#9AA3B2', light: '#737B8A', line: '#2A303B', pageBg: '#0B0E14', cardBg: '#11151D', footerBg: '#0D1119' };
 const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
 const WIDTH = 600;
 

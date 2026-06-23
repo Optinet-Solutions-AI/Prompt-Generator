@@ -58,6 +58,10 @@ async function chatCompletion(opts: {
   return data.choices[0].message.content;
 }
 
+// Language code → name for AI prompts (email tool supports these for now).
+const LANG_NAMES: Record<string, string> = { en: 'English', de: 'German', no: 'Norwegian', it: 'Italian' };
+const langName = (code: string) => LANG_NAMES[(code || 'en').toLowerCase()] || 'English';
+
 const SUPABASE_URL             = process.env.SUPABASE_URL             || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 

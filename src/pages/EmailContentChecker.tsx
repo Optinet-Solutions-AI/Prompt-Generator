@@ -631,6 +631,58 @@ export default function EmailContentChecker() {
     a.href = url; a.download = `${(brand || 'email').toLowerCase()}-campaign.html`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   };
+  // Download one variation's HTML file (for sending). Used per-card and for "Download all".
+  const downloadVariationHtml = (v: VariationResult, i: number) => {
+    const blob = new Blob([v.html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${(brand || 'email').toLowerCase()}-variation-${i + 1}.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+  const downloadAllVariations = () => { variations.forEach((v, i) => downloadVariationHtml(v, i)); };
+
+  // Clean ONE variation's deliverability in place (deterministic, locale-aware):
+  // replaces flagged terms, de-shouts, fixes currency/exclamations, then re-scores
+  // — so a "Caution"/"High risk" card can be turned "Clean" right here.
+  const fixVariation = (idx: number) => {
+    const v = variations[idx];
+    if (!v) return;
+    const fix = (s?: string) => (s ? autoFix(s, { ignore: brand ? [brand] : [], locale: doc.meta.locale }) : s);
+    const fixedEdits: EditField[] = v.edits.map(e => ({
+      ...e,
+      text: fix(e.text),
+      offer: fix(e.offer),
+      label: fix(e.label),
+      attribution: fix(e.attribution),
+      legal: fix(e.legal),
+    }));
+    const subject = fix(v.subject) || v.subject;
+    const preheader = fix(v.preheader) || v.preheader;
+    const applied: EmailDoc = { ...applyEdits(doc, fixedEdits), meta: { ...doc.meta, subject, preheader } };
+    const built = buildBrandedEmail(applied, style);
+    const parts: string[] = [];
+    if (preheader) parts.push(preheader);
+    for (const b of applied.blocks) {
+      if (b.type === 'heading' || b.type === 'paragraph') parts.push(b.text);
+      else if (b.type === 'bonus') parts.push(b.offer);
+      else if (b.type === 'cta') parts.push(b.label);
+    }
+    const report = lintDeliverability(subject, parts.filter(Boolean).join('\n'), { ignore: brand ? [brand] : [], locale: doc.meta.locale });
+    const fields = [
+      ...(subject ? [{ label: 'Subject', value: subject }] : []),
+      ...(preheader ? [{ label: 'Preheader', value: preheader }] : []),
+      ...fixedEdits.map(e => {
+        if (e.type === 'heading') return { label: 'Heading', value: e.text || '' };
+        if (e.type === 'paragraph') return { label: 'Text', value: e.text || '' };
+        if (e.type === 'bonus') return { label: 'Bonus', value: [e.offer, e.code ? `(code ${e.code})` : ''].filter(Boolean).join(' ') };
+        if (e.type === 'cta') return { label: 'CTA', value: e.label || '' };
+        return { label: e.type, value: '' };
+      }),
+    ].filter(f => f.value);
+    setVariations(prev => prev.map((x, j) => (j === idx ? { ...x, subject, preheader, edits: fixedEdits, report, text: built.text, html: built.html, fields } : x)));
+  };
+  // Fix every variation that isn't already clean.
+  const fixAllVariations = () => { variations.forEach((v, i) => { if (v.report.level !== 'clean') fixVariation(i); }); };
   const levelBadge = (lvl: string) =>
     lvl === 'clean' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
     : lvl === 'caution' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'

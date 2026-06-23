@@ -211,6 +211,7 @@ export default function EmailContentChecker() {
   const [varError, setVarError] = useState<string | null>(null);
   const [varCount, setVarCount] = useState(3);
   const [expandedVar, setExpandedVar] = useState<number | null>(null);
+  const [varModalOpen, setVarModalOpen] = useState(false); // showcase generated variations in a popup
   const [copiedVar, setCopiedVar] = useState<number | null>(null);
 
   // View tab + standalone Content Checker (paste any subject/body or HTML)

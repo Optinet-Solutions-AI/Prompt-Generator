@@ -855,11 +855,8 @@ export default function EmailContentChecker() {
           title: 'Original',
           highlight: true,
           badge: <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-primary/15 text-primary">Current</span>,
-          note: 'Your email as it is now.',
-          rows: [
-            ...(doc.meta.subject ? [{ label: 'Subject', value: doc.meta.subject }] : []),
-            ...(doc.meta.preheader ? [{ label: 'Preheader', value: doc.meta.preheader }] : []),
-          ],
+          note: doc.meta.subject || 'Your email as it is now.',
+          rows: [],
           actions: (<>
             <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => previewVar(html)}><Eye className="w-3 h-3" /> Preview</Button>
             <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={saveAsTemplate}><Save className="w-3 h-3" /> Save</Button>

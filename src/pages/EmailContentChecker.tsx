@@ -9,7 +9,7 @@
  * Clean logo/composite header by default (no big text); the transfer package's
  * block model + per-block styling, integrated with the spam-risk checker.
  */
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Download,

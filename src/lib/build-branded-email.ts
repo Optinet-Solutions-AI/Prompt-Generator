@@ -135,7 +135,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       return cell(`<p style="${spacing(st, 14, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 15}px;line-height:1.65;color:${st.color || pal.body};text-align:${st.align ?? 'left'};">${esc(b.text).replace(/\n/g, '<br/>')}</p>`);
     case 'bonus': {
       const code = b.code
-        ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${pal.muted};">Use code: <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`
+        ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${pal.muted};">${esc(lbl.useCode)} <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`
         : '';
       // Accent rule side: explicit ruleSide wins; fall back to legacy hideRule.
       const side = st.ruleSide ?? (st.hideRule ? 'none' : 'left');

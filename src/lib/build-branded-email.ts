@@ -97,7 +97,13 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const code = b.code
         ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${pal.muted};">Use code: <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`
         : '';
-      const rule = st.hideRule ? '' : `border-left:3px solid ${s.accentColor};`;
+      // Accent rule side: explicit ruleSide wins; fall back to legacy hideRule.
+      const side = st.ruleSide ?? (st.hideRule ? 'none' : 'left');
+      const rule = side === 'right'
+        ? `border-right:3px solid ${s.accentColor};`
+        : side === 'none'
+        ? ''
+        : `border-left:3px solid ${s.accentColor};`;
       return cell(`<div style="${spacing(st, 20, 0)}${rule}background:${st.background || pal.footerBg};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
         `<div style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 18}px;font-weight:700;color:${st.color || pal.headline};">${esc(b.offer)}</div>${code}</div>`);
     }

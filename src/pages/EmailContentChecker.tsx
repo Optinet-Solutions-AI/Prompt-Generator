@@ -213,6 +213,7 @@ export default function EmailContentChecker() {
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>(() => loadCustom());
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [chkBrand, setChkBrand] = useState('');
+  const [chkLocale, setChkLocale] = useState('en');
   const [chkSubject, setChkSubject] = useState('');
   const [chkBody, setChkBody] = useState('');
   const [chkCopied, setChkCopied] = useState<'subject' | 'body' | null>(null);

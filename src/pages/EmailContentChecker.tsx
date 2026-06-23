@@ -852,29 +852,23 @@ export default function EmailContentChecker() {
 
         {tab === 'builder' && (
         <>
-          {/* Wizard stepper — click any step; the current one is highlighted */}
-          <div className="mb-4 flex items-center gap-1 overflow-x-auto pb-1">
-            {BUILDER_STEPS.map((s, i) => (
-              <span key={s.key} className="inline-flex items-center gap-1 whitespace-nowrap">
-                {i > 0 && <span className={`h-px w-4 ${i <= step ? 'bg-primary/50' : 'bg-border'}`} />}
-                <button type="button" onClick={() => setStep(i)} title={s.hint} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${i === step ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>
-                  <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold ${i === step ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{i + 1}</span>
-                  {s.label}
-                </button>
-              </span>
-            ))}
-          </div>
-
           <div className="grid lg:grid-cols-2 gap-4">
-            {/* LEFT: one wizard step at a time */}
-            <div className="lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1 space-y-3">
-              <p className="text-[11px] text-muted-foreground">{BUILDER_STEPS[step].hint}</p>
+            {/* LEFT: free-form sections — open any, in any order. Nothing is forced. */}
+            <div className="lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1">
+              <Accordion type="multiple" defaultValue={['blocks']} className="space-y-2">
 
-              {/* Step 1 — Write with AI (optional) */}
-              {step === 0 && (
-                <div className="border border-primary/30 rounded-lg bg-primary/5 p-3 space-y-2">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Write with AI <span className="font-normal text-muted-foreground">— optional</span></span>
-                  <p className="text-[11px] text-muted-foreground">Describe the email — AI drafts the subject, preheader, heading, body, bonus &amp; CTA, then fills the blocks. Or skip straight to Brand with Next.</p>
+                {/* Optional AI assist — collapsed by default; ignore it and build by hand if you prefer */}
+                <AccordionItem value="ai" className="border border-primary/30 rounded-lg bg-primary/5 px-3">
+                  <AccordionTrigger className="py-2.5 hover:no-underline">
+                    <span className="flex items-center gap-2 text-left min-w-0">
+                      <span className="inline-flex w-7 h-7 rounded-md bg-primary/15 items-center justify-center shrink-0"><Sparkles className="w-4 h-4 text-primary" /></span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold">Write with AI <span className="font-normal text-muted-foreground">— optional</span></span>
+                        <span className="block text-[10px] text-muted-foreground font-normal leading-snug">Describe an idea and let AI draft the whole email — or just build it yourself below.</span>
+                      </span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-3 space-y-2">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] text-muted-foreground">Language:</span>
                     <select value={doc.meta.locale} onChange={e => patchMeta({ locale: e.target.value })} className="h-7 text-xs rounded-md border border-border bg-background px-2 flex-1">

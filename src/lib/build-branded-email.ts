@@ -191,7 +191,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
   }
 }
 
-function blockText(b: EmailBlock, c: BrandEmailConfig, brand: string): string {
+function blockText(b: EmailBlock, c: BrandEmailConfig, brand: string, lbl: Labels): string {
   switch (b.type) {
     case 'header': return brand;
     case 'heading': return b.text;

@@ -486,7 +486,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       ].join('\n');
 
       try {
-        const raw = await chatCompletion({ systemPrompt: SYSTEM, userPrompt, temperature: 0.2, model: 'gpt-4o-mini', maxTokens: 1400 });
+        const raw = await chatCompletion({ systemPrompt: SYSTEM, userPrompt, temperature: 0.4, model: 'gpt-4o-mini', maxTokens: 1400 });
         const cleaned = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
         const parsed = JSON.parse(cleaned) as { subject?: string; preheader?: string; blocks?: unknown[] };
         return res.status(200).json({

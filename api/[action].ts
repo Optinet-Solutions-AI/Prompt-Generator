@@ -471,6 +471,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
 
       const SYSTEM = [
         'You CLEAN marketing email copy for deliverability. Keep the same meaning, offer, and structure, but you MAY rephrase sentences as needed to remove the problems below — especially repetition.',
+        `Keep the copy in ${langName(locale)}.`,
         'Apply EVERY rule, and prioritise removing repeated words:',
         RULES,
         'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',

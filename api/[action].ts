@@ -458,21 +458,30 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       const brand     = (data.brand     || '').toString();
       const locale    = (data.locale    || 'en').toString();
       const blocks    = Array.isArray(data.blocks) ? data.blocks : [];
+      // Exact flagged spam terms + safer alternatives (in the email's language),
+      // supplied by the client's deliverability linter — so non-English triggers
+      // (e.g. German "angebot") get fixed, not just the English list below.
+      const terms = Array.isArray(data.terms) ? data.terms as { from?: string; to?: string }[] : [];
       if (!blocks.length && !subject && !preheader) return res.status(400).json({ error: 'No content provided.' });
 
+      const flaggedLine = terms.length
+        ? `- MANDATORY: these exact flagged words MUST be removed everywhere they appear — replace each with a natural ${langName(locale)} equivalent (suggested alternative in parentheses): ${terms.filter(t => t.from).map(t => `"${t.from}"${t.to ? ` (${t.to})` : ''}`).join(', ')}.`
+        : '';
+
       const RULES = [
+        flaggedLine,
         '- CRITICAL: no notable word may appear more than TWICE across the whole email. If a word (e.g. "weekend", "account", "bonus") repeats 3+ times, replace the extra occurrences with synonyms, pronouns (it / this / that), or restructure the sentence so the meaning stays but the repetition is gone.',
-        '- Replace spam-trigger words (bonus, free spins, promotion, deals, play, win, 100%, guaranteed, instant cash, claim now, risk free, jackpot, free money, limited time offer, etc.) with neutral equivalents.',
+        '- Replace spam-trigger words (bonus, free spins, promotion, deals, play, win, 100%, guaranteed, instant cash, claim now, risk free, jackpot, free money, limited time offer, etc.) with neutral equivalents. This applies in EVERY language, not only English.',
         '- Use sentence case — no SHOUTING / excessive capitalization.',
         '- Remove ALL exclamation marks. Replace currency symbols ($ € £ ¥) with codes (USD, EUR, GBP, JPY).',
         '- Remove false urgency and gambling vocabulary.',
         '- Keep the brand name exactly as given.',
-      ].join('\n');
+      ].filter(Boolean).join('\n');
 
       const SYSTEM = [
         'You CLEAN marketing email copy for deliverability. Keep the same meaning, offer, and structure, but you MAY rephrase sentences as needed to remove the problems below — especially repetition.',
         `Keep the copy in ${langName(locale)}.`,
-        'Apply EVERY rule, and prioritise removing repeated words:',
+        'Apply EVERY rule, and prioritise removing the flagged words and repeated words:',
         RULES,
         'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',
       ].join('\n');

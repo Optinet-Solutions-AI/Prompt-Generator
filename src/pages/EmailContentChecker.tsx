@@ -15,6 +15,7 @@ import {
   ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Download,
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, SlidersHorizontal, Images, Upload, Sparkles, Loader2, Eye, LayoutTemplate, Eraser, Monitor, Smartphone, Save, Trash2, Pencil, GripVertical,
 } from 'lucide-react';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -183,10 +183,10 @@ export function buildBrandedEmail(
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 <link href="${esc(fontHref)}" rel="stylesheet"/>
-<style>body{margin:0;padding:0;background:${PAGE_BG};}table{border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;}img{border:0;outline:none;text-decoration:none;}@media (max-width:620px){.container{width:100%!important;}}</style>
+<style>body{margin:0;padding:0;background:${pal.pageBg};}table{border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;}img{border:0;outline:none;text-decoration:none;}@media (max-width:620px){.container{width:100%!important;}}</style>
 </head><body>
 <span style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(doc.meta.preheader || '')}</span>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${PAGE_BG};"><tr><td align="center" style="padding:24px 0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${pal.pageBg};"><tr><td align="center" style="padding:24px 0;">
 <table role="presentation" class="container" width="${WIDTH}" cellspacing="0" cellpadding="0" border="0" style="width:${WIDTH}px;max-width:${WIDTH}px;background:#ffffff;border-radius:0 0 8px 8px;overflow:hidden;">
 ${blocksHtml}
 <tr><td style="height:28px;"></td></tr>

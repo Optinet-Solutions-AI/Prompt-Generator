@@ -1007,6 +1007,16 @@ export default function EmailContentChecker() {
               </div>
             </div>
 
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Language:</span>
+              <select value={chkLocale} onChange={e => setChkLocale(e.target.value)} className="h-7 text-xs rounded-md border border-border bg-background px-2">
+                <option value="en">English</option>
+                <option value="de">German</option>
+                <option value="no">Norwegian</option>
+                <option value="it">Italian</option>
+              </select>
+            </div>
+
             <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={chkSubject} onChange={e => setChkSubject(e.target.value)} placeholder="e.g. A quick note about your account" className="h-9 text-sm" /></div>
             <div><Label className="text-[11px] mb-0.5 block">Email body or HTML</Label><Textarea value={chkBody} onChange={e => setChkBody(e.target.value)} placeholder="Paste your copy here. You can paste full HTML too — it's checked on the visible text." className="min-h-[220px] text-sm font-mono" /></div>
 

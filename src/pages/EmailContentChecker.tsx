@@ -13,7 +13,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, ShieldCheck, Wand2, AlertCircle, Copy, Check, Download,
-  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Plus, SlidersHorizontal, Images, Upload, Sparkles, Loader2, Eye, LayoutTemplate, Eraser, Monitor, Smartphone, Save, Trash2, Pencil, GripVertical,
+  ChevronUp, ChevronDown, X, Plus, SlidersHorizontal, Images, Upload, Sparkles, Loader2, Eye, LayoutTemplate, Eraser, Monitor, Smartphone, Save, Trash2, Pencil, GripVertical,
 } from 'lucide-react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';

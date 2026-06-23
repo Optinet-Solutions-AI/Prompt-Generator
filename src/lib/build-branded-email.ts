@@ -208,7 +208,7 @@ function blockText(b: EmailBlock, c: BrandEmailConfig, brand: string, lbl: Label
     case 'footer': {
       const parts = [b.attribution || c.footer_attribution, b.legal || c.legal_text].filter(Boolean) as string[];
       const unsub = safeUrl(b.unsubscribeUrl || c.unsubscribe_url || '');
-      if (unsub) parts.push(`Unsubscribe: ${unsub}`);
+      if (unsub) parts.push(`${lbl.unsubscribe}: ${unsub}`);
       return parts.join('\n');
     }
     default: return '';

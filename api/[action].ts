@@ -457,17 +457,17 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       if (!blocks.length && !subject && !preheader) return res.status(400).json({ error: 'No content provided.' });
 
       const RULES = [
+        '- CRITICAL: no notable word may appear more than TWICE across the whole email. If a word (e.g. "weekend", "account", "bonus") repeats 3+ times, replace the extra occurrences with synonyms, pronouns (it / this / that), or restructure the sentence so the meaning stays but the repetition is gone.',
         '- Replace spam-trigger words (bonus, free spins, promotion, deals, play, win, 100%, guaranteed, instant cash, claim now, risk free, jackpot, free money, limited time offer, etc.) with neutral equivalents.',
         '- Use sentence case — no SHOUTING / excessive capitalization.',
         '- Remove ALL exclamation marks. Replace currency symbols ($ € £ ¥) with codes (USD, EUR, GBP, JPY).',
         '- Remove false urgency and gambling vocabulary.',
-        '- Eliminate repeated / duplicated words and phrasing — vary the wording.',
         '- Keep the brand name exactly as given.',
       ].join('\n');
 
       const SYSTEM = [
-        'You CLEAN marketing email copy for deliverability with MINIMAL changes.',
-        'Fix every deliverability issue below while preserving the original meaning, tone, structure, and length as closely as possible. Do NOT be creative or add new ideas — only remove the problems.',
+        'You CLEAN marketing email copy for deliverability. Keep the same meaning, offer, and structure, but you MAY rephrase sentences as needed to remove the problems below — especially repetition.',
+        'Apply EVERY rule, and prioritise removing repeated words:',
         RULES,
         'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',
       ].join('\n');

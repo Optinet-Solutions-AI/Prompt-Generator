@@ -404,7 +404,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
         'Return ONLY strict JSON — no markdown, no code fences, no commentary.',
       ].join('\n');
 
-      const KEYS = `{"label": string (3-5 words), "notes": string (one line: what changed), "subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
+      const KEYS = `{"label": string (3-5 words), "notes": string (one line: what changed), "subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string, "attribution"?: string, "legal"?: string}]}`;
 
       const buildPrompt = (angle: string) => [
         `Brand: ${brand || 'n/a'}. Locale: ${locale}.`,
@@ -477,7 +477,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
         'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',
       ].join('\n');
 
-      const KEYS = `{"subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
+      const KEYS = `{"subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string, "attribution"?: string, "legal"?: string}]}`;
       const userPrompt = [
         `Brand: ${brand || 'n/a'}. Locale: ${locale}.`,
         `Subject: ${subject || '(none)'}`,
@@ -533,7 +533,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
         'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',
       ].filter(Boolean).join('\n');
 
-      const KEYS = `{"subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string}]}`;
+      const KEYS = `{"subject": string, "preheader": string, "blocks": [{"id": string, "type": string, "text"?: string, "offer"?: string, "code"?: string, "label"?: string, "attribution"?: string, "legal"?: string}]}`;
       const userPrompt = [
         `Brand: ${brand || 'n/a'}. Target language: ${langName(locale)} (${locale}). Target currency: ${targetCurrency}.`,
         `Subject: ${subject || '(none)'}`,

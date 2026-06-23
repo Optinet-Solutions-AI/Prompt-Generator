@@ -342,16 +342,17 @@ export function sanitizeContent(text: string): string {
  */
 export function autoFix(text: string, opts: LintOptions = {}): string {
   const ignore = new Set((opts.ignore ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean));
+  const pack = packFor(opts.locale);
   let out = text;
   // Longest phrases first so "limited time offer" wins over "limited time".
-  for (const term of Object.keys(SPAM_WORDS).sort((a, b) => b.length - a.length)) {
+  for (const term of Object.keys(pack.spam).sort((a, b) => b.length - a.length)) {
     if (ignore.has(term)) continue;
     const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const left = /^[a-z0-9]/i.test(term) ? "\\b" : "";
     const right = /[a-z0-9]$/i.test(term) ? "\\b" : "";
     const re = new RegExp(`${left}${esc}${right}`, "gi");
     out = out.replace(re, (match) => {
-      const alt = SPAM_WORDS[term];
+      const alt = pack.spam[term];
       // Preserve leading capitalization of the original match.
       return /^[A-Z]/.test(match) ? alt.charAt(0).toUpperCase() + alt.slice(1) : alt;
     });

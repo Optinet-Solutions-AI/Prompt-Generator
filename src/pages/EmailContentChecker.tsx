@@ -293,7 +293,12 @@ export default function EmailContentChecker() {
   };
 
   // ── Preview + checker ───────────────────────────────────────────────────
-  const html = useMemo(() => buildBrandedEmail(doc, getBrandStyle(brand)).html, [doc, brand]);
+  // Resolved palette: a custom signature colour overrides the brand palette.
+  const style = useMemo(
+    () => (doc.meta.themeColor ? styleFromColor(doc.meta.themeColor) : getBrandStyle(brand)),
+    [doc.meta.themeColor, brand],
+  );
+  const html = useMemo(() => buildBrandedEmail(doc, style).html, [doc, style]);
   const report = useMemo(() => {
     const parts: string[] = [];
     if (doc.meta.preheader) parts.push(doc.meta.preheader); // preheader is checked too

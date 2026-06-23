@@ -804,26 +804,20 @@ export default function EmailContentChecker() {
     </div>
   );
 
-  // Variation card used inside the inline panel (Original + each generated variation).
+  // Compact HORIZONTAL card — small preview on the left, info + actions on the
+  // right. Much shorter than a stacked card, so several fit without scrolling.
   const varCard = (
-    opts: { thumb: string; title: string; badge?: ReactNode; note?: string; rows: { label: string; value: string }[]; actions: ReactNode; highlight?: boolean },
+    opts: { thumb: string; title: string; badge?: ReactNode; note?: string; actions: ReactNode; highlight?: boolean },
   ) => (
-    <div className={`rounded-lg border bg-background overflow-hidden flex flex-col ${opts.highlight ? 'border-2 border-primary/40' : 'border-border'}`}>
-      <Thumb html={opts.thumb} w={330} h={170} />
-      <div className="p-2.5 space-y-1.5 flex-1 flex flex-col">
+    <div className={`rounded-lg border bg-background overflow-hidden flex items-stretch ${opts.highlight ? 'border-2 border-primary/40' : 'border-border'}`}>
+      <div className="shrink-0 self-stretch flex"><Thumb html={opts.thumb} w={104} h={112} /></div>
+      <div className="p-2 flex-1 min-w-0 flex flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold truncate">{opts.title}</p>
           {opts.badge}
         </div>
-        {opts.note && <p className="text-[10px] text-muted-foreground leading-snug">{opts.note}</p>}
-        {opts.rows.length > 0 && (
-          <div className="space-y-0.5">
-            {opts.rows.map((r, j) => (
-              <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{r.label}: </span>{r.value}</p>
-            ))}
-          </div>
-        )}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">{opts.actions}</div>
+        {opts.note && <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{opts.note}</p>}
+        <div className="flex flex-wrap items-center gap-1 mt-auto pt-0.5">{opts.actions}</div>
       </div>
     </div>
   );

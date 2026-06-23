@@ -968,7 +968,7 @@ export default function EmailContentChecker() {
 
         {tab === 'builder' && (
         <>
-          <div className="grid lg:grid-cols-2 gap-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
             {/* LEFT: free-form sections — open any, in any order. Nothing is forced. */}
             <div className="lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:pr-1">
               <Accordion type="multiple" defaultValue={['blocks']} className="space-y-2">

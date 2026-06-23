@@ -395,7 +395,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
 
       const SYSTEM = [
         "You rewrite the TEXT of a marketing email into a NEW variation.",
-        'Keep the SAME offer, intent, brand, and language/locale as the source.',
+        `Keep the SAME offer, intent, and brand. Write the variation ENTIRELY in ${langName(locale)}.`,
         'Rewrite the subject line and the preheader too. Change the wording — do not copy phrases verbatim.',
         'Do NOT add or remove blocks; keep each id and type. Only return text fields per block (heading/paragraph -> text, bonus -> offer/code, cta -> label).',
         'The subject should be a compelling 4-9 words; the preheader a short complementary line (<=110 chars).',

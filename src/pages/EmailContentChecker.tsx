@@ -846,11 +846,11 @@ export default function EmailContentChecker() {
           <p className="text-xs text-muted-foreground text-center py-8">Choose how many, then <strong>Generate</strong> — reworded versions appear here next to your email.</p>
         )}
         {variations.length > 0 && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-wrap gap-3">
             {variations.map((v, i) => {
               const saved = savedVarIdx.includes(i);
               return (
-                <div key={i}>{varCard({
+                <div key={i} className="w-[230px]">{varCard({
                   thumb: v.html,
                   title: v.label,
                   badge: <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>,

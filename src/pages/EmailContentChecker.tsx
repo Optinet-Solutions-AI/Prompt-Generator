@@ -32,6 +32,16 @@ import { getAllStoredImages, batchStoreImages } from '@/lib/imageStore';
 
 const FLOW = ['Template', 'Build', 'Variations', 'Check', 'Export'];
 
+// Builder wizard steps — each occupies the left rail one at a time so the user
+// follows a clear path instead of scrolling one long stacked form.
+const BUILDER_STEPS = [
+  { key: 'write', label: 'Write', hint: 'Draft with AI (optional)' },
+  { key: 'brand', label: 'Brand', hint: 'Brand, subject & language' },
+  { key: 'build', label: 'Build', hint: 'Add, arrange & style blocks' },
+  { key: 'variations', label: 'Variations', hint: 'AI rewrites of your copy' },
+  { key: 'check', label: 'Check', hint: 'Deliverability / spam risk' },
+] as const;
+
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL      || '';
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const genId = () => (crypto?.randomUUID ? crypto.randomUUID() : `b-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);

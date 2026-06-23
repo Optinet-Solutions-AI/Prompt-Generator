@@ -522,7 +522,12 @@ export default function EmailContentChecker() {
           {b.mode !== 'text' && (
             <>
               <Label className="text-[11px] mb-0.5 block">Logo {b.logoUrl ? '' : '(optional override)'}</Label>
-              {b.logoUrl && <img src={b.logoUrl} alt="" className="h-9 max-w-[140px] object-contain rounded border border-border bg-white p-0.5" />}
+              {b.logoUrl && (
+                <div className="flex items-center gap-2">
+                  <img src={b.logoUrl} alt="" className="h-9 max-w-[140px] object-contain rounded border border-border bg-white p-0.5" />
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-destructive" onClick={() => patchBlock(b.id, { logoUrl: '' } as Partial<EmailBlock>)}><X className="w-3 h-3" /> Remove logo</Button>
+                </div>
+              )}
               <div className="flex gap-1.5">
                 <Input value={b.logoUrl || ''} onChange={e => patchBlock(b.id, { logoUrl: e.target.value } as Partial<EmailBlock>)} placeholder="Paste a logo URL…" className="h-8 text-sm" />
                 <label className="inline-flex items-center gap-1 h-8 px-2.5 rounded-md border border-border bg-background text-xs cursor-pointer hover:bg-muted shrink-0"><Upload className="w-3.5 h-3.5" /> Upload<input type="file" accept="image/*" className="hidden" onChange={e => uploadLogo(b.id, e)} /></label>

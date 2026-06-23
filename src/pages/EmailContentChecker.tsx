@@ -784,7 +784,7 @@ export default function EmailContentChecker() {
             )}
           </div>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {/* Generate variations of the current email — results open in a showcase popup */}
           <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={variations.length ? () => setVarModalOpen(true) : generateVariations} disabled={varLoading} title="Generate reworded variations of this email">
             {varLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} {varLoading ? 'Generating…' : variations.length ? `Variations (${variations.length})` : 'Variations'}

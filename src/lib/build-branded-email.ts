@@ -101,7 +101,8 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const code = b.code
         ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${INK_MUTED};">Use code: <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`
         : '';
-      return cell(`<div style="${spacing(st, 20, 0)}border-left:3px solid ${s.accentColor};background:${FOOTER_BG};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
+      const rule = st.hideRule ? '' : `border-left:3px solid ${s.accentColor};`;
+      return cell(`<div style="${spacing(st, 20, 0)}${rule}background:${st.background || FOOTER_BG};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
         `<div style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 18}px;font-weight:700;color:${st.color || INK_HEADLINE};">${esc(b.offer)}</div>${code}</div>`);
     }
     case 'cta': {

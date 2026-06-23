@@ -984,57 +984,9 @@ export default function EmailContentChecker() {
                   </Button>
                   {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{varError}</p>}
                   {variations.length > 0 && (
-                    <ul className="space-y-1.5">
-                      {variations.map((v, i) => {
-                        const open = expandedVar === i;
-                        return (
-                          <li key={i} className="rounded-md border border-border bg-background overflow-hidden">
-                            <div className="flex items-center justify-between gap-2 p-2">
-                              <button type="button" onClick={() => setExpandedVar(open ? null : i)} className="flex items-center gap-1.5 min-w-0 text-left flex-1">
-                                {open ? <ChevronUp className="w-3.5 h-3.5 shrink-0 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
-                                <span className="min-w-0">
-                                  <span className="block text-xs font-semibold truncate">{v.label}</span>
-                                  {v.notes && <span className="block text-[10px] text-muted-foreground truncate">{v.notes}</span>}
-                                </span>
-                              </button>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>
-                                <Button type="button" size="sm" className="h-6 text-[11px] px-2" onClick={() => useVariation(v)}>Use</Button>
-                              </div>
-                            </div>
-                            {open && (
-                              <div className="border-t border-border p-2 space-y-2 bg-muted/20">
-                                <div className="flex gap-2">
-                                  <Thumb html={v.html} w={150} h={150} />
-                                  <div className="space-y-1 flex-1 min-w-0">
-                                    {v.fields.map((f, j) => (
-                                      <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{f.label}: </span>{f.value}</p>
-                                    ))}
-                                  </div>
-                                </div>
-                                {v.report.findings.length > 0 ? (
-                                  <ul className="space-y-1 max-h-32 overflow-y-auto border-t border-border pt-1.5">
-                                    {v.report.findings.map((f, j) => (
-                                      <li key={j} className="flex items-start gap-1.5 text-[11px] leading-snug">
-                                        <AlertCircle className={`w-3 h-3 shrink-0 mt-0.5 ${f.severity === 'high' ? 'text-destructive' : f.severity === 'medium' ? 'text-amber-500' : 'text-muted-foreground'}`} />
-                                        <span className="text-muted-foreground">{f.message}{f.suggestion ? ` ${f.suggestion}` : ''}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 border-t border-border pt-1.5">No spam triggers — clean.</p>
-                                )}
-                                <div className="flex items-center gap-1.5 pt-0.5">
-                                  <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy text</Button>
-                                  <Button type="button" size="sm" variant="outline" className="h-6 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
-                                  <Button type="button" size="sm" className="h-6 text-[11px] px-2 ml-auto" onClick={() => useVariation(v)}>Use this</Button>
-                                </div>
-                              </div>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    <Button type="button" variant="outline" className="w-full h-8 gap-1.5 text-xs" onClick={() => setVarModalOpen(true)}>
+                      <Eye className="w-3.5 h-3.5" /> View {variations.length} variation{variations.length > 1 ? 's' : ''}
+                    </Button>
                   )}
                   </AccordionContent>
                 </AccordionItem>

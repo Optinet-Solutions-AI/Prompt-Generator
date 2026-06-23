@@ -517,13 +517,19 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       const blocks    = Array.isArray(data.blocks) ? data.blocks : [];
       if (!blocks.length && !subject && !preheader) return res.status(400).json({ error: 'No content provided.' });
 
+      // Currency follows the target market: swap the CODE only, keep the round
+      // promotional amount (no FX conversion — these are marketing round numbers).
+      const CURRENCY: Record<string, string> = { en: 'USD', de: 'EUR', no: 'NOK', it: 'EUR' };
+      const targetCurrency = CURRENCY[(locale || 'en').toLowerCase()] || 'USD';
+
       const SYSTEM = [
         `You are a professional marketing translator. Translate the email copy into ${langName(locale)}.`,
         'Keep the SAME meaning, offer, tone, and structure — translate faithfully, do not rewrite or add content.',
         'Use natural, idiomatic marketing language for the target language (not a word-for-word literal translation).',
         brand ? `Keep the brand name "${brand}" exactly as given — never translate it.` : '',
-        'Keep any bonus codes, URLs, numbers, and currency codes (USD, EUR, GBP) unchanged.',
-        'Do NOT introduce exclamation marks, currency symbols, or spam-trigger wording.',
+        'Keep bonus codes and URLs unchanged.',
+        `CURRENCY: convert any currency code (USD, EUR, GBP, NOK, etc.) to ${targetCurrency} for this market, but KEEP the same numeric amount (e.g. "USD 200" becomes "${targetCurrency} 200" — do not recalculate exchange rates).`,
+        'Do NOT introduce exclamation marks, currency symbols, or spam-trigger wording. Write currency as a code (e.g. EUR 200), never a symbol.',
         'Keep each block id and type. Return ONLY strict JSON — no markdown, no code fences.',
       ].filter(Boolean).join('\n');
 

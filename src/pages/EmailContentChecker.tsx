@@ -1139,7 +1139,12 @@ export default function EmailContentChecker() {
           <div className="bg-card rounded-xl border border-border shadow-xl w-full max-w-5xl my-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-2 p-4 border-b border-border sticky top-0 bg-card rounded-t-xl z-10">
               <span className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="w-4 h-4 text-primary" /> Generated variations <span className="text-xs font-normal text-muted-foreground">({variations.length})</span></span>
-              <button type="button" onClick={() => setVarModalOpen(false)} className="p-1 rounded hover:bg-muted text-muted-foreground"><X className="w-4 h-4" /></button>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">Count:</span>
+                <Input type="number" min={1} max={10} value={varCount} onChange={e => setVarCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))} className="h-7 w-14 text-xs" />
+                <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={generateVariations} disabled={varLoading}>{varLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} {varLoading ? 'Generating…' : 'Regenerate'}</Button>
+                <button type="button" onClick={() => setVarModalOpen(false)} className="p-1 rounded hover:bg-muted text-muted-foreground"><X className="w-4 h-4" /></button>
+              </div>
             </div>
             <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {variations.map((v, i) => (

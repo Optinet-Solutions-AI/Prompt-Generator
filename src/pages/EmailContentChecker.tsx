@@ -1111,10 +1111,9 @@ export default function EmailContentChecker() {
               </Accordion>
             </div>
 
-            {/* RIGHT: live preview + inline variations panel (fills the space beside it) */}
-            <div className="flex flex-col xl:flex-row gap-4 min-w-0">
-              <div className="flex-1 min-w-0">{previewPane}</div>
-              {varPanelOpen && <div className="xl:w-[460px] shrink-0">{variationsPanel}</div>}
+            {/* RIGHT: the variations panel REPLACES the preview when open (full width) */}
+            <div className="min-w-0">
+              {varPanelOpen ? variationsPanel : previewPane}
             </div>
           </div>
         </>

@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { BRAND_NAMES, getBrandStyle, styleFromColor } from '@/lib/brand-standards';
 import { lintDeliverability, autoFix } from '@/lib/deliverability';
 import { buildBrandedEmail } from '@/lib/build-branded-email';

@@ -142,6 +142,21 @@ function applyEdits(doc: EmailDoc, edits: EditField[]): EmailDoc {
   };
 }
 
+interface DraftFields { subject: string; preheader: string; headline: string; intro: string; bonusOffer: string; bonusCode: string; body: string; ctaLabel: string }
+
+/** Map an AI-drafted email onto the doc's blocks (heading, two paragraphs, bonus, cta) + meta. */
+function applyDraft(doc: EmailDoc, d: DraftFields): EmailDoc {
+  let paraSeen = 0;
+  const blocks = doc.blocks.map(b => {
+    if (b.type === 'heading') return { ...b, text: d.headline || b.text };
+    if (b.type === 'paragraph') { const v = paraSeen++ === 0 ? d.intro : d.body; return { ...b, text: v || b.text }; }
+    if (b.type === 'bonus') return { ...b, offer: d.bonusOffer || b.offer, code: d.bonusCode || b.code };
+    if (b.type === 'cta') return { ...b, label: d.ctaLabel || b.label };
+    return b;
+  });
+  return { ...doc, blocks, meta: { ...doc.meta, subject: d.subject || doc.meta.subject, preheader: d.preheader || doc.meta.preheader } };
+}
+
 /** Strip HTML tags so pasted HTML is scored on its visible text, not its markup. */
 function stripHtml(input: string): string {
   if (!input.includes('<')) return input;

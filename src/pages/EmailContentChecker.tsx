@@ -804,30 +804,31 @@ export default function EmailContentChecker() {
     </div>
   );
 
-  // Compact HORIZONTAL card — small preview on the left, info + actions on the
-  // right. Much shorter than a stacked card, so several fit without scrolling.
+  // Compact vertical box for the variations grid: preview on top, then title,
+  // badge, subject and a tight icon action row.
   const varCard = (
-    opts: { thumb: string; title: string; badge?: ReactNode; note?: string; actions: ReactNode; highlight?: boolean },
+    opts: { thumb: string; title: string; badge?: ReactNode; note?: string; actions: ReactNode },
   ) => (
-    <div className={`rounded-lg border bg-background overflow-hidden flex items-stretch ${opts.highlight ? 'border-2 border-primary/40' : 'border-border'}`}>
-      <div className="shrink-0 self-stretch flex"><Thumb html={opts.thumb} w={104} h={112} /></div>
-      <div className="p-2 flex-1 min-w-0 flex flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold truncate">{opts.title}</p>
+    <div className="rounded-lg border border-border bg-background overflow-hidden flex flex-col">
+      <Thumb html={opts.thumb} w={190} h={116} />
+      <div className="p-2 flex-1 flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-1">
+          <p className="text-[11px] font-semibold truncate">{opts.title}</p>
           {opts.badge}
         </div>
-        {opts.note && <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{opts.note}</p>}
-        <div className="flex flex-wrap items-center gap-1 mt-auto pt-0.5">{opts.actions}</div>
+        {opts.note && <p className="text-[10px] text-muted-foreground line-clamp-1">{opts.note}</p>}
+        <div className="flex items-center gap-1 mt-auto pt-1">{opts.actions}</div>
       </div>
     </div>
   );
 
   // Inline variations panel — sits to the RIGHT of the live preview (no popup).
-  // Pick how many, Generate, then keep/use any of them (plus the original).
+  // Boxes laid out in a grid; the live preview on the left IS the original, so
+  // the original isn't duplicated here.
   const variationsPanel = (
     <div className="lg:sticky lg:top-5 self-start rounded-xl border border-border bg-card flex flex-col" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
       <div className="flex items-center justify-between gap-2 p-3 border-b border-border">
-        <span className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="w-4 h-4 text-primary" /> Variations{variations.length > 0 && <span className="text-xs font-normal text-muted-foreground">(orig + {variations.length})</span>}</span>
+        <span className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="w-4 h-4 text-primary" /> Variations{variations.length > 0 && <span className="text-xs font-normal text-muted-foreground">({variations.length})</span>}</span>
         <button type="button" onClick={() => setVarPanelOpen(false)} title="Close" className="p-1 rounded hover:bg-muted text-muted-foreground"><X className="w-4 h-4" /></button>
       </div>
       <div className="p-3 border-b border-border flex flex-wrap items-center gap-2">
@@ -840,38 +841,31 @@ export default function EmailContentChecker() {
         {variations.length > 0 && <Button type="button" size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={saveAllVariations} title="Save every variation to your templates"><Save className="w-3 h-3" /> Save all</Button>}
       </div>
       {varError && <p className="text-destructive text-[11px] bg-destructive/10 rounded m-3 px-2 py-1">{varError}</p>}
-      <div className="p-3 space-y-3 overflow-y-auto">
+      <div className="p-3 overflow-y-auto">
         {variations.length === 0 && !varLoading && (
           <p className="text-xs text-muted-foreground text-center py-8">Choose how many, then <strong>Generate</strong> — reworded versions appear here next to your email.</p>
         )}
-        {variations.length > 0 && varCard({
-          thumb: html,
-          title: 'Original',
-          highlight: true,
-          badge: <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-primary/15 text-primary">Current</span>,
-          note: doc.meta.subject || 'Your email as it is now.',
-          actions: (<>
-            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => previewVar(html)}><Eye className="w-3 h-3" /> Preview</Button>
-            <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={saveAsTemplate}><Save className="w-3 h-3" /> Save</Button>
-          </>),
-        })}
-        {variations.map((v, i) => {
-          const saved = savedVarIdx.includes(i);
-          return (
-            <div key={i}>{varCard({
-              thumb: v.html,
-              title: v.label,
-              badge: <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>,
-              note: v.subject || v.notes,
-              actions: (<>
-                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} Copy</Button>
-                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /> Preview</Button>
-                <Button type="button" size="sm" variant="outline" className="h-7 text-[11px] px-2 gap-1" onClick={() => saveVariation(v, i)} disabled={saved}>{saved ? <><Check className="w-3 h-3" /> Saved</> : <><Save className="w-3 h-3" /> Save</>}</Button>
-                <Button type="button" size="sm" className="h-7 text-[11px] px-2 ml-auto" onClick={() => useVariation(v)}>Use</Button>
-              </>),
-            })}</div>
-          );
-        })}
+        {variations.length > 0 && (
+          <div className="grid grid-cols-2 gap-2">
+            {variations.map((v, i) => {
+              const saved = savedVarIdx.includes(i);
+              return (
+                <div key={i}>{varCard({
+                  thumb: v.html,
+                  title: v.label,
+                  badge: <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${levelBadge(v.report.level)}`}>{v.report.level === 'clean' ? 'Clean' : v.report.level === 'caution' ? 'Caution' : 'High risk'}{v.report.score > 0 && ` · ${v.report.score}`}</span>,
+                  note: v.subject || v.notes,
+                  actions: (<>
+                    <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0" title="Copy text" onClick={() => copyVarText(i, v.text)}>{copiedVar === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}</Button>
+                    <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0" title="Preview" onClick={() => previewVar(v.html)}><Eye className="w-3 h-3" /></Button>
+                    <Button type="button" size="sm" variant="outline" className="h-7 w-7 p-0" title={saved ? 'Saved' : 'Save to templates'} disabled={saved} onClick={() => saveVariation(v, i)}>{saved ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}</Button>
+                    <Button type="button" size="sm" className="h-7 px-2 text-[11px] ml-auto" onClick={() => useVariation(v)}>Use</Button>
+                  </>),
+                })}</div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

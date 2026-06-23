@@ -883,13 +883,12 @@ export default function EmailContentChecker() {
                     {drafting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Drafting…</> : <><Sparkles className="w-3.5 h-3.5" /> Draft the email</>}
                   </Button>
                   {draftError && <p className="text-destructive text-[11px] bg-destructive/10 rounded px-2 py-1">{draftError}</p>}
-                </div>
-              )}
+                  </AccordionContent>
+                </AccordionItem>
 
-              {/* Step 2 — Brand & subject */}
-              {step === 1 && (
-                <div className="border border-border rounded-lg bg-card p-3 space-y-2.5">
-                  <span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Brand &amp; subject</span>
+                <AccordionItem value="brand" className="border border-border rounded-lg bg-card px-3">
+                  <AccordionTrigger className="py-2.5 hover:no-underline"><span className="flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> Brand &amp; subject</span></AccordionTrigger>
+                  <AccordionContent className="pb-3 space-y-2.5">
                     <div className="flex flex-wrap gap-1.5">
                       {BRAND_NAMES.map(b => (
                         <button key={b} type="button" onClick={() => selectBrand(b)} className={`px-2.5 py-1 rounded-md border text-xs font-medium transition-colors ${brand === b ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'}`}>{b}</button>

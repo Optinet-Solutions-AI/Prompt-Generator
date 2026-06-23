@@ -816,11 +816,13 @@ export default function EmailContentChecker() {
           {opts.badge}
         </div>
         {opts.note && <p className="text-[10px] text-muted-foreground leading-snug">{opts.note}</p>}
-        <div className="space-y-0.5 flex-1">
-          {opts.rows.map((r, j) => (
-            <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{r.label}: </span>{r.value}</p>
-          ))}
-        </div>
+        {opts.rows.length > 0 && (
+          <div className="space-y-0.5">
+            {opts.rows.map((r, j) => (
+              <p key={j} className="text-[11px] leading-snug"><span className="text-muted-foreground font-medium">{r.label}: </span>{r.value}</p>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-1.5 pt-1">{opts.actions}</div>
       </div>
     </div>

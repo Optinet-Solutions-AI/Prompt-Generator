@@ -767,8 +767,8 @@ export default function EmailContentChecker() {
   // drafting / variations show their result without switching tabs.
   const previewPane = (
     <div className="lg:sticky lg:top-5 self-start space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Small>Live preview</Small>
           <div className="flex gap-0.5 p-0.5 rounded-md bg-muted border border-border">
             <button type="button" onClick={() => setDevice('desktop')} title="Desktop" className={`p-1 rounded transition-colors ${device === 'desktop' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}><Monitor className="w-3.5 h-3.5" /></button>

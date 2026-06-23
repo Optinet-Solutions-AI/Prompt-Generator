@@ -225,8 +225,6 @@ export default function EmailContentChecker() {
 
   // View tab + standalone Content Checker (paste any subject/body or HTML)
   const [tab, setTab] = useState<'templates' | 'builder' | 'checker'>('templates');
-  // Builder is a step-by-step wizard; this tracks the active step (0-based).
-  const [step, setStep] = useState(0);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>(() => loadCustom());
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [chkBrand, setChkBrand] = useState('');

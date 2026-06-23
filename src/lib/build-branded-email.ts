@@ -17,6 +17,35 @@ const DARK: Palette  = { headline: '#FFFFFF', body: '#C7CDD6', muted: '#9AA3B2',
 const FONT_STACK = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif";
 const WIDTH = 600;
 
+// Parse a #rrggbb / #rgb hex into [r,g,b]; returns null if not a hex colour.
+function hexRgb(hex = ''): [number, number, number] | null {
+  let h = hex.trim().replace(/^#/, '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+// Perceived luminance 0–255 (0 = black, 255 = white).
+function luminance(hex: string): number {
+  const rgb = hexRgb(hex);
+  if (!rgb) return 255;
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+}
+// Nudge a hex colour lighter (+) or darker (-) by `amt` per channel.
+function shade(hex: string, amt: number): string {
+  const rgb = hexRgb(hex);
+  if (!rgb) return hex;
+  const c = rgb.map((v) => Math.max(0, Math.min(255, v + amt)));
+  return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+// Build a palette around a custom email background colour. Ink (headline/body/…)
+// flips to the light- or dark-canvas set based on the colour's luminance, so
+// text stays readable on any background the user picks.
+function paletteForBg(bg: string): Palette {
+  const dark = luminance(bg) < 140;
+  const base = dark ? DARK : LIGHT;
+  return { ...base, pageBg: bg, cardBg: bg, footerBg: shade(bg, dark ? 10 : -6), line: shade(bg, dark ? 26 : -16) };
+}
+
 function esc(s = ''): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

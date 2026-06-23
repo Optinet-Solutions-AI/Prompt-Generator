@@ -525,6 +525,7 @@ export default function EmailContentChecker() {
       });
       setVariations(results);
       setExpandedVar(results.length ? 0 : null);
+      setSavedVarIdx([]); // fresh batch — reset saved markers
       if (results.length) setVarModalOpen(true); // showcase all variations in a modal
     } catch {
       setVarError('Could not reach the AI service. Try again.');

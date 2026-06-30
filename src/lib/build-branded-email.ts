@@ -217,7 +217,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const items = links
         .map(([n, u]) => `<a href="${esc(safeUrl(u))}" style="color:${s.accentColor};text-decoration:none;">${n}</a>`)
         .join(' <span style="color:#c1c7d0;">|</span> ');
-      return cell(`<div style="text-align:${st.align ?? 'center'};${spacing(st, 24, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 13}px;color:${pal.muted};">${items}</div>`);
+      return cell(`<div style="text-align:${st.align ?? 'center'};${spacing(st, 24, 0)}font-family:${famFor(st, g, FONT_STACK)};font-size:${st.fontSize ?? 13}px;${italicFor(st)}color:${pal.muted};">${items}</div>`);
     }
     case 'footer': {
       const attribution = b.attribution || c.footer_attribution || '';

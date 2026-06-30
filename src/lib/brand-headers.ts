@@ -49,3 +49,9 @@ export function getBrandHeader(brand?: string | null): string {
   if (!brand) return '';
   return absolutize(NORMALIZED[brand.toLowerCase().replace(/[^a-z0-9]/g, '')] ?? '');
 }
+
+// The logo-free texture band for this brand (empty if none on disk).
+export function getBrandHeaderBg(brand?: string | null): string {
+  if (!brand) return '';
+  return absolutize(NORMALIZED_BG[brand.toLowerCase().replace(/[^a-z0-9]/g, '')] ?? '');
+}

@@ -7,7 +7,7 @@
  */
 import type { BrandStyle } from './brand-standards';
 import { getBrandLogo } from './brand-logos';
-import { getBrandHeader } from './brand-headers';
+import { getBrandHeader, getBrandHeaderBg } from './brand-headers';
 import type { BlockStyle, BrandEmailConfig, EmailBlock, EmailDoc } from './email-model';
 
 // Ink palette — light (white canvas) or dark. Brand color stays a restrained cue.

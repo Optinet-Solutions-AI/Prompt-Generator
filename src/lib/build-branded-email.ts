@@ -173,9 +173,9 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       return `<tr><td align="${align}" style="padding:0 32px;"><img src="${esc(safeUrl(src))}" alt="${esc(brand)}" width="${mw}" style="display:block;border:0;width:100%;max-width:${mw}px;height:auto;margin:${mgn};border-radius:${st.radius ?? 10}px;-ms-interpolation-mode:bicubic;"/></td></tr>`;
     }
     case 'heading':
-      return cell(`<h1 style="${spacing(st, 24, 0)}font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;line-height:1.3;color:${st.color || pal.headline};text-align:${st.align ?? 'left'};">${esc(b.text)}</h1>`);
+      return cell(`<h1 style="${spacing(st, 24, 0)}font-family:${famFor(st, g, s.fontFamily)};font-size:${st.fontSize ?? 24}px;font-weight:${weightFor(st, 700)};${italicFor(st)}line-height:1.3;color:${st.color || pal.headline};text-align:${st.align ?? 'left'};">${esc(b.text)}</h1>`);
     case 'paragraph':
-      return cell(`<p style="${spacing(st, 14, 0)}font-family:${FONT_STACK};font-size:${st.fontSize ?? 15}px;line-height:1.65;color:${st.color || pal.body};text-align:${st.align ?? 'left'};">${esc(b.text).replace(/\n/g, '<br/>')}</p>`);
+      return cell(`<p style="${spacing(st, 14, 0)}font-family:${famFor(st, g, FONT_STACK)};font-size:${st.fontSize ?? g.size ?? 15}px;${st.bold ? 'font-weight:700;' : ''}${italicFor(st)}line-height:1.65;color:${st.color || pal.body};text-align:${st.align ?? 'left'};">${esc(b.text).replace(/\n/g, '<br/>')}</p>`);
     case 'bonus': {
       const code = b.code
         ? `<div style="margin-top:8px;font-family:${FONT_STACK};font-size:13px;color:${pal.muted};">${esc(lbl.useCode)} <strong style="color:${s.accentColor};">${esc(b.code)}</strong></div>`

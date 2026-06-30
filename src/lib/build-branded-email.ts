@@ -188,7 +188,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
         ? ''
         : `border-left:3px solid ${s.accentColor};`;
       return cell(`<div style="${spacing(st, 20, 0)}${rule}background:${st.background || pal.footerBg};padding:14px 18px;text-align:${st.align ?? 'left'};">` +
-        `<div style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 18}px;font-weight:700;color:${st.color || pal.headline};">${esc(b.offer)}</div>${code}</div>`);
+        `<div style="font-family:${famFor(st, g, s.fontFamily)};font-size:${st.fontSize ?? 18}px;font-weight:${weightFor(st, 700)};${italicFor(st)}color:${st.color || pal.headline};">${esc(b.offer)}</div>${code}</div>`);
     }
     case 'cta': {
       const href = safeUrl(b.url) || '#';

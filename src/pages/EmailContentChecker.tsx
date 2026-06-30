@@ -801,11 +801,12 @@ export default function EmailContentChecker() {
           ))}
         </div>
         {textish && (
-          <div className="col-span-2"><Label className="text-[10px] mb-0.5 block">Font</Label>
+          <div className="col-span-2"><Label className="text-[10px] mb-0.5 block">Font <span className="font-normal normal-case text-muted-foreground">(this block only)</span></Label>
             <select value={st.fontFamily ?? ''} onChange={e => patchStyle(b.id, 'fontFamily', e.target.value || undefined)} className="h-7 text-xs w-full rounded-md border border-border bg-background px-2">
-              <option value="">Default (inherit)</option>
+              <option value="">Use whole-email font</option>
               {EMAIL_SAFE_FONTS.filter(f => f.value).map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Set the font for the whole email in <span className="font-medium">Brand &amp; subject → Default font</span>.</p>
           </div>
         )}
         <div><Label className="text-[10px] mb-0.5 block">Font size (px)</Label><Input type="number" value={num(st.fontSize)} onChange={e => patchStyle(b.id, 'fontSize', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>

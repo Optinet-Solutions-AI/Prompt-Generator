@@ -37,14 +37,26 @@ export interface BlockStyle {
  */
 export const EMAIL_SAFE_FONTS: { label: string; value: string }[] = [
   { label: 'Brand font', value: '' },
+  // ── Sans-serif ────────────────────────────────────────────────────────────
+  { label: 'System default', value: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
   { label: 'Arial', value: "Arial, 'Helvetica Neue', Helvetica, sans-serif" },
   { label: 'Helvetica', value: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
   { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
   { label: 'Tahoma', value: 'Tahoma, Verdana, Segoe, sans-serif' },
   { label: 'Trebuchet MS', value: "'Trebuchet MS', Helvetica, Arial, sans-serif" },
+  { label: 'Segoe UI', value: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" },
+  { label: 'Calibri', value: "Calibri, Candara, Segoe, 'Segoe UI', sans-serif" },
+  { label: 'Century Gothic', value: "'Century Gothic', 'Apple Gothic', AppleGothic, sans-serif" },
+  { label: 'Lucida Sans', value: "'Lucida Sans Unicode', 'Lucida Grande', Geneva, sans-serif" },
+  // ── Serif ───────────────────────────────────────────────────────────────
   { label: 'Georgia', value: "Georgia, 'Times New Roman', Times, serif" },
+  { label: 'Cambria', value: "Cambria, Georgia, 'Times New Roman', serif" },
+  { label: 'Garamond', value: "Garamond, 'Hoefler Text', 'Times New Roman', Times, serif" },
+  { label: 'Palatino', value: "'Palatino Linotype', 'Book Antiqua', Palatino, serif" },
   { label: 'Times New Roman', value: "'Times New Roman', Times, serif" },
+  // ── Monospace ───────────────────────────────────────────────────────────
   { label: 'Courier New', value: "'Courier New', Courier, monospace" },
+  { label: 'Consolas', value: "Consolas, 'Lucida Console', 'Courier New', monospace" },
 ];
 
 interface BlockBase {

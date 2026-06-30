@@ -72,7 +72,47 @@ function spacing(st: BlockStyle, dTop: number, dBottom: number): string {
   return `margin:${st.spaceTop ?? dTop}px 0 ${st.spaceBottom ?? dBottom}px;`;
 }
 
-function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: string, pal: Palette, lbl: Labels): string {
+// Global font defaults (from EmailDoc.meta), threaded into every block so the
+// font cascade is: per-block override → global default → brand/body fallback.
+interface FontDefaults { family?: string; size?: number }
+
+// Resolve a block's font stack: per-block → global default → the given fallback
+// (the decorative brand font for headings, or the readable body FONT_STACK).
+function famFor(st: BlockStyle, g: FontDefaults, fallback: string): string {
+  return st.fontFamily || g.family || fallback;
+}
+// Resolve weight: bold override (true→700 / false→400) else the block's default.
+function weightFor(st: BlockStyle, def: number): number {
+  return st.bold === true ? 700 : st.bold === false ? 400 : def;
+}
+// Italic snippet (empty when not italic) so it can be dropped straight into a style string.
+const italicFor = (st: BlockStyle): string => (st.italic ? 'font-style:italic;' : '');
+
+/**
+ * Bulletproof, ESP/Outlook-safe CTA button. Outlook's Word engine ignores
+ * padding/background on <a>, so it gets a VML <v:roundrect>; every other client
+ * gets a padded <a>. Both share the resolved colours/font. VML needs a fixed
+ * width, so we estimate one from the label length (rough but safe).
+ */
+function renderButton(label: string, href: string, bg: string, txt: string, radius: number, family: string, fullWidth: boolean): string {
+  const safeLabel = esc(label);
+  const w = Math.max(160, label.length * 10 + 64); // px — VML can't auto-size to content
+  const aStyle = (fullWidth ? 'display:block;width:100%;box-sizing:border-box;text-align:center;' : 'display:inline-block;')
+    + `background:${bg};color:${txt};font-family:${family};font-size:15px;font-weight:700;text-decoration:none;padding:13px 32px;border-radius:${radius}px;`;
+  return (
+    `<!--[if mso]>`
+    + `<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:44px;v-text-anchor:middle;width:${fullWidth ? WIDTH - 64 : w}px;" arcsize="${radius > 22 ? 50 : Math.round((radius / 44) * 100)}%" strokecolor="${bg}" fillcolor="${bg}">`
+    + `<w:anchorlock/>`
+    + `<center style="color:${txt};font-family:${family};font-size:15px;font-weight:bold;">${safeLabel}</center>`
+    + `</v:roundrect>`
+    + `<![endif]-->`
+    + `<!--[if !mso]><!-- -->`
+    + `<a href="${esc(href)}" style="${aStyle}">${safeLabel}</a>`
+    + `<!--<![endif]-->`
+  );
+}
+
+function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: string, pal: Palette, lbl: Labels, g: FontDefaults): string {
   const st: BlockStyle = b.style ?? {};
   switch (b.type) {
     case 'header': {

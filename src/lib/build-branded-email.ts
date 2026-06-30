@@ -270,22 +270,39 @@ export function buildBrandedEmail(
   // Custom background colour (if set) wins over the Light/Dark toggle.
   const pal = doc.meta.bgColor ? paletteForBg(doc.meta.bgColor) : doc.meta.dark ? DARK : LIGHT;
   const lbl = labelsFor(doc.meta.locale);
-  const blocksHtml = doc.blocks.map((b) => renderBlock(b, style, config, brand, pal, lbl)).join('');
+  // Global font defaults — threaded into every block so per-block style can override them.
+  const g: FontDefaults = { family: doc.meta.fontFamily || undefined, size: doc.meta.fontSize };
+  const blocksHtml = doc.blocks.map((b) => renderBlock(b, style, config, brand, pal, lbl, g)).join('');
   const fontHref = `https://fonts.googleapis.com/css2?family=${style.googleFont}&display=swap`;
+  // ESP/Outlook-hardened scaffold:
+  //  • MSO OfficeDocumentSettings → correct Outlook (Word engine) DPI scaling
+  //  • x-apple-disable-message-reformatting / format-detection → stop client auto-rewrites
+  //  • <style> kept ONLY for the @media mobile rule + minimal resets; every visual style is
+  //    inline (importers strip <head> CSS), and resets are also duplicated inline on <body>
+  //  • bgcolor attributes alongside inline background (some clients drop CSS background)
+  //  • [if mso] ghost table forces the 600px container width in Outlook
+  //  • web font is progressive enhancement only — every font-family carries a full fallback
   const html =
 `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<meta name="x-apple-disable-message-reformatting"/>
+<meta name="format-detection" content="telephone=no,date=no,address=no,email=no"/>
+<title>${esc(doc.meta.subject || brand)}</title>
+<!--[if mso]><xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
 <link href="${esc(fontHref)}" rel="stylesheet"/>
-<style>body{margin:0;padding:0;background:${pal.pageBg};}table{border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;}img{border:0;outline:none;text-decoration:none;}@media (max-width:620px){.container{width:100%!important;}}</style>
-</head><body>
+<style>body{margin:0;padding:0;background:${pal.pageBg};}table{border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0;}img{border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}a{text-decoration:none;}@media (max-width:620px){.container{width:100%!important;}}</style>
+</head><body style="margin:0;padding:0;background:${pal.pageBg};">
 <span style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(doc.meta.preheader || '')}</span>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${pal.pageBg};"><tr><td align="center" style="padding:24px 0;">
-<table role="presentation" class="container" width="${WIDTH}" cellspacing="0" cellpadding="0" border="0" style="width:${WIDTH}px;max-width:${WIDTH}px;background:${pal.cardBg};border-radius:0 0 8px 8px;overflow:hidden;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${pal.pageBg}" style="background:${pal.pageBg};"><tr><td align="center" style="padding:24px 0;">
+<!--[if mso]><table role="presentation" width="${WIDTH}" cellspacing="0" cellpadding="0" border="0"><tr><td><![endif]-->
+<table role="presentation" class="container" width="${WIDTH}" cellspacing="0" cellpadding="0" border="0" bgcolor="${pal.cardBg}" style="width:${WIDTH}px;max-width:${WIDTH}px;background:${pal.cardBg};border-radius:0 0 8px 8px;overflow:hidden;">
 ${blocksHtml}
 <tr><td style="height:28px;"></td></tr>
-</table></td></tr></table></body></html>`;
+</table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table></body></html>`;
   const text = doc.blocks.map((b) => blockText(b, config, brand, lbl)).filter(Boolean).join('\n\n');
   return { html, text };
 }

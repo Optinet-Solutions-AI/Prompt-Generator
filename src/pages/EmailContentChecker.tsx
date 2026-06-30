@@ -1080,6 +1080,15 @@ export default function EmailContentChecker() {
                       <Input value={brand} onChange={e => patchMeta({ brand: e.target.value })} placeholder="e.g. My New Brand" className="h-8 text-sm" /></div>
                     <div><Label className="text-[11px] mb-0.5 block">Brand color <span className="font-normal normal-case text-muted-foreground">(signature colour — themes the whole email)</span></Label>
                       <ColorField value={doc.meta.themeColor} onChange={v => patchMeta({ themeColor: v })} placeholder="e.g. #E11D2A or orange" /></div>
+                    {/* Global font default for the whole email — any block's Style panel can override it. */}
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div><Label className="text-[11px] mb-0.5 block">Default font <span className="font-normal normal-case text-muted-foreground">(whole email)</span></Label>
+                        <select value={doc.meta.fontFamily ?? ''} onChange={e => patchMeta({ fontFamily: e.target.value || undefined })} className="h-8 text-sm w-full rounded-md border border-border bg-background px-2">
+                          {EMAIL_SAFE_FONTS.map(f => <option key={f.label} value={f.value}>{f.label}</option>)}
+                        </select></div>
+                      <div><Label className="text-[11px] mb-0.5 block">Base text size (px)</Label>
+                        <Input type="number" value={(doc.meta.fontSize ?? '') as number | ''} onChange={e => patchMeta({ fontSize: e.target.value ? Number(e.target.value) : undefined })} placeholder="15" className="h-8 text-sm" /></div>
+                    </div>
                     <div className="grid grid-cols-2 gap-1.5">
                       <div><Label className="text-[11px] mb-0.5 block">Subject line</Label><Input value={doc.meta.subject} onChange={e => patchMeta({ subject: e.target.value })} className="h-8 text-sm" /></div>
                       <div><Label className="text-[11px] mb-0.5 block">Preheader</Label><Input value={doc.meta.preheader} onChange={e => patchMeta({ preheader: e.target.value })} className="h-8 text-sm" /></div>

@@ -72,7 +72,9 @@ export interface EmailDoc {
   // colour — used for custom brands not built into the app.
   // `bgColor` (optional) overrides the Light/Dark canvas with a custom email
   // background colour; ink colours auto-adjust to the colour's luminance.
-  meta: { brand: string; locale: string; subject: string; preheader: string; country?: string; themeColor?: string; dark?: boolean; bgColor?: string };
+  // `fontFamily` (optional) is the email-wide default font stack ('' / undefined = brand
+  // font); `fontSize` (optional) is the global base body size. Per-block style overrides win.
+  meta: { brand: string; locale: string; subject: string; preheader: string; country?: string; themeColor?: string; dark?: boolean; bgColor?: string; fontFamily?: string; fontSize?: number };
   blocks: EmailBlock[];
 }
 

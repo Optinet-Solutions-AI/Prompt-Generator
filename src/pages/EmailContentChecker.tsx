@@ -720,7 +720,9 @@ export default function EmailContentChecker() {
               </div>
             </>
           )}
-          <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set size (width), position (align) &amp; background.{b.mode === 'logo' && ' If the logo blends into the email background, set a contrasting Logo card background in Style.'}</p>
+          {(b.mode ?? 'banner') === 'banner'
+            ? <p className="text-[10px] text-muted-foreground">This is the brand's ready-made header image, so its logo background is fixed. To put a logo on a <span className="font-medium">colour you choose</span>, switch Header style to <span className="font-medium">Logo only</span>.</p>
+            : <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set the <span className="font-medium">Logo card background</span> &amp; padding, size (width), and position (align) — handy when the logo blends into the email background.</p>}
         </div>
       );
       case 'hero': return (

@@ -785,6 +785,14 @@ export default function EmailContentChecker() {
   const renderStyle = (b: EmailBlock) => {
     const st = b.style || {};
     const num = (v: number | undefined) => (v ?? '') as number | '';
+    // Blocks that render text (so font family / bold / italic controls make sense).
+    const textish =
+      b.type === 'heading' || b.type === 'paragraph' || b.type === 'bonus' || b.type === 'cta' ||
+      b.type === 'footer' || b.type === 'social' ||
+      (b.type === 'header' && b.mode !== 'banner') || (b.type === 'hero' && b.mode !== 'url');
+    // The logo-card background is only meaningful for a header in logo/text mode —
+    // in banner mode the header is a full-bleed composite image.
+    const showBg = (b.type === 'hero' && b.mode !== 'url') || (b.type === 'header' && b.mode !== 'banner') || b.type === 'bonus';
     return (
       <div className="mt-2 pt-2 border-t border-border grid grid-cols-2 gap-2">
         <div className="col-span-2 flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Align:</span>
@@ -792,9 +800,26 @@ export default function EmailContentChecker() {
             <button key={a} type="button" onClick={() => patchStyle(b.id, 'align', a)} className={`px-2 py-0.5 rounded border text-[11px] capitalize ${st.align === a ? 'border-primary bg-primary/10' : 'border-border text-muted-foreground'}`}>{a}</button>
           ))}
         </div>
+        {textish && (
+          <div className="col-span-2"><Label className="text-[10px] mb-0.5 block">Font</Label>
+            <select value={st.fontFamily ?? ''} onChange={e => patchStyle(b.id, 'fontFamily', e.target.value || undefined)} className="h-7 text-xs w-full rounded-md border border-border bg-background px-2">
+              <option value="">Default (inherit)</option>
+              {EMAIL_SAFE_FONTS.filter(f => f.value).map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+            </select>
+          </div>
+        )}
         <div><Label className="text-[10px] mb-0.5 block">Font size (px)</Label><Input type="number" value={num(st.fontSize)} onChange={e => patchStyle(b.id, 'fontSize', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
+        {textish && (
+          <div className="flex items-end gap-1.5">
+            <button type="button" onClick={() => patchStyle(b.id, 'bold', st.bold ? undefined : true)} title="Bold" className={`px-2 py-1 rounded border text-[11px] font-bold ${st.bold ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>B</button>
+            <button type="button" onClick={() => patchStyle(b.id, 'italic', st.italic ? undefined : true)} title="Italic" className={`px-2 py-1 rounded border text-[11px] italic ${st.italic ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}`}>I</button>
+          </div>
+        )}
         <div><Label className="text-[10px] mb-0.5 block">Text color</Label><ColorField value={st.color} onChange={v => patchStyle(b.id, 'color', v)} placeholder="#172b4d" /></div>
-        {((b.type === 'hero' && b.mode !== 'url') || b.type === 'header' || b.type === 'bonus') && <div><Label className="text-[10px] mb-0.5 block">Background</Label><ColorField value={st.background} onChange={v => patchStyle(b.id, 'background', v)} placeholder="white / #0b1b2b" /></div>}
+        {showBg && <div><Label className="text-[10px] mb-0.5 block">{b.type === 'header' ? 'Logo card background' : 'Background'}</Label><ColorField value={st.background} onChange={v => patchStyle(b.id, 'background', v)} placeholder="white / #0b1b2b" /></div>}
+        {b.type === 'header' && b.mode !== 'banner' && <div><Label className="text-[10px] mb-0.5 block">Logo padding (px)</Label><Input type="number" value={num(st.logoPad)} onChange={e => patchStyle(b.id, 'logoPad', e.target.value ? Number(e.target.value) : undefined)} placeholder="12" className="h-7 text-xs" /></div>}
+        {b.type === 'cta' && <div><Label className="text-[10px] mb-0.5 block">Button color</Label><ColorField value={st.buttonBg} onChange={v => patchStyle(b.id, 'buttonBg', v)} placeholder="brand default" /></div>}
+        {b.type === 'cta' && <div><Label className="text-[10px] mb-0.5 block">Button text color</Label><ColorField value={st.buttonColor} onChange={v => patchStyle(b.id, 'buttonColor', v)} placeholder="#ffffff" /></div>}
         <div><Label className="text-[10px] mb-0.5 block">Space above (px)</Label><Input type="number" value={num(st.spaceTop)} onChange={e => patchStyle(b.id, 'spaceTop', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
         <div><Label className="text-[10px] mb-0.5 block">Space below (px)</Label><Input type="number" value={num(st.spaceBottom)} onChange={e => patchStyle(b.id, 'spaceBottom', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>
         {(b.type === 'hero' || b.type === 'header') && <div><Label className="text-[10px] mb-0.5 block">Width (px)</Label><Input type="number" value={num(st.width)} onChange={e => patchStyle(b.id, 'width', e.target.value ? Number(e.target.value) : undefined)} className="h-7 text-xs" /></div>}

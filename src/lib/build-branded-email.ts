@@ -121,6 +121,26 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       const composite = getBrandHeader(brand) || c.header_url || '';
       // Banner: the full-width composite header image (optionally sized smaller).
       if (mode === 'banner' && composite) {
+        // The baked composite has the logo card baked into the image, so its
+        // background is fixed. If the user wants a custom logo background (or their
+        // own logo), reconstruct the header from the logo-FREE texture band + an
+        // editable logo card overlaid on the torn edge. Falls back to the baked
+        // composite (the inbox-safe default) when neither is set, or when no band
+        // asset exists for this brand.
+        const band = getBrandHeaderBg(brand);
+        const wantsCustom = !!st.background || !!b.logoUrl;
+        if (wantsCustom && band) {
+          const logo = b.logoUrl || getBrandLogo(brand) || c.logo_url || '';
+          const lw = st.width ?? 150;
+          const pad = st.logoPad ?? 12;
+          const cardBg = st.background || '#ffffff';
+          const card = logo
+            ? `<span style="display:inline-block;background:${cardBg};padding:${pad}px ${pad + 8}px;border-radius:${st.radius ?? 12}px;box-shadow:0 4px 14px rgba(0,0,0,.18);"><img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="${lw}" style="display:block;border:0;width:${lw}px;max-width:100%;height:auto;-ms-interpolation-mode:bicubic;"/></span>`
+            : `<span style="display:inline-block;background:${cardBg};padding:${pad}px ${pad + 14}px;border-radius:${st.radius ?? 12}px;box-shadow:0 4px 14px rgba(0,0,0,.18);font-family:${famFor(st, g, s.fontFamily)};font-size:${st.fontSize ?? 22}px;font-weight:${weightFor(st, 700)};${italicFor(st)}color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span>`;
+          return `<tr><td style="padding:${st.spaceTop ?? 0}px 0 ${st.spaceBottom ?? 0}px;background:${pal.cardBg};line-height:0;font-size:0;">` +
+            `<img src="${esc(safeUrl(band))}" alt="" width="${WIDTH}" style="display:block;width:100%;max-width:${WIDTH}px;height:auto;border:0;outline:none;-ms-interpolation-mode:bicubic;"/>` +
+            `<div style="text-align:${align};line-height:normal;margin-top:-32px;padding:0 32px 6px;">${card}</div></td></tr>`;
+        }
         const mw = st.width && st.width < WIDTH ? st.width : WIDTH;
         const inset = mw < WIDTH;
         const dt = inset ? 16 : 0;

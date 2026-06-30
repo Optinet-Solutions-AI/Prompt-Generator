@@ -203,7 +203,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
     case 'divider':
       return cell(`<div style="border-top:1px solid ${st.color || pal.line};${spacing(st, 24, 0)}"></div>`);
     case 'wordmark': {
-      const mark = `<span style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 20}px;font-weight:700;color:${st.color || s.accentColor};letter-spacing:.04em;">${esc(brand)}</span>`;
+      const mark = `<span style="font-family:${famFor(st, g, s.fontFamily)};font-size:${st.fontSize ?? 20}px;font-weight:${weightFor(st, 700)};${italicFor(st)}color:${st.color || s.accentColor};letter-spacing:.04em;">${esc(brand)}</span>`;
       const inner = c.wordmark_dark_bg
         ? `<span style="display:inline-block;background:${s.panelBg};padding:8px 16px;border-radius:6px;">${mark}</span>`
         : mark;

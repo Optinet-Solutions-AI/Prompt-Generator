@@ -721,7 +721,7 @@ export default function EmailContentChecker() {
             </>
           )}
           {(b.mode ?? 'banner') === 'banner'
-            ? <p className="text-[10px] text-muted-foreground">This is the brand's ready-made header image, so its logo background is fixed. To put a logo on a <span className="font-medium">colour you choose</span>, switch Header style to <span className="font-medium">Logo only</span>.</p>
+            ? <p className="text-[10px] text-muted-foreground">Uses the brand's textured band. Open <span className="font-medium">Style</span> and set a <span className="font-medium">Logo card background</span> to recolour the logo card (the brand texture stays). Tip: upload your own logo above for the sharpest result in every inbox.</p>
             : <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set the <span className="font-medium">Logo card background</span> &amp; padding, size (width), and position (align) — handy when the logo blends into the email background.</p>}
         </div>
       );

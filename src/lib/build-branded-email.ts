@@ -192,10 +192,13 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
     }
     case 'cta': {
       const href = safeUrl(b.url) || '#';
-      const disp = st.fullWidth
-        ? 'display:block;width:100%;box-sizing:border-box;text-align:center;'
-        : 'display:inline-block;';
-      return cell(`<div style="text-align:${st.align ?? 'center'};${spacing(st, 26, 6)}"><a href="${esc(href)}" style="${disp}background:${s.buttonBg};color:${s.buttonText};font-family:${s.fontFamily};font-size:${st.fontSize ?? 15}px;font-weight:700;text-decoration:none;padding:13px 32px;border-radius:${st.radius ?? 6}px;box-shadow:0 6px 18px ${s.buttonShadow};">${esc(b.label)}</a></div>`);
+      // Colours: per-block override → brand default. Button is built bulletproof
+      // (VML for Outlook + padded <a> elsewhere) so it survives every client/ESP.
+      const btnBg = st.buttonBg || s.buttonBg;
+      const btnTxt = st.buttonColor || s.buttonText;
+      const fam = famFor(st, g, s.fontFamily);
+      return cell(`<div style="text-align:${st.align ?? 'center'};${spacing(st, 26, 6)}">` +
+        renderButton(b.label, href, btnBg, btnTxt, st.radius ?? 6, fam, !!st.fullWidth) + `</div>`);
     }
     case 'divider':
       return cell(`<div style="border-top:1px solid ${st.color || pal.line};${spacing(st, 24, 0)}"></div>`);

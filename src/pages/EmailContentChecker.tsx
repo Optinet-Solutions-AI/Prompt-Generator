@@ -792,9 +792,10 @@ export default function EmailContentChecker() {
       b.type === 'heading' || b.type === 'paragraph' || b.type === 'bonus' || b.type === 'cta' ||
       b.type === 'footer' || b.type === 'social' ||
       (b.type === 'header' && b.mode !== 'banner') || (b.type === 'hero' && b.mode !== 'url');
-    // The logo-card background is only meaningful for a header in logo/text mode —
-    // in banner mode the header is a full-bleed composite image.
-    const showBg = (b.type === 'hero' && b.mode !== 'url') || (b.type === 'header' && b.mode !== 'banner') || b.type === 'bonus';
+    // Logo-card background applies to any header mode: in logo/text mode it's the
+    // card behind the logo; in composite-band mode, setting it reconstructs the
+    // header from the brand texture + an editable logo card.
+    const showBg = (b.type === 'hero' && b.mode !== 'url') || b.type === 'header' || b.type === 'bonus';
     return (
       <div className="mt-2 pt-2 border-t border-border grid grid-cols-2 gap-2">
         <div className="col-span-2 flex items-center gap-1.5"><span className="text-[11px] text-muted-foreground">Align:</span>

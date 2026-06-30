@@ -720,7 +720,7 @@ export default function EmailContentChecker() {
               </div>
             </>
           )}
-          <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set size (width), position (align) &amp; background.</p>
+          <p className="text-[10px] text-muted-foreground">Open <span className="font-medium">Style</span> to set size (width), position (align) &amp; background.{b.mode === 'logo' && ' If the logo blends into the email background, set a contrasting Logo card background in Style.'}</p>
         </div>
       );
       case 'hero': return (

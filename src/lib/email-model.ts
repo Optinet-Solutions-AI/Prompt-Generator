@@ -10,17 +10,42 @@
 /** Per-block visual overrides (all optional; brand fonts/colors are the defaults). */
 export interface BlockStyle {
   align?: 'left' | 'center' | 'right';
+  fontFamily?: string; // font-family stack override — falls back to global, then brand font
   fontSize?: number; // px — text / heading / bonus / cta / wordmark / social
+  bold?: boolean; // force bold (true) / normal (false) weight; undefined = block default
+  italic?: boolean; // render this block's text in italic
   color?: string; // text color override
   background?: string; // panel background override — CSS hero (white / any color)
+  logoPad?: number; // px padding inside the header logo card (default 12)
   spaceTop?: number; // px margin above the block
   spaceBottom?: number; // px margin below the block
   width?: number; // px max-width — image hero
   fullWidth?: boolean; // cta stretches to full width
   radius?: number; // px corner radius — image / button
+  buttonBg?: string; // cta: button background colour override (brand button is the default)
+  buttonColor?: string; // cta: button label colour override
   hideRule?: boolean; // bonus: hide the accent rule (legacy — superseded by ruleSide)
   ruleSide?: 'none' | 'left' | 'right'; // bonus: which side the accent rule sits on
 }
+
+/**
+ * Email-safe font stacks for the family pickers. Each value is a full CSS stack
+ * ending in a generic family, so it renders in EVERY email client with NO web-font
+ * dependency (this keeps the downloaded HTML clean for ESP import). The empty-string
+ * value is the "inherit" sentinel: a block falls back to the global default, and the
+ * global default ('') falls back to the brand font.
+ */
+export const EMAIL_SAFE_FONTS: { label: string; value: string }[] = [
+  { label: 'Brand font', value: '' },
+  { label: 'Arial', value: "Arial, 'Helvetica Neue', Helvetica, sans-serif" },
+  { label: 'Helvetica', value: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, Verdana, Segoe, sans-serif' },
+  { label: 'Trebuchet MS', value: "'Trebuchet MS', Helvetica, Arial, sans-serif" },
+  { label: 'Georgia', value: "Georgia, 'Times New Roman', Times, serif" },
+  { label: 'Times New Roman', value: "'Times New Roman', Times, serif" },
+  { label: 'Courier New', value: "'Courier New', Courier, monospace" },
+];
 
 interface BlockBase {
   id: string;

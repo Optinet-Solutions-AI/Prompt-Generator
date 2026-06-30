@@ -160,7 +160,7 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
         const txt = st.color || s.accentColor;
         const m = `margin:${st.spaceTop ?? 0}px 0 ${st.spaceBottom ?? 0}px;`;
         return `<tr><td align="${align}" style="background:${bg};padding:32px;text-align:${align};">` +
-          `<span style="display:inline-block;${m}font-family:${s.fontFamily};font-size:${st.fontSize ?? 28}px;font-weight:800;color:${txt};letter-spacing:.04em;">${esc(brand)}</span></td></tr>`;
+          `<span style="display:inline-block;${m}font-family:${famFor(st, g, s.fontFamily)};font-size:${st.fontSize ?? 28}px;font-weight:${weightFor(st, 800)};${italicFor(st)}color:${txt};letter-spacing:.04em;">${esc(brand)}</span></td></tr>`;
       }
       const mw = st.width ?? 340;
       const align = st.align ?? 'center';

@@ -133,18 +133,21 @@ function renderBlock(b: EmailBlock, s: BrandStyle, c: BrandEmailConfig, brand: s
       }
       // Text: brand wordmark on a panel.
       if (mode === 'text') {
-        return `<tr><td align="${align}" style="background:${st.background || s.panelBg};padding:26px 32px;text-align:${align};"><span style="font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;font-weight:700;color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span></td></tr>`;
+        return `<tr><td align="${align}" style="background:${st.background || s.panelBg};padding:26px 32px;text-align:${align};"><span style="font-family:${famFor(st, g, s.fontFamily)};font-size:${st.fontSize ?? 24}px;font-weight:${weightFor(st, 700)};${italicFor(st)}color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span></td></tr>`;
       }
       // Logo (and banner fallback when no composite exists): a sized, positioned logo.
       const logo = b.logoUrl || getBrandLogo(brand) || c.logo_url || '';
       const lw = st.width ?? 180;
-      // A logo sits on white (safe for any logo colour); a bare wordmark uses the dark brand panel.
-      const bg = st.background || (logo ? '#ffffff' : s.panelBg);
+      const pad = st.logoPad ?? 12;
       const m = `margin:${st.spaceTop ?? 0}px 0 ${st.spaceBottom ?? 0}px;`;
+      // The logo sits on a padded CARD (default white) so it stays visible even when the
+      // email background is the same colour as the logo. The card floats on the canvas
+      // tone (pal.cardBg). A bare wordmark (no logo) keeps the dark brand panel.
       const inner = logo
-        ? `<img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="${lw}" style="display:inline-block;${m}border:0;width:${lw}px;max-width:80%;height:auto;-ms-interpolation-mode:bicubic;"/>`
-        : `<span style="display:inline-block;${m}font-family:${s.fontFamily};font-size:${st.fontSize ?? 24}px;font-weight:700;color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span>`;
-      return `<tr><td align="${align}" style="background:${bg};padding:24px 32px;text-align:${align};">${inner}</td></tr>`;
+        ? `<span style="display:inline-block;${m}background:${st.background || '#ffffff'};padding:${pad}px ${pad + 8}px;border-radius:${st.radius ?? 8}px;"><img src="${esc(safeUrl(logo))}" alt="${esc(brand)}" width="${lw}" style="display:block;border:0;width:${lw}px;max-width:100%;height:auto;-ms-interpolation-mode:bicubic;"/></span>`
+        : `<span style="display:inline-block;${m}font-family:${famFor(st, g, s.fontFamily)};font-size:${st.fontSize ?? 24}px;font-weight:${weightFor(st, 700)};${italicFor(st)}color:${st.color || s.headlineColor};letter-spacing:.04em;">${esc(brand)}</span>`;
+      const tdBg = logo ? pal.cardBg : (st.background || s.panelBg);
+      return `<tr><td align="${align}" style="background:${tdBg};padding:24px 32px;text-align:${align};">${inner}</td></tr>`;
     }
     case 'hero': {
       const src = b.mode === 'banner' ? (c.banner_url || '') : b.mode === 'url' ? (b.url || '') : '';

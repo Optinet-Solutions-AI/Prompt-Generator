@@ -21,6 +21,18 @@ const NORMALIZED: Record<string, string> = Object.fromEntries(
   Object.entries(BRAND_HEADERS).map(([name, url]) => [name.toLowerCase().replace(/[^a-z0-9]/g, ''), url]),
 );
 
+// Logo-FREE texture band (same image without the baked logo card) —
+// `email-header-bg.png`. Lets the renderer overlay an editable logo card so the
+// logo background becomes customisable while keeping the brand texture.
+// (RocketSpin has no band asset, so it's omitted and falls back to the composite.)
+const BG_ASSET_BRANDS = ['Roosterbet', 'FortunePlay', 'SpinJo', 'LuckyVibe', 'SpinsUp', 'PlayMojo', 'Lucky7even', 'NovaDreams', 'Rollero'];
+export const BRAND_HEADER_BGS: Record<string, string> = Object.fromEntries(
+  BG_ASSET_BRANDS.map((b) => [b, `${BASE}/${b.toLowerCase()}/email-header-bg.png`]),
+);
+const NORMALIZED_BG: Record<string, string> = Object.fromEntries(
+  Object.entries(BRAND_HEADER_BGS).map(([name, url]) => [name.toLowerCase().replace(/[^a-z0-9]/g, ''), url]),
+);
+
 // Absolutize against the current origin so the image resolves everywhere the
 // HTML lands — the inline iframe, a blob: preview tab, the downloaded file, and
 // (on the deployed domain) a real sent email. No query string: on Vercel the SPA

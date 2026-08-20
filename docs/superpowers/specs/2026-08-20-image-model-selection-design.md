@@ -127,6 +127,7 @@ The final encode becomes conditional on the source mime: JPEG in, JPEG out (qual
 ### 6. Cost tracking
 
 - `computeImageCost()` gains a `model` parameter and an overload that prices from returned image token counts. The existing `(provider, size, quality)` lookup is retained as a fallback so already-logged rows still price.
+- When a model's `imageTokenRatePerMillion` is `null`, `computeImageCost()` returns `null` and the tracker displays the raw token count with "rate pending" rather than a dollar figure. It never guesses a rate. Filling in a verified rate is a one-line registry edit that immediately backfills cost for every already-logged row, since the token counts are stored.
 - `api/generate-image.ts:665` currently logs the literal string `'imagen'` instead of a model id, which is why Gemini image spend cannot be attributed today. It will log the real model id and the returned usage.
 - `CostTrackerPanel` gains a per-model image breakdown so Lena can read cost-per-render per model directly.
 

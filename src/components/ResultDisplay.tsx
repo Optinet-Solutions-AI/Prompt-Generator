@@ -387,6 +387,17 @@ export function ResultDisplay({
     timer.start();
     setImageError(null);
 
+    // Without a client-side timeout, a killed or hung server render leaves this
+    // fetch promise pending forever: the spinner + elapsed timer never stop and
+    // the user never sees an error (this is what produced the "82s and still
+    // spinning" report). 310s gives the server's own 300s maxDuration budget
+    // (api/generate-image.ts) every chance to respond before we give up.
+    // Same AbortController + timeout pattern api/generate-image.ts already
+    // uses for its own Cloud Run call (TIMEOUT_MS / AbortError check below).
+    const controller = new AbortController();
+    const ABORT_TIMEOUT_MS = 310_000;
+    const abortTimer = setTimeout(() => controller.abort(), ABORT_TIMEOUT_MS);
+
     try {
       const response = await fetch("/api/generate-image", {
         method: "POST",
@@ -404,6 +415,7 @@ export function ResultDisplay({
           // Ignored by the OpenAI path; selects the model on the Gemini path.
           geminiModel,
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -431,8 +443,17 @@ export function ResultDisplay({
       }
     } catch (error) {
       console.error("Image generation error:", error);
-      setImageError(error instanceof Error ? error.message : "Failed to generate image");
+      // AbortError means OUR timeout fired (not a server-reported failure) —
+      // give the user a clear, actionable message instead of the raw
+      // "The user aborted a request" text.
+      const isAbortTimeout = error instanceof Error && error.name === "AbortError";
+      setImageError(
+        isAbortTimeout
+          ? "The image render took too long and was cancelled. Try a lower resolution (1K renders in a few seconds), or try again."
+          : error instanceof Error ? error.message : "Failed to generate image"
+      );
     } finally {
+      clearTimeout(abortTimer);
       setGeneratingImage((prev) => ({ ...prev, [provider]: false }));
       timer.stop();
     }

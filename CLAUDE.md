@@ -186,7 +186,7 @@ Examples:
 
 ## Known Constraints
 - Supabase free plan: 500MB DB, 2GB bandwidth
-- Vercel hobby: 10-second timeout
+- Vercel: this is a **team account** (`.vercel/project.json` orgId starts `team_`, not a hobby plan). The default function budget is 60s, but individual routes raise it via `export const config = { maxDuration: N }` — the image routes (`api/generate-image.ts`, `api/edit-image.ts`, `api/generate-variations.ts`, `api/generate-variations-imagen.ts`, `api/[action].ts`) all declare 300s. A production `/api/generate-image` call was measured succeeding at 27s on 2026-08-22. Any code comment claiming a "10s budget" is stale and wrong — don't use it to justify weaker models or shorter timeouts.
 - Developer is a beginner — always explain, always keep it simple
 
 ## Image Generation Tech Stack

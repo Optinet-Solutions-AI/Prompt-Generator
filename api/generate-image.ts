@@ -2,6 +2,15 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { brandSlug } from './_brand-slug.js';
 import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 
+// Image generation is the slowest operation in the app — gpt-image-2 measured
+// 79s for a 2048×1024 "high" quality render on 2026-08-22. Without this, the
+// route ran on the Vercel default (60s) and 2K ChatGPT renders were being
+// killed before they finished, leaving the user with a spinner that never
+// resolves. This was the ONLY image route missing the 300s its siblings
+// (edit-image.ts, generate-variations.ts, generate-variations-imagen.ts,
+// [action].ts) already declare.
+export const config = { maxDuration: 300 };
+
 // ── Server-side exact-size fit (mirror-extend) ─────────────────────────
 // The image model can only emit fixed sizes (1024², 1536×1024, 1024×1536),
 // and 2:1 is WIDER+SHORTER than any of them — so cover-cropping to 2:1 used

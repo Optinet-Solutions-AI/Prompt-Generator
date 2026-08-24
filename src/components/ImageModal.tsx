@@ -27,7 +27,9 @@ export interface GalleryImage {
   isVariation?: boolean;
   variationMode?: 'subtle' | 'strong';
   variationIndex?: number;
-  // Which AI engine generated this variation — 'openai' (gpt-image-1) or 'imagen' (Vertex AI)
+  // Which AI engine generated this variation — 'openai' (OpenAI) or 'imagen' (the
+  // selected Gemini image model — no longer Google's retired Imagen model via
+  // the Vertex AI Cloud Run path)
   variationEngine?: 'openai' | 'imagen';
   // Exact output target for downloads — "1200 × 600" wins; else aspectRatio "16:9".
   // Lets the rounded download crop/resize to the dimensions the user requested.
@@ -737,7 +739,7 @@ export function ImageModal({
                       type="button"
                       onClick={() => setSelectedEngine('gemini')}
                       disabled={isGeneratingVariations}
-                      title="Generate variations using Gemini (Vertex AI Imagen)"
+                      title="Generate variations using the selected Gemini image model"
                       className={`px-2.5 py-1 rounded font-medium transition-all ${selectedEngine === 'gemini' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                     >Gemini</button>
                     <button

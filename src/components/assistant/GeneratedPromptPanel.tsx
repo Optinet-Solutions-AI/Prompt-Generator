@@ -13,6 +13,7 @@ import { saveAssistantPrompt } from '@/lib/assistant-storage';
 import { RefineChat } from './RefineChat';
 import { ImageLightbox } from './ImageLightbox';
 import { ImageModelSelect, loadSavedGeminiModel, GEMINI_MODEL_STORAGE_KEY } from '@/components/ImageModelSelect';
+import { SizePresetSelect } from '@/components/SizePresetSelect';
 
 interface Props {
   fields: GeneratedFields & { brand: string };
@@ -27,13 +28,20 @@ interface Props {
 
 type ImageProvider = 'chatgpt' | 'gemini';
 type ChatTurnWithImage = { role: 'user' | 'assistant'; content: string; imageUrl?: string };
+// Same 4 tiers as the main generator's resolution toggle (ResultDisplay.tsx).
+type Resolution = '1K' | '2K' | '3K' | '4K';
 
-async function callImageGen(args: {
+// Exported (only) so a plain unit test can check the request body it builds
+// without rendering the component — see GeneratedPromptPanel.test.ts.
+export async function callImageGen(args: {
   positivePrompt: string;
   brand: string;
   provider: ImageProvider;
   token: string;
   geminiModel: string;
+  bannerDimensions: string;
+  aspectRatio: string;
+  resolution: Resolution;
 }): Promise<string> {
   const res = await fetch('/api/generate-image', {
     method: 'POST',
@@ -41,9 +49,13 @@ async function callImageGen(args: {
     body: JSON.stringify({
       prompt: args.positivePrompt,
       provider: args.provider,
-      aspectRatio: '16:9',
+      // bannerDimensions ("1200 × 600") wins server-side when set; aspectRatio
+      // is still sent as the fallback/framing hint either way (see
+      // api/generate-image.ts: ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio)).
+      aspectRatio: args.aspectRatio,
+      bannerDimensions: args.bannerDimensions,
       backend: 'cloud-run',
-      resolution: '1K',
+      resolution: args.resolution,
       brand: args.brand,
       source: 'assistant',
       test_user_id: args.token,
@@ -81,6 +93,24 @@ export function GeneratedPromptPanel({
       // Non-fatal — the choice just won't persist.
     }
   };
+
+  // Output size: empty bannerDimensions = "aspect ratio only" (today's behaviour,
+  // unchanged unless the user picks a preset). SizePresetSelect fires onChange
+  // twice per pick — once for bannerDimensions, once for the matching aspectRatio
+  // token — so both fields below always stay in sync with each other.
+  const [bannerDimensions, setBannerDimensions] = useState('');
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const handleSizeChange = (field: 'bannerDimensions' | 'aspectRatio', value: string) => {
+    if (field === 'bannerDimensions') setBannerDimensions(value);
+    else setAspectRatio(value);
+  };
+
+  // Resolution defaults to 1K on purpose — do not change this default.
+  // The Assistant is an ideation loop (people re-roll and refine repeatedly),
+  // and 1K renders in a few seconds for about $0.004. 2K measured 79 SECONDS
+  // and about $0.14 per OpenAI render (2048×1024 "high" quality) — fine as an
+  // occasional deliberate choice, way too slow/costly as the default for every pass.
+  const [resolution, setResolution] = useState<Resolution>('1K');
   const [imageError, setImageError] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [showPromptDetails, setShowPromptDetails] = useState(false);
@@ -109,6 +139,9 @@ export function GeneratedPromptPanel({
         provider,
         token,
         geminiModel,
+        bannerDimensions,
+        aspectRatio,
+        resolution,
       });
       setChatTurns(prev => [
         ...prev,
@@ -134,6 +167,9 @@ export function GeneratedPromptPanel({
         provider: lastImageProvider,
         token,
         geminiModel,
+        bannerDimensions,
+        aspectRatio,
+        resolution,
       });
       setAllImageUrls(prev => [...prev, url]);
       return url;
@@ -208,6 +244,31 @@ export function GeneratedPromptPanel({
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-3">
+              <SizePresetSelect
+                bannerDimensions={bannerDimensions}
+                onChange={handleSizeChange}
+                disabled={imageBusy}
+              />
+            </div>
+            <div className="mb-3">
+              <p className="text-center text-xs text-muted-foreground mb-2">Resolution</p>
+              <div className="flex justify-center gap-2">
+                {(['1K', '2K', '3K', '4K'] as const).map((r) => (
+                  <Button
+                    key={r}
+                    type="button"
+                    variant={resolution === r ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setResolution(r)}
+                    disabled={imageBusy}
+                    className={`min-w-[52px] ${resolution === r ? 'gradient-primary' : ''}`}
+                  >
+                    {r}
+                  </Button>
+                ))}
+              </div>
+            </div>
             <div className="mb-3">
               <ImageModelSelect
                 value={geminiModel}

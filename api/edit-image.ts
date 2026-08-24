@@ -1,11 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 
 // ── Edit Image ─────────────────────────────────────────────────────────────────
 //
 // Routes to the correct engine based on the `provider` field in the request body:
 //
 //   provider === 'gemini'  → Vertex AI gemini-2.5-flash-image (strict preservation)
-//   provider === 'chatgpt' → OpenAI gpt-image-1 (primary) or Cloud Run (fallback)
+//   provider === 'chatgpt' → OpenAI gpt-image-2 (primary) or Cloud Run (fallback)
 //
 // Gemini images MUST be edited by Gemini — sending them to OpenAI causes a
 // visual "downgrade" because the two models have different style signatures.
@@ -166,12 +167,32 @@ async function editViaGemini(
   mimeType: string,
   editInstructions: string,
   req: VercelRequest,
+  modelId?: string,
 ): Promise<{ imageUrl: string }> {
+  const prompt = buildGeminiEditPrompt(editInstructions);   // UNCHANGED
+  const spec   = resolveGeminiModel(modelId);
+
+  // New models (e.g. Gemini 3 Pro Image) run on the Developer API via the
+  // shared _gemini-image helper. The current model (gemini-2.5-flash-image)
+  // keeps the existing Vertex path below untouched, so today's edit
+  // behaviour is unchanged unless the user actively picks a new model.
+  if (spec.transport === 'gemini-api') {
+    const { generateGeminiImage } = await import('./_gemini-image.js');
+    const out = await generateGeminiImage({
+      modelId: spec.id,
+      prompt,
+      inlineImage: { mimeType, base64: Buffer.from(imgArrayBuffer).toString('base64') },
+      // Low temperature enforces strict preservation — minimises creative drift.
+      temperature: 0.1,
+    });
+    return { imageUrl: `data:${out.mime};base64,${out.bytes.toString('base64')}` };
+  }
+
+  // ── existing Vertex path below, unchanged ──
   const accessToken = await getGCPAccessToken(req);
   const project     = getGCPProjectNumber();
 
   const b64Image = Buffer.from(imgArrayBuffer).toString('base64');
-  const prompt   = buildGeminiEditPrompt(editInstructions);
 
   const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${project}/locations/us-central1/publishers/google/models/gemini-2.5-flash-image:generateContent`;
 
@@ -269,7 +290,7 @@ async function editViaOpenAI(
   console.log(`[edit-image] source dims: ${JSON.stringify(dims)}, resolution=${resolution} → quality=${outputQuality}, size=${outputSize}`);
 
   const form = new FormData();
-  form.append('model', 'gpt-image-1');
+  form.append('model', OPENAI_IMAGE_MODEL);
   form.append('image', new File([imgArrayBuffer], `source.${ext}`, { type: baseMime }));
   form.append('prompt', editInstructions);
   form.append('n', '1');
@@ -360,7 +381,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { imageUrl, editInstructions, resolution = '1K', provider = 'chatgpt' } = req.body;
+    const { imageUrl, editInstructions, resolution = '1K', provider = 'chatgpt', geminiModel } = req.body;
 
     if (!imageUrl || !editInstructions) {
       return res.status(400).json({ error: 'Image URL and edit instructions are required' });
@@ -413,7 +434,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Gemini path — used for all Gemini-generated images ────────────
     if (useGemini) {
-      const result = await editViaGemini(imgArrayBuffer, mimeType, editInstructions, req);
+      const result = await editViaGemini(imgArrayBuffer, mimeType, editInstructions, req, geminiModel);
       return res.status(200).json({
         success: true,
         imageUrl: result.imageUrl,

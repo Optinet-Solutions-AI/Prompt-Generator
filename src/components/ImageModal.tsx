@@ -16,6 +16,7 @@ import { storeImage, deleteStoredImage } from '@/lib/imageStore';
 import { extractDominantColors } from '@/utils/extractColors';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
 import { getBrandOverlayUrl } from '@/lib/brandOverlays';
+import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
 
 export interface GalleryImage {
   displayUrl: string;
@@ -310,6 +311,11 @@ export function ImageModal({
           editInstructions: editInstructions.trim(),
           resolution,
           provider: editEngine,
+          // Read at request time (not a prop) — the model choice is stored in
+          // localStorage as a single global-to-the-session value shared across
+          // Generate, Edit, and Variations, so there's nothing to thread down
+          // as a prop here; this always reflects the user's current selection.
+          geminiModel: loadSavedGeminiModel(),
         }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed'); }
@@ -370,6 +376,10 @@ export function ImageModal({
       brand: brand || '',
       sourceColors,
       sourceRecipe: sourceRecipe ?? null,
+      // Sent to BOTH /api/generate-variations (OpenAI — ignores this field) and
+      // /api/generate-variations-imagen (Gemini — reads it). Harmless on the
+      // OpenAI call, and keeps both fetches below using the same body.
+      geminiModel: loadSavedGeminiModel(),
     });
 
     try {

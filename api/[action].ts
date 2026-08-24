@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { OPENAI_IMAGE_MODEL } from './_image-models.js';
 
 // ── Cloud Run auth helper (inline — avoids cross-file import issues on Vercel) ─
 async function getCloudRunIdToken(cloudRunUrl: string, req: VercelRequest): Promise<string> {
@@ -904,7 +905,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
       return res.status(200).json({ success: true });
     }
 
-    // ── GENERATE VARIATIONS — uses OpenAI gpt-image-1 image edit API ────────
+    // ── GENERATE VARIATIONS — uses OpenAI gpt-image-2 image edit API ────────
     // Note: the dedicated api/generate-variations.ts takes priority over this route.
     // This acts as a fallback in case of routing issues.
     if (action === 'generate-variations') {
@@ -930,7 +931,7 @@ ${globalInstruction ? `COLOR OVERRIDE: Adapt ALL colors in lighting and mood to 
 
       const makeReq = () => {
         const form = new FormData();
-        form.append('model', 'gpt-image-1');
+        form.append('model', OPENAI_IMAGE_MODEL);
         form.append('image', new File([imgBuffer], `source.${ext}`, { type: baseMime }));
         form.append('prompt', prompt);
         form.append('n', '1');

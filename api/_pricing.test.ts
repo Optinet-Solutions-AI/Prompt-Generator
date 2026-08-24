@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LLM_PRICING, IMAGE_PRICING, computeLlmCost, computeImageCost } from './_pricing.js';
+import { LLM_PRICING, IMAGE_PRICING, computeLlmCost, computeImageCost, computeImageCostFromUsage } from './_pricing.js';
 
 describe('LLM_PRICING table', () => {
   it('has Gemini Flash and Pro filled with sourced values', () => {
@@ -73,5 +73,65 @@ describe('computeImageCost', () => {
   it('returns null when provider+size+quality not in pricing table', () => {
     expect(computeImageCost('openai', '9999x9999', 'standard', 1)).toBeNull();
     expect(computeImageCost('unknown', '1024x1024', 'standard', 1)).toBeNull();
+  });
+});
+
+describe('computeImageCostFromUsage', () => {
+  // These two assertions are the whole point of usage-based costing: token
+  // count x official rate reproduces Google's own published per-image price.
+  it('reproduces the published $0.134 for gemini-3-pro-image', () => {
+    const cost = computeImageCostFromUsage('gemini-3-pro-image', {
+      text_input_tokens: 10,
+      image_output_tokens: 1120,
+    });
+    // 10 * 2.00/1M + 1120 * 120.00/1M = 0.00002 + 0.1344 = 0.13442
+    expect(cost).toBeCloseTo(0.13442, 5);
+  });
+
+  it('reproduces the published $0.101 for gemini-3.1-flash-image at 2K', () => {
+    const cost = computeImageCostFromUsage('gemini-3.1-flash-image', {
+      text_input_tokens: 10,
+      image_output_tokens: 1680,
+    });
+    // 10 * 0.50/1M + 1680 * 60.00/1M = 0.000005 + 0.1008
+    expect(cost).toBeCloseTo(0.100805, 6);
+  });
+
+  it('computes the measured gpt-image-2 high-quality banner cost', () => {
+    const cost = computeImageCostFromUsage('gpt-image-2', {
+      text_input_tokens: 15,
+      image_output_tokens: 4720,
+    });
+    // 15 * 5.00/1M + 4720 * 30.00/1M = 0.000075 + 0.1416 = 0.141675
+    expect(cost).toBeCloseTo(0.141675, 6);
+  });
+
+  it('computes the measured gpt-image-1 baseline so old rows still price', () => {
+    const cost = computeImageCostFromUsage('gpt-image-1', {
+      text_input_tokens: 15,
+      image_output_tokens: 6208,
+    });
+    // 15 * 5.00/1M + 6208 * 40.00/1M = 0.000075 + 0.24832
+    expect(cost).toBeCloseTo(0.248395, 6);
+  });
+
+  it('returns null for an unknown model rather than guessing a rate', () => {
+    expect(computeImageCostFromUsage('gemini-99-imaginary', {
+      text_input_tokens: 10,
+      image_output_tokens: 1000,
+    })).toBeNull();
+  });
+
+  it('returns 0 when no tokens were used', () => {
+    expect(computeImageCostFromUsage('gpt-image-2', {
+      text_input_tokens: 0,
+      image_output_tokens: 0,
+    })).toBe(0);
+  });
+});
+
+describe('computeImageCost (legacy) still works', () => {
+  it('prices an old per-image row unchanged', () => {
+    expect(computeImageCost('openai', '1024x1024', 'standard', 1)).toBeCloseTo(0.040, 6);
   });
 });

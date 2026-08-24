@@ -12,6 +12,7 @@ import type {
 import { saveAssistantPrompt } from '@/lib/assistant-storage';
 import { RefineChat } from './RefineChat';
 import { ImageLightbox } from './ImageLightbox';
+import { ImageModelSelect, loadSavedGeminiModel, GEMINI_MODEL_STORAGE_KEY } from '@/components/ImageModelSelect';
 
 interface Props {
   fields: GeneratedFields & { brand: string };
@@ -32,6 +33,7 @@ async function callImageGen(args: {
   brand: string;
   provider: ImageProvider;
   token: string;
+  geminiModel: string;
 }): Promise<string> {
   const res = await fetch('/api/generate-image', {
     method: 'POST',
@@ -45,6 +47,7 @@ async function callImageGen(args: {
       brand: args.brand,
       source: 'assistant',
       test_user_id: args.token,
+      geminiModel: args.geminiModel,
     }),
   });
   if (!res.ok) {
@@ -66,6 +69,18 @@ export function GeneratedPromptPanel({
   const [allImageUrls, setAllImageUrls] = useState<string[]>([]);
   const [lastImageProvider, setLastImageProvider] = useState<ImageProvider>('chatgpt');
   const [imageBusy, setImageBusy] = useState(false);
+  // Which Gemini image model to use. Restored from localStorage so the
+  // choice made here matches whatever was picked on the main generator page.
+  const [geminiModel, setGeminiModel] = useState<string>(loadSavedGeminiModel);
+
+  const handleGeminiModelChange = (id: string) => {
+    setGeminiModel(id);
+    try {
+      localStorage.setItem(GEMINI_MODEL_STORAGE_KEY, id);
+    } catch {
+      // Non-fatal — the choice just won't persist.
+    }
+  };
   const [imageError, setImageError] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [showPromptDetails, setShowPromptDetails] = useState(false);
@@ -93,6 +108,7 @@ export function GeneratedPromptPanel({
         brand: currentFields.brand,
         provider,
         token,
+        geminiModel,
       });
       setChatTurns(prev => [
         ...prev,
@@ -117,6 +133,7 @@ export function GeneratedPromptPanel({
         brand: currentFields.brand,
         provider: lastImageProvider,
         token,
+        geminiModel,
       });
       setAllImageUrls(prev => [...prev, url]);
       return url;
@@ -191,6 +208,13 @@ export function GeneratedPromptPanel({
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-3">
+              <ImageModelSelect
+                value={geminiModel}
+                onChange={handleGeminiModelChange}
+                disabled={imageBusy}
+              />
+            </div>
             <div className="flex gap-3 flex-wrap">
               <Button onClick={() => onFirstGenerate('chatgpt')} disabled={imageBusy} size="lg">
                 {imageBusy && lastImageProvider === 'chatgpt' ? 'Rendering…' : 'Render with ChatGPT 🎨'}

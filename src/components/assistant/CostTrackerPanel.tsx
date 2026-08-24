@@ -36,6 +36,30 @@ export function CostTrackerPanel({ testUserId }: Props) {
 
   const llmRows = llm.map(c => ({ c, usd: llmCostFor(c) }));
   const imgRows = images.map(i => ({ i, usd: imageCostFor(i) }));
+
+  // Per-model rollup. This is the number Lena is actually comparing: real
+  // spend and real average cost per render for each model she has tried.
+  //
+  // `count` and `priced` are tracked separately on purpose. `imageCostFor`
+  // returns null when a row has no cost_usd AND the legacy price table has no
+  // matching row (true for real historical gpt-image-1 rows) — rows the
+  // pricing tables cannot price are still counted as renders (`count`) but
+  // excluded from money (`usd`/`priced`), because showing them as $0.00 would
+  // understate real spend and make an unpriced model look free/cheap instead
+  // of merely "we don't know".
+  const byModel = Object.values(
+    imgRows.reduce<Record<string, { model: string; count: number; priced: number; usd: number }>>((acc, { i, usd }) => {
+      const key = i.model ?? 'unknown';
+      acc[key] ??= { model: key, count: 0, priced: 0, usd: 0 };
+      acc[key].count += i.image_count ?? 1;
+      if (usd !== null) {
+        acc[key].priced += i.image_count ?? 1;
+        acc[key].usd    += usd;
+      }
+      return acc;
+    }, {})
+  ).sort((a, b) => b.usd - a.usd);
+
   const sum = (xs: { usd: number | null }[]) => xs.reduce((acc, x) => acc + (x.usd ?? 0), 0);
   const todayLlm = sum(llmRows.filter(x => isToday(x.c.created_at)));
   const monthLlm = sum(llmRows.filter(x => isThisMonth(x.c.created_at)));
@@ -80,6 +104,55 @@ export function CostTrackerPanel({ testUserId }: Props) {
               priced: usd !== null,
             }))}
           />
+
+          {byModel.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium mb-2">Image spend by model</h4>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-muted-foreground text-left">
+                    <th className="py-1">Model</th>
+                    <th className="py-1 text-right">Renders</th>
+                    <th className="py-1 text-right">Total</th>
+                    <th className="py-1 text-right">Avg / render</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byModel.map(r => {
+                    const unpriced = r.count - r.priced;
+                    return (
+                      <tr key={r.model} className="border-t border-border/40">
+                        <td className="py-1 font-mono">
+                          {r.model}
+                          {/* Make the shortfall visible rather than silently averaging
+                              over fewer renders than the count shown — a reader who
+                              only sees "Renders: 12" would assume all 12 are reflected
+                              in Total/Avg. */}
+                          {unpriced > 0 && (
+                            <span className="block text-[10px] text-muted-foreground/70 italic">
+                              {unpriced} unpriced
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-1 text-right tabular-nums">{r.count}</td>
+                        {/* When nothing for this model is priced, show "—" instead of
+                            "$0.0000" — $0.00 reads as "confirmed free", which is the
+                            opposite of "we don't know the price" and, for gpt-image-1
+                            rows priced under the legacy table, made the OLD model look
+                            cheaper than the new one instead of the reverse. */}
+                        <td className="py-1 text-right tabular-nums">
+                          {r.priced > 0 ? `$${r.usd.toFixed(4)}` : '—'}
+                        </td>
+                        <td className="py-1 text-right tabular-nums">
+                          {r.priced > 0 ? `$${(r.usd / r.priced).toFixed(4)}` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <Section
             title="Recent image renders"

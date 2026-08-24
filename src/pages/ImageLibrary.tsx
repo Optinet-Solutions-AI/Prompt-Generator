@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { HtmlConversionModal } from '@/components/HtmlConversionModal';
 import { EmailHtmlConversionModal } from '@/components/EmailHtmlConversionModal';
+import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -576,7 +577,13 @@ function Lightbox({
       const res = await fetch('/api/edit-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: srcUrl, editInstructions: editInstructions.trim(), resolution: '2K', provider: image.provider }),
+        body: JSON.stringify({
+          imageUrl: srcUrl,
+          editInstructions: editInstructions.trim(),
+          resolution: '2K',
+          provider: image.provider,
+          geminiModel: loadSavedGeminiModel(),
+        }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || e.message || 'Edit failed'); }
       const data = await res.json();
@@ -619,6 +626,9 @@ function Lightbox({
       guidance: variationInstructions.trim(),
       count: variationCount,
       resolution: '2K',
+      // Sent to both endpoints below; only /api/generate-variations-imagen
+      // (Gemini) reads it — harmless on the OpenAI call.
+      geminiModel: loadSavedGeminiModel(),
     });
 
     try {

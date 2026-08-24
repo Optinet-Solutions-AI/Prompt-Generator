@@ -12,6 +12,7 @@ import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";
 import { PositionAndRatioSelector } from "./PositionAndRatioSelector";
 import { SizePresetSelect } from "./SizePresetSelect";
+import { ImageModelSelect, loadSavedGeminiModel, GEMINI_MODEL_STORAGE_KEY } from "@/components/ImageModelSelect";
 
 // Parse "16:9" / "2:1" into a CSS aspect-ratio string ("16 / 9") so image
 // previews show their true shape instead of a forced square. Defaults to square.
@@ -181,6 +182,18 @@ export function ResultDisplay({
     chatgpt: false,
     gemini: false,
   });
+  // Which Gemini image model to use. Restored from localStorage so a tester's
+  // choice survives a page reload mid-comparison.
+  const [geminiModel, setGeminiModel] = useState<string>(loadSavedGeminiModel);
+
+  const handleGeminiModelChange = (id: string) => {
+    setGeminiModel(id);
+    try {
+      localStorage.setItem(GEMINI_MODEL_STORAGE_KEY, id);
+    } catch {
+      // Non-fatal — the choice just won't persist.
+    }
+  };
   const [imageError, setImageError] = useState<string | null>(null);
   // Per-image actual aspect ratio (detected on load) so each preview thumbnail
   // reflects its own real shape, not one shared ratio for the whole batch.
@@ -388,6 +401,8 @@ export function ResultDisplay({
           backend: "cloud-run",
           resolution,
           brand: metadata?.brand || "",
+          // Ignored by the OpenAI path; selects the model on the Gemini path.
+          geminiModel,
         }),
       });
 
@@ -846,6 +861,14 @@ export function ResultDisplay({
               </Button>
             ))}
           </div>
+        </div>
+
+        <div className="flex justify-center mb-3">
+          <ImageModelSelect
+            value={geminiModel}
+            onChange={handleGeminiModelChange}
+            disabled={generatingImage.gemini}
+          />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">

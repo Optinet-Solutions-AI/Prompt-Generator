@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { OPENAI_IMAGE_MODEL } from './_image-models.js';
 
-// ── Generate Image Variations via OpenAI gpt-image-1 ──────────────────────────
+// ── Generate Image Variations via OpenAI gpt-image-2 ──────────────────────────
 //
 // SPECTRUM APPROACH (v3 — brand color lock):
 //   Generates 4 variations using 4 DIFFERENT prompts at increasing creative levels.
@@ -387,7 +388,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ------------------------------------------------------------------
     const requests = activePrompts.map((prompt) => {
       const form = new FormData();
-      form.append('model', 'gpt-image-1');
+      form.append('model', OPENAI_IMAGE_MODEL);
       form.append('image', new File([imgArrayBuffer], `source.${ext}`, { type: baseMime }));
       form.append('prompt', prompt);
       form.append('n', '1');

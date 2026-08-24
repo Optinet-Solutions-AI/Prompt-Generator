@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { resolveGeminiModel } from './_image-models.js';
 
 // ── Generate Image Variations via Gemini Native Image Generation ─────────────
 //
@@ -321,13 +322,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`[generate-variations-gemini] mode=${mode}, brand=${brand}, resolution=${resolution}, generating ${numVariations} tiered variations`);
 
+    // Honour the model the user picked in the dropdown; falls back to the
+    // current model when absent or unrecognised.
+    const spec = resolveGeminiModel(req.body?.geminiModel);
+
+    // ── Gemini Developer API path ───────────────────────────────────────
+    // The newer image models (e.g. Gemini 3 Pro Image) are NOT served from
+    // the Vertex us-central1 endpoint used below — Google's docs put the
+    // 3.x image models on the global Developer API endpoint only. Routing
+    // them through the Vertex URL below would 404. `transport` in the
+    // registry is the authority on which path a model takes, so branch on
+    // it here and return early — the existing Vertex block further down
+    // stays completely untouched and keeps serving the current model.
+    if (spec.transport === 'gemini-api') {
+      const { generateGeminiImage } = await import('./_gemini-image.js');
+
+      // mimeType and b64Image were already computed above for the Vertex
+      // path — reuse them instead of re-encoding the source image.
+      const requests = spectrum.map(({ prompt, temperature }) =>
+        generateGeminiImage({
+          modelId: spec.id,
+          prompt,
+          inlineImage: { mimeType, base64: b64Image },
+          temperature,
+        })
+      );
+
+      const results = await Promise.allSettled(requests);
+
+      const variations: { imageUrl: string }[] = [];
+      const apiErrors: string[] = [];
+
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          const msg = String(result.reason);
+          console.error('[gemini] request rejected:', msg);
+          apiErrors.push(msg);
+          continue;
+        }
+        const out = result.value;
+        variations.push({ imageUrl: `data:${out.mime};base64,${out.bytes.toString('base64')}` });
+      }
+
+      // Same response shape as the Vertex path below: 500 only if every
+      // variation failed, otherwise 200 with whatever succeeded.
+      if (variations.length === 0) {
+        return res.status(500).json({
+          error:     'Gemini failed to generate any variations.',
+          apiErrors,
+          hint:      'Gemini native image generation may have safety-filtered the request. Try a different image or guidance.',
+        });
+      }
+
+      return res.status(200).json({ variations, engine: 'imagen' });
+    }
+
     // ------------------------------------------------------------------
     // 3. Authenticate with GCP
     // ------------------------------------------------------------------
+    // Deliberately placed AFTER the gemini-api branch above (and its early
+    // return), not before it. The Developer API path uses no GCP credentials
+    // at all -- it only needs GEMINI_API_KEY, inside generateGeminiImage.
+    // If this acquisition ran earlier and unconditionally, a GCP/OIDC auth
+    // failure would throw before the gemini-api branch is ever reached,
+    // silently reintroducing the exact Vertex/OIDC dependency the
+    // gemini-api transport exists to avoid for the newer models.
     const accessToken = await getServiceAccountAccessToken(req);
     const project     = getProjectNumber();
 
-    const geminiModel = 'gemini-2.5-flash-image';
+    // ── existing Vertex path below, unchanged ──
+    const geminiModel = spec.id;
     const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${project}/locations/us-central1/publishers/google/models/${geminiModel}:generateContent`;
 
     // ------------------------------------------------------------------

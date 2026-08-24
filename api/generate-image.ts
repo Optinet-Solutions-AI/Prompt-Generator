@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { brandSlug } from './_brand-slug.js';
+import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 
 // ── Server-side exact-size fit (mirror-extend) ─────────────────────────
 // The image model can only emit fixed sizes (1024², 1536×1024, 1024×1536),
@@ -10,7 +11,7 @@ import { brandSlug } from './_brand-slug.js';
 // padding, and nothing is ever cut. This runs BEFORE saving to Drive, so the
 // stored/preview image is the exact size too. Uses sharp (already
 // a dependency). bannerDimensions is the "1200 × 600" string from the UI.
-async function resizeToExact(
+export async function resizeToExact(
   buffer: Buffer,
   bannerDimensions?: string,
   aspectRatio?: string,
@@ -22,6 +23,13 @@ async function resizeToExact(
     const sh = meta.height || 0;
     if (!sw || !sh) return { buffer, mime: 'image/png', resized: false };
     const srcRatio = sw / sh;
+
+    // Preserve the input format. Gemini image models return JPEG; re-encoding
+    // that to PNG would inflate a ~2.5MB photo several times over on every
+    // Drive upload. `encode` is applied at every return point below.
+    const isJpeg = meta.format === 'jpeg';
+    const outMime = isJpeg ? 'image/jpeg' : 'image/png';
+    const encode = (p: import('sharp').Sharp) => (isJpeg ? p.jpeg({ quality: 92 }) : p.png());
 
     // Decide the TARGET width/height.
     let width = 0;
@@ -48,10 +56,10 @@ async function resizeToExact(
     // If the target ratio already matches the source, a plain cover resize is exact
     // and lossless (e.g. square→square, portrait→portrait). No blur needed.
     if (Math.abs(tgtRatio - srcRatio) / tgtRatio < 0.02) {
-      const out = await sharp(buffer)
-        .resize(width, height, { fit: 'cover', position: sharp.gravity.centre })
-        .png().toBuffer();
-      return { buffer: out, mime: 'image/png', resized: true };
+      const out = await encode(
+        sharp(buffer).resize(width, height, { fit: 'cover', position: sharp.gravity.centre })
+      ).toBuffer();
+      return { buffer: out, mime: outMime, resized: true };
     }
 
     // MIRROR-EXTEND. The target ratio differs from the source (e.g. 16:9 → 2:1), so a
@@ -67,12 +75,11 @@ async function resizeToExact(
     const padY = Math.max(0, height - (fm.height || 0));
     const left = Math.floor(padX / 2);
     const top = Math.floor(padY / 2);
-    const out = await sharp(fitted)
-      .extend({ left, right: padX - left, top, bottom: padY - top, extendWith: 'mirror' })
-      .png()
-      .toBuffer();
-    console.log(`[generate-image] mirror-extend to ${width}x${height} (src ${sw}x${sh}, tgt=${tgtRatio.toFixed(3)} src=${srcRatio.toFixed(3)})`);
-    return { buffer: out, mime: 'image/png', resized: true };
+    const out = await encode(
+      sharp(fitted).extend({ left, right: padX - left, top, bottom: padY - top, extendWith: 'mirror' })
+    ).toBuffer();
+    console.log(`[generate-image] mirror-extend to ${width}x${height} (src ${sw}x${sh}, tgt=${tgtRatio.toFixed(3)} src=${srcRatio.toFixed(3)}, ${outMime})`);
+    return { buffer: out, mime: outMime, resized: true };
   } catch (e) {
     console.error('[generate-image] sharp resize failed, using original bytes:', e);
     return { buffer, mime: 'image/png', resized: false };
@@ -107,6 +114,56 @@ function nearestImagenRatio(requestedRatio: number): string {
   ).token;
 }
 
+// gpt-image-2 accepts any size whose edges are multiples of 16, up to 3840 per
+// edge, with total pixels between 655,360 and 8,294,400 and a ratio within 3:1.
+// That means (unlike gpt-image-1) we can ask for the banner's real shape — a
+// 2:1 email banner comes back as a true 2:1, so resizeToExact only has to do a
+// lossless downscale instead of mirror-extending a gap.
+const OPENAI_STEP     = 16;
+const OPENAI_MIN_PX   = 655_360;
+const OPENAI_MAX_PX   = 8_294_400;
+const OPENAI_MAX_EDGE = 3840;
+
+// Pixel budget per resolution tier. Cost scales with output tokens, which scale
+// with pixels, so tying this to the user's resolution choice keeps spend
+// predictable rather than always generating at maximum size.
+const OPENAI_TARGET_PX: Record<string, number> = {
+  '1K': 1_048_576,
+  '2K': 2_097_152,
+  '3K': 4_194_304,
+  '4K': 8_294_400,
+};
+
+export function pickOpenAiImageSize(requestedRatio: number, resolution: string): string {
+  const snap = (v: number) => Math.max(OPENAI_STEP, Math.round(v / OPENAI_STEP) * OPENAI_STEP);
+  // The API refuses ratios beyond 3:1 in either direction.
+  const r = Math.min(3, Math.max(1 / 3, requestedRatio));
+  const target = OPENAI_TARGET_PX[resolution] ?? OPENAI_TARGET_PX['2K'];
+
+  let h = snap(Math.sqrt(target / r));
+  let w = snap(h * r);
+
+  // Respect the per-edge cap, re-deriving the other edge from the ratio.
+  if (w > OPENAI_MAX_EDGE) { w = OPENAI_MAX_EDGE; h = snap(w / r); }
+  if (h > OPENAI_MAX_EDGE) { h = OPENAI_MAX_EDGE; w = snap(h * r); }
+
+  // Walk into the pixel budget in 16px steps, keeping the ratio.
+  while (w * h > OPENAI_MAX_PX && h > OPENAI_STEP) { h -= OPENAI_STEP; w = snap(h * r); }
+  while (w * h < OPENAI_MIN_PX && Math.max(w, h) < OPENAI_MAX_EDGE) {
+    h += OPENAI_STEP;
+    w = snap(h * r);
+  }
+
+  // Snapping the narrow edge down can push the achieved ratio past the API's
+  // 3:1 limit (e.g. a 1:4 request landed on 832x2512 = 3.019:1, which OpenAI
+  // rejects). Widen the narrow edge back until we're inside the limit.
+  while (Math.max(w / h, h / w) > 3 && w * h + Math.max(w, h) * OPENAI_STEP <= OPENAI_MAX_PX) {
+    if (w < h) w += OPENAI_STEP; else h += OPENAI_STEP;
+  }
+
+  return `${w}x${h}`;
+}
+
 // ── AI Assistant cost logging (opt-in via request body) ────────────────
 // This helper is a no-op for the main app — only fires when the new
 // AI Assistant page sends `source: 'assistant'` + `test_user_id`.
@@ -118,12 +175,20 @@ export async function logAssistantImageGen(
   model: string,
   size: string,
   quality: string | null,
+  // Present for providers that report token usage (both Gemini's gemini-api
+  // transport AND OpenAI now report it). When given, cost is computed exactly
+  // from tokens x the model's official rate instead of the legacy per-image
+  // size/quality lookup table below — which has no row for the new banner
+  // sizes (e.g. "2048x1024"), so without this, OpenAI cost would silently
+  // stop being logged the moment Task 5's real-shape sizes ship. Optional so
+  // the 4 existing 6-argument call sites/tests keep working unchanged.
+  usage?: { text_input_tokens: number; image_output_tokens: number },
 ): Promise<void> {
   const body = (req as { body?: Record<string, unknown> }).body ?? {};
   if (body.source !== 'assistant' || !body.test_user_id) return;
   try {
     const { createClient } = await import('@supabase/supabase-js');
-    const { computeImageCost } = await import('./_pricing.js');
+    const { computeImageCost, computeImageCostFromUsage } = await import('./_pricing.js');
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -137,7 +202,9 @@ export async function logAssistantImageGen(
       quality,
       image_count:   1,
       drive_file_id: fileId,
-      cost_usd:      computeImageCost(provider, size, quality, 1),
+      cost_usd:      usage
+        ? computeImageCostFromUsage(model, usage)
+        : computeImageCost(provider, size, quality, 1),
     });
   } catch (err) {
     // Non-fatal — cost logging must NEVER break the main flow.
@@ -357,7 +424,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions } = req.body;
+    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions, geminiModel } = req.body;
 
     // When an exact pixel size is requested (e.g. 1200×600) we crop+resize the
     // result to that size. To keep it SHARP we must DOWNSCALE a larger native
@@ -390,11 +457,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? enrichedPrompt.replace(new RegExp(brand.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), 'the brand')
       : enrichedPrompt;
 
-    // gpt-image-1: short natural language quality signal — no "art/illustration" words (causes painting style).
+    // gpt-image-2: short natural language quality signal — no "art/illustration" words (causes painting style).
     // "Hyperrealistic cinematic render" works for both CGI characters and photographic scenes.
     const CHATGPT_PREFIX = 'Hyperrealistic cinematic render, sharp photorealistic quality, dramatic professional lighting. ';
 
-    // Hard constraint appended at the END — gpt-image-1 and Imagen both learned from
+    // Hard constraint appended at the END — gpt-image-2 and Imagen both learned from
     // stock photos with corner watermarks, so they hallucinate garbled pseudo-logos
     // (e.g. "PILGCATHE") in the lower-right. Placed last because later tokens are
     // weighted as stronger constraints. Covers text, watermarks, logos, signatures.
@@ -405,9 +472,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'The final image must be fully unbranded and free of any written characters or symbols. ' +
       'Any clothing, jerseys, uniforms, signage or boards are plain and blank — no team names, no player names, no numbers, no lettering.';
 
-    // ChatGPT-only wide-framing constraint for wide banners. gpt-image-1 tends to
+    // ChatGPT-only wide-framing constraint for wide banners. gpt-image-2 tends to
     // compose a tight close-up that then gets cut by the banner crop; Gemini doesn't
-    // need this. Placed near the end (gpt-image-1 weights later tokens stronger).
+    // need this. Placed near the end (gpt-image-2 weights later tokens stronger).
     // Only applied to wide banners (Gemini path never sees it).
     const WIDE_FRAMING = reqRatioForRes >= 1.7
       ? ' FRAMING: an ultra-wide, full-length establishing shot. The entire subject is visible head to toe, sized small-to-medium and centred within a large open environment. Leave a GENEROUS band of empty headroom above the very top of the head/comb/hat so the head sits well below the top edge, and clear floor/ground space below the feet, so the whole figure sits comfortably inside the frame with wide breathing room on every side and nothing touches any edge.'
@@ -419,30 +486,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const geminiPrompt = GEMINI_PREFIX + brandSafePrompt + NO_WATERMARKS;
 
     // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────
-    // Uses gpt-image-1 via Vercel's OPENAI_API_KEY — no Cloud Run needed.
+    // Uses gpt-image-2 via Vercel's OPENAI_API_KEY — no Cloud Run needed.
     const openaiKey = process.env.OPENAI_API_KEY;
     if (provider === 'chatgpt' && openaiKey) {
       console.log('[generate-image] Using OpenAI direct generation');
 
-      // OpenAI gpt-image-1 only supports 3 pixel sizes:
-      //   1024x1024 (square, 1.0), 1536x1024 (landscape, 1.5), 1024x1536 (portrait, 0.667)
-      // We can't emit the user's exact size here, so pick the supported size whose
-      // aspect ratio is *numerically closest* to what was requested — that minimises
-      // how much the client-side cover-crop has to trim when forcing the exact size.
-      // Prefer the ratio derived from explicit pixel dimensions ("1200 × 600"),
-      // since preset aspectRatio strings are sometimes inaccurate.
+      // Ask gpt-image-2 for the banner's real shape. Prefer the ratio from
+      // explicit pixel dimensions ("1200 × 600") since preset aspectRatio
+      // strings are sometimes inaccurate.
       const requestedRatio = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1.5;
-      const SUPPORTED: Array<{ size: string; ratio: number }> = [
-        { size: '1024x1024', ratio: 1 },
-        { size: '1536x1024', ratio: 1536 / 1024 },
-        { size: '1024x1536', ratio: 1024 / 1536 },
-      ];
-      const outputSize = SUPPORTED.reduce((best, cur) =>
-        Math.abs(cur.ratio - requestedRatio) < Math.abs(best.ratio - requestedRatio) ? cur : best
-      ).size;
+      const outputSize = pickOpenAiImageSize(requestedRatio, genResolution);
 
       // Map resolution to quality. Banners bump genResolution to ≥2K (see needsCrop
-      // above) → 'high' so gpt-image-1 renders the sharpest, least-distorted faces it
+      // above) → 'high' so gpt-image-2 renders the sharpest, least-distorted faces it
       // can (its faces degrade badly at low/medium). 1K quick previews stay 'low' (fast).
       const qualityMap: Record<string, 'low' | 'medium' | 'high'> = {
         '4K': 'high', '3K': 'high', '2K': 'high', '1K': 'low',
@@ -458,7 +514,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'Authorization': `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-image-1',
+          model: OPENAI_IMAGE_MODEL,
           prompt: finalPrompt,
           n: 1,
           size: outputSize,
@@ -472,7 +528,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: `OpenAI failed (${resp.status}): ${errText}` });
       }
 
-      const data = await resp.json() as { data?: Array<{ b64_json?: string; url?: string }> };
+      const data = await resp.json() as {
+        data?: Array<{ b64_json?: string; url?: string }>;
+        // OpenAI reports token usage for image generation too — capture it so
+        // the OpenAI branch can log an exact cost the same way Gemini does,
+        // instead of relying on the legacy size/quality table (see the usage
+        // comment at logAssistantImageGen for why that table can't be trusted
+        // for the new banner sizes).
+        usage?: { input_tokens?: number; output_tokens?: number };
+      };
       const item = data.data?.[0];
       const imageUrl = item?.url
         ? item.url
@@ -531,7 +595,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // Make public so server-side fetches (edit, variations) work without auth
           await makeFilePublic(fileId, accessToken);
 
-          await logAssistantImageGen(req, fileId, 'openai', 'gpt-image-1', outputSize, outputQuality);
+          // Prefer usage-based cost over the legacy size/quality table: Task 5's
+          // real-shape sizes (e.g. "2048x1024") have no row in IMAGE_PRICING, so
+          // the legacy lookup returns null for every OpenAI render now. Only pass
+          // usage when OpenAI actually reported it — an absent usage object should
+          // fall back to the legacy table, not log a bogus $0.
+          await logAssistantImageGen(
+            req, fileId, 'openai', OPENAI_IMAGE_MODEL, outputSize, outputQuality,
+            data.usage
+              ? {
+                  text_input_tokens: data.usage.input_tokens ?? 0,
+                  image_output_tokens: data.usage.output_tokens ?? 0,
+                }
+              : undefined,
+          );
 
           // Return Drive URL so frontend stores Drive link (not temp OpenAI URL)
           const driveUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
@@ -550,6 +627,142 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Fallback: no Drive folder configured or upload failed
       return res.status(200).json({ imageUrl, url: imageUrl });
+    }
+
+    // ── Gemini direct generation ────────────────────────────────────────
+    // Runs whenever the caller selected a model on the gemini-api transport.
+    // The current model (gemini-2.5-flash-image) stays on 'vertex' and so
+    // falls through to the existing Cloud Run path below — meaning default
+    // behaviour is completely unchanged until a user picks the new model.
+    const geminiSpec = resolveGeminiModel(geminiModel);
+    if (provider === 'gemini' && geminiSpec.transport === 'gemini-api') {
+      console.log(`[generate-image] Using Gemini direct generation: ${geminiSpec.id}`);
+
+      // Check the Drive folder BEFORE calling the (paid) Gemini API below —
+      // this used to run after generateGeminiImage(), so a missing env var
+      // threw away an image the user had already been billed up to $0.24 for.
+      // Fail fast, at no cost, same as the OpenAI branch above.
+      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+      if (!folderId) {
+        return res.status(500).json({ error: 'GOOGLE_DRIVE_FOLDER_ID is not configured' });
+      }
+
+      const { generateGeminiImage } = await import('./_gemini-image.js');
+      const reqRatio = ratioFromString(bannerDimensions) ?? ratioFromString(aspectRatio) ?? 1;
+
+      // Whitelist the tier instead of casting: `as '1K'|'2K'|'4K'` would let an
+      // unrecognised `resolution` string pass straight through as `genResolution`
+      // (when needsCrop is false) and reach the Gemini API as an invalid
+      // imageSize. Map anything unrecognised to '1K' instead of lying to the
+      // type system.
+      const GEMINI_IMAGE_SIZES = ['1K', '2K', '4K'] as const;
+      type GeminiImageSize = typeof GEMINI_IMAGE_SIZES[number];
+      const requestedGeminiSize: string = genResolution === '3K' ? '2K' : genResolution;
+      const geminiImageSize: GeminiImageSize = (GEMINI_IMAGE_SIZES as readonly string[]).includes(requestedGeminiSize)
+        ? (requestedGeminiSize as GeminiImageSize)
+        : '1K';
+
+      const gen = await generateGeminiImage({
+        modelId: geminiSpec.id,
+        prompt: geminiPrompt,
+        // Pass the raw requested ratio — the helper snaps it to a supported one.
+        aspectRatio: bannerDimensions || aspectRatio || '1:1',
+        imageSize: geminiImageSize,
+      });
+
+      // Log the ACTUAL returned dimensions (not just byte length/token count) —
+      // the spec's mitigation for risk #3 (imageSize: "2K" observed returning
+      // 3168px wide) depends on this being visible in the logs. A metadata read
+      // failure must never break the render, so this is wrapped and non-fatal.
+      let returnedDims = '';
+      try {
+        const sharp = (await import('sharp')).default;
+        const meta = await sharp(gen.bytes).metadata();
+        returnedDims = ` ${meta.width}x${meta.height}`;
+      } catch (metaErr) {
+        console.error('[generate-image] could not read returned image dimensions (non-fatal):', metaErr);
+      }
+
+      console.log(`[generate-image] ${geminiSpec.id} returned ${gen.bytes.length} bytes ${gen.mime}${returnedDims}, ` +
+        `${gen.usage.image_output_tokens} image tokens (requested ratio ${reqRatio.toFixed(3)})`);
+
+      const exact  = await resizeToExact(gen.bytes, bannerDimensions, aspectRatio);
+      const imgBuf = exact.buffer;
+      const imgMime = exact.resized ? exact.mime : gen.mime;
+      const ext    = imgMime.split('/')[1] || 'jpeg';
+      const gSlug  = brandSlug(brand);
+
+      // generateGeminiImage() above already spent real money — Gemini bills per
+      // output token whether or not the image ever reaches the user — so from
+      // here on a Drive failure must NOT throw the image away and 500. We try to
+      // save it, but on failure we still hand back the image itself as a data
+      // URL: unpersisted-but-delivered beats losing an already-paid-for image.
+      // `driveSaveFailed: true` tells the caller it never reached the shared
+      // Image Library (won't show up on other devices; localStorage is the only copy).
+      try {
+        const accessToken = await getGoogleAccessToken();
+        const fileId = await uploadImageToDrive({
+          imageBuffer: imgBuf,
+          mimeType:    imgMime,
+          filename:    `${gSlug ? gSlug + '-' : ''}gemini-${Date.now()}.${ext}`,
+          folderId,
+          provider:    'gemini',
+          aspectRatio: aspectRatio || '16:9',
+          resolution:  resolution  || '1K',
+          accessToken,
+          brand,
+        });
+        await makeFilePublic(fileId, accessToken);
+        await logAssistantImageGen(
+          req, fileId, 'gemini', geminiSpec.id, aspectRatio || '1:1', null, gen.usage,
+        );
+
+        const driveUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+        return res.status(200).json({
+          fileId,
+          public_url: driveUrl,
+          imageUrl:   driveUrl,
+          url:        driveUrl,
+          model:      geminiSpec.id,
+          usage:      gen.usage,
+        });
+      } catch (driveErr) {
+        console.error(
+          '[generate-image] Gemini Drive save failed — image was already generated ' +
+          '(and paid for); returning the same exact-size image that would have been ' +
+          'persisted, just unpersisted, as a data URL instead:',
+          driveErr,
+        );
+        // Still log the cost even though there's no Drive fileId — this is a
+        // paid render (Gemini already billed us above) and must not vanish
+        // from the cost record just because the degraded path has nothing to
+        // put in drive_file_id. Wrapped so a logging failure can never break
+        // this already-degraded response.
+        try {
+          await logAssistantImageGen(
+            req, 'drive-save-failed', 'gemini', geminiSpec.id, aspectRatio || '1:1', null, gen.usage,
+          );
+        } catch (logErr) {
+          console.error('[generate-image] cost logging on Drive-failure path failed (non-fatal):', logErr);
+        }
+        // Use imgBuf/imgMime (the resizeToExact output), NOT gen.bytes/gen.mime (the
+        // raw pre-resize bytes) — the success path above returns a Drive URL pointing
+        // at the RESIZED image, so this degraded path must deliver the same pixels the
+        // success path would have. Falling back to the raw bytes would hand the user
+        // e.g. 3168x1344 when they asked for a 1200x600 banner: a worse match to what
+        // they requested, on a path that is already a consolation prize.
+        // resizeToExact() never throws (its own internal try/catch returns the
+        // original buffer on failure), so imgBuf/imgMime are always populated here.
+        const dataUrl = `data:${imgMime};base64,${imgBuf.toString('base64')}`;
+        return res.status(200).json({
+          imageUrl:        dataUrl,
+          url:             dataUrl,
+          public_url:      dataUrl,
+          driveSaveFailed: true,
+          model:           geminiSpec.id,
+          usage:           gen.usage,
+        });
+      }
     }
 
     // ── Fallback: Cloud Run backend ─────────────────────────────────────────
@@ -667,7 +880,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // Make public so server-side fetches (edit, variations) work without auth
                 await makeFilePublic(geminiFileId, geminiAccessToken);
 
-                await logAssistantImageGen(req, geminiFileId, 'gemini', 'imagen', aspectRatio || '1:1', null);
+                // Was the literal string 'imagen', which made Gemini image spend impossible
+                // to attribute to a model in the Cost Tracker.
+                await logAssistantImageGen(req, geminiFileId, 'gemini', geminiSpec.id, aspectRatio || '1:1', null);
 
                 const driveUrl = `https://lh3.googleusercontent.com/d/${geminiFileId}`;
                 // Return Drive URL so Image Library always gets a persistent link

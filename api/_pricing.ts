@@ -100,3 +100,32 @@ export function computeImageCost(
   if (!entry || entry.cost_per_image_usd === null) return null;
   return entry.cost_per_image_usd * count;
 }
+
+import { getImageModel } from './_image-models.js';
+
+/** Token usage returned by an image generation call. */
+export interface ImageUsage {
+  text_input_tokens: number;
+  image_output_tokens: number;
+}
+
+/**
+ * Exact cost of one image, computed from the tokens the API actually reported
+ * multiplied by the model's official rate.
+ *
+ * This is preferred over the flat per-image IMAGE_PRICING table because it is
+ * exact rather than an estimate — token count x official rate reproduces the
+ * providers' own published per-image prices to the cent. Returns null for an
+ * unknown model so the UI can say "unknown" instead of showing a wrong number.
+ */
+export function computeImageCostFromUsage(
+  modelId: string,
+  usage: ImageUsage,
+): number | null {
+  const m = getImageModel(modelId);
+  if (!m) return null;
+  return (
+    usage.text_input_tokens * m.textInputRatePerMillion +
+    usage.image_output_tokens * m.imageOutputRatePerMillion
+  ) / 1_000_000;
+}

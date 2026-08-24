@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import sharp from 'sharp';
 import { logAssistantImageGen, resizeToExact, pickOpenAiImageSize } from './generate-image.js';
-import { resolveGeminiModel } from './_image-models.js';
+import { resolveGeminiModel, DEFAULT_GEMINI_IMAGE_MODEL } from './_image-models.js';
 
 const insertMock = vi.fn();
 
@@ -242,29 +242,34 @@ describe('logAssistantImageGen with token usage', () => {
 
 // The Gemini direct-generation branch in generate-image.ts gates on
 // `geminiSpec.transport === 'gemini-api'`, where geminiSpec = resolveGeminiModel(geminiModel).
-// These five assertions are what stand between the feature working and it silently
-// rendering on the wrong model: if this gate's transport logic is wrong, the new
-// model never fires, the request quietly renders on the current model
-// (gemini-2.5-flash-image, transport 'vertex') instead, and the user ends up
-// comparing that model against itself while believing they tested something new.
+// As of the routing fix, BOTH dropdown models (gemini-2.5-flash-image and
+// gemini-3-pro-image) resolve to transport 'gemini-api' and go through the
+// Gemini Developer API — the old model's Vertex/Cloud Run path called a
+// retired Imagen model and 404'd, so it no longer routes there. The Cloud
+// Run backend below is now unreachable for any dropdown model (see the
+// comment in generate-image.ts above the Gemini direct-generation branch).
+// These five assertions are what stand between the feature working and it
+// silently rendering on the wrong model: if this gate's transport logic is
+// wrong, a request could quietly render on the wrong model while the user
+// believes they tested something else.
 describe('resolveGeminiModel gate (drives the Gemini direct-generation branch)', () => {
-  it('defaults to vertex when no model is requested — falls through to Cloud Run', () => {
-    expect(resolveGeminiModel(undefined).transport).toBe('vertex');
+  it('defaults to the gemini-api transport when no model is requested', () => {
+    expect(resolveGeminiModel(undefined).transport).toBe('gemini-api');
   });
 
-  it('explicitly choosing the current model still falls through to Cloud Run', () => {
-    expect(resolveGeminiModel('gemini-2.5-flash-image').transport).toBe('vertex');
+  it('explicitly choosing the current model also uses the gemini-api transport', () => {
+    expect(resolveGeminiModel('gemini-2.5-flash-image').transport).toBe('gemini-api');
   });
 
   it('choosing the new model fires the gemini-api branch', () => {
     expect(resolveGeminiModel('gemini-3-pro-image').transport).toBe('gemini-api');
   });
 
-  it('an OpenAI id must not route into the Gemini branch', () => {
-    expect(resolveGeminiModel('gpt-image-2').transport).toBe('vertex');
+  it('an OpenAI id must not select a real Gemini model choice — falls back to the default by id', () => {
+    expect(resolveGeminiModel('gpt-image-2').id).toBe(DEFAULT_GEMINI_IMAGE_MODEL);
   });
 
-  it('an unknown id falls back safely to vertex', () => {
-    expect(resolveGeminiModel('gemini-99-nonexistent').transport).toBe('vertex');
+  it('an unknown id falls back safely to the default model by id', () => {
+    expect(resolveGeminiModel('gemini-99-nonexistent').id).toBe(DEFAULT_GEMINI_IMAGE_MODEL);
   });
 });

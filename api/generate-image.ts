@@ -631,9 +631,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Gemini direct generation ────────────────────────────────────────
     // Runs whenever the caller selected a model on the gemini-api transport.
-    // The current model (gemini-2.5-flash-image) stays on 'vertex' and so
-    // falls through to the existing Cloud Run path below — meaning default
-    // behaviour is completely unchanged until a user picks the new model.
+    // Both dropdown models (gemini-2.5-flash-image and gemini-3-pro-image)
+    // now use 'gemini-api' — the current model used to stay on 'vertex' and
+    // fall through to the Cloud Run path below, but that Cloud Run service
+    // calls a retired Imagen model and 404s, so it was switched to this same
+    // Developer API path (verified working live, ~9s/$0.039 per image).
     const geminiSpec = resolveGeminiModel(geminiModel);
     if (provider === 'gemini' && geminiSpec.transport === 'gemini-api') {
       console.log(`[generate-image] Using Gemini direct generation: ${geminiSpec.id}`);
@@ -766,6 +768,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── Fallback: Cloud Run backend ─────────────────────────────────────────
+    // Currently unreachable for any dropdown Gemini model: both now resolve
+    // to transport 'gemini-api' and return from the branch above before
+    // reaching this point. Left intact as the documented fallback path —
+    // do not remove.
     if (backend === 'cloud-run') {
       const cloudRunUrl =
         process.env.GCP_CLOUD_RUN_URL ||

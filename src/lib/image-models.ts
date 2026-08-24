@@ -31,7 +31,7 @@ export interface ImageModelSpec {
    * which takes explicit pixel sizes instead (see pickOpenAiImageSize).
    */
   supportedAspectRatios: string[];
-  /** What the API actually returns. Gemini image models return JPEG. */
+  /** What the API actually returns. Varies per model — check each entry. */
   outputMime: 'image/jpeg' | 'image/png';
   textInputRatePerMillion: number;
   imageOutputRatePerMillion: number;
@@ -55,11 +55,15 @@ export const IMAGE_MODELS: Record<string, ImageModelSpec> = {
   'gemini-2.5-flash-image': {
     id: 'gemini-2.5-flash-image',
     label: '2.5 Flash Image',
-    transport: 'vertex',          // keeps the existing, already-tuned code path
+    // The Vertex/Cloud Run path calls a retired Imagen model
+    // (imagen-4.0-fast-generate-001) and returns 404, so this model now uses
+    // the Gemini Developer API instead — same as the newer model below.
+    // Verified working live: ~9s per image, $0.039/image.
+    transport: 'gemini-api',
     isCurrent: true,
     inDropdown: true,
     supportedAspectRatios: GEMINI_RATIOS,
-    outputMime: 'image/jpeg',
+    outputMime: 'image/png',      // verified live: this model returns PNG, not JPEG
     textInputRatePerMillion: 0.30,
     imageOutputRatePerMillion: 30.00,
     displayPricePerImage: null,   // "(current)" — no price shown

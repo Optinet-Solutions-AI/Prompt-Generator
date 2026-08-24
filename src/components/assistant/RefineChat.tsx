@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { requestRefine } from '@/lib/assistant-client';
 import type {
   AssistantProvider,
+  AssistantUsage,
   ChatTurn,
   GeneratedFields,
   RefineOption,
@@ -25,7 +26,7 @@ interface Props {
   description?: string;
   initialTurns: { role: 'user' | 'assistant'; content: string; imageUrl?: string }[];
   onRegenerate: (fields: GeneratedFields) => Promise<string | null>;
-  onFieldsRefined: (fields: GeneratedFields) => void;
+  onFieldsRefined: (fields: GeneratedFields, usage: AssistantUsage | null) => void;
   onImageClick: (url: string) => void;
 }
 
@@ -78,7 +79,7 @@ export function RefineChat({
         ...prev,
         { kind: 'text', role: 'assistant', content: refineResult.message },
       ]);
-      onFieldsRefined(refineResult.refinedFields);
+      onFieldsRefined(refineResult.refinedFields, refineResult.usage);
 
       const newImageUrl = await onRegenerate(refineResult.refinedFields);
       if (newImageUrl) {

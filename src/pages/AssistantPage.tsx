@@ -12,8 +12,10 @@ import { ModelSelect } from '@/components/assistant/ModelSelect';
 import { CostTrackerPanel } from '@/components/assistant/CostTrackerPanel';
 import { requestConcepts, requestGenerate } from '@/lib/assistant-client';
 import { mergeAvoid } from '@/lib/concept-avoid';
-import type { AssistantProvider, AssistantConcept, AssistantUsage, GeneratedFields } from '@/lib/assistant-types';
+import type { AssistantProvider, AssistantConcept, PromptVersion } from '@/lib/assistant-types';
+import { appendVersion } from '@/lib/prompt-versions';
 import { GeneratedPromptPanel } from '@/components/assistant/GeneratedPromptPanel';
+import { VersionStrip } from '@/components/assistant/VersionStrip';
 import { SavedPromptsPanel } from '@/components/assistant/SavedPromptsPanel';
 import '@/components/assistant/assistant-theme.css';
 
@@ -38,30 +40,48 @@ export default function AssistantPage() {
   const [recommendation, setRecommendation] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generated, setGenerated] = useState<(GeneratedFields & { brand: string }) | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [pickedConcept, setPickedConcept] = useState<AssistantConcept | null>(null);
-  const [generatedUsage, setGeneratedUsage] = useState<AssistantUsage | null>(null);
+  // Which concept card is currently generating, purely so that card (and only
+  // that one) can show "Generating…" while the others stay put. This is
+  // separate from prompt history — it never outlives the in-flight request.
+  const [generatingTitle, setGeneratingTitle] = useState<string | null>(null);
+  // Prompt history. This used to be a single `generated` slot plus two
+  // side-tables (pickedConcept, generatedUsage) that could drift out of sync
+  // with it. Those are per-version facts, so they live on the version now.
+  const [versions, setVersions] = useState<PromptVersion[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // One definition, many readers — every place that used to read `generated`
+  // reads this instead, so a missed site is a type error rather than stale data.
+  const active = versions[activeIndex] ?? null;
   const [avoid, setAvoid] = useState<string[]>([]);
   const avoidKeyRef = useRef<string>('');
 
   async function onPick(c: AssistantConcept) {
-    setError(null); setGenerating(true); setGenerated(null);
-    setPickedConcept(c);
+    setError(null); setGenerating(true); setGeneratingTitle(c.title);
     try {
       const r = await requestGenerate({ token: token!, brand, task, description, model, pickedConcept: c });
-      setGenerated(r.metadata);
-      setGeneratedUsage(r.usage);
+      // Append rather than replace: picking a second concept to look at an
+      // alternative must not destroy the prompt you already had.
+      setVersions(prev => {
+        const next = appendVersion(prev, {
+          fields: r.metadata, concept: c, source: 'generated', usage: r.usage,
+        });
+        setActiveIndex(next.length - 1);   // newest stays active
+        return next;
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setGenerating(false);
+      setGenerating(false); setGeneratingTitle(null);
     }
   }
 
   async function onSuggest() {
     setError(null); setLoading(true); setConcepts(null);
-    setGenerated(null); setPickedConcept(null);
+    // New brief — clear prompt history so an old brief's prompts don't
+    // linger under new concepts.
+    setVersions([]); setActiveIndex(0);
     // Reset the avoid-list when the brief (brand+task) changes; otherwise accumulate
     // so each regenerate avoids every idea already shown for this brief.
     const key = `${brand}␟${task}`;
@@ -150,7 +170,7 @@ export default function AssistantPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <Button
                 onClick={onSuggest}
-                disabled={loading || !task.trim()}
+                disabled={loading || generating || !task.trim()}
                 size="lg"
                 className="gap-2"
               >
@@ -206,7 +226,7 @@ export default function AssistantPage() {
                       variant="outline"
                       className="mt-4 gap-2"
                     >
-                      {generating && pickedConcept?.title === c.title
+                      {generating && generatingTitle === c.title
                         ? 'Generating…'
                         : <>Develop this <ArrowRight className="w-4 h-4" /></>}
                     </Button>
@@ -218,17 +238,32 @@ export default function AssistantPage() {
         )}
 
         {/* Generated prompt + chat */}
-        {generated && concepts && (
-          <GeneratedPromptPanel
-            fields={generated}
-            token={token!}
-            task={task}
-            description={description}
-            pickedConcept={pickedConcept!}
-            allConcepts={concepts}
-            usage={generatedUsage!}
-            refineModel={model}
-          />
+        {active && concepts && (
+          <>
+            <VersionStrip
+              versions={versions}
+              activeIndex={activeIndex}
+              onSelect={setActiveIndex}
+            />
+            <GeneratedPromptPanel
+              key={active.concept.title}
+              version={active}
+              token={token!}
+              task={task}
+              description={description}
+              allConcepts={concepts}
+              refineModel={model}
+              onNewVersion={(fields, usage) => {
+                setVersions(prev => {
+                  const next = appendVersion(prev, {
+                    fields, concept: active.concept, source: 'refined', usage,
+                  });
+                  setActiveIndex(next.length - 1);
+                  return next;
+                });
+              }}
+            />
+          </>
         )}
 
         <SavedPromptsPanel testUserId={token!} />

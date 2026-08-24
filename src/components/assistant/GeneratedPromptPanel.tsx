@@ -8,6 +8,7 @@ import type {
   AssistantProvider,
   AssistantUsage,
   GeneratedFields,
+  PromptVersion,
 } from '@/lib/assistant-types';
 import { saveAssistantPrompt } from '@/lib/assistant-storage';
 import { RefineChat } from './RefineChat';
@@ -16,14 +17,14 @@ import { ImageModelSelect, loadSavedGeminiModel, GEMINI_MODEL_STORAGE_KEY } from
 import { SizePresetSelect } from '@/components/SizePresetSelect';
 
 interface Props {
-  fields: GeneratedFields & { brand: string };
+  version: PromptVersion;
   token: string;
   task: string;
   description?: string;
-  pickedConcept: AssistantConcept;
   allConcepts: AssistantConcept[];
-  usage: AssistantUsage;
   refineModel: AssistantProvider;
+  /** Report a refinement upward — the parent owns history, not this panel. */
+  onNewVersion: (fields: GeneratedFields & { brand: string }, usage: AssistantUsage | null) => void;
 }
 
 type ImageProvider = 'chatgpt' | 'gemini';
@@ -72,11 +73,16 @@ export async function callImageGen(args: {
 }
 
 export function GeneratedPromptPanel({
-  fields, token, task, description, pickedConcept, allConcepts, usage, refineModel,
+  version, token, task, description, allConcepts, refineModel, onNewVersion,
 }: Props) {
   const { toast } = useToast();
 
-  const [currentFields, setCurrentFields] = useState(fields);
+  // No local copy of `fields` — this panel used to keep its own
+  // `useState(fields)` snapshot, but useState's initial value is only read on
+  // first mount. Once the parent could switch versions without unmounting us
+  // (see the `key={active.concept.title}` note on the caller), that snapshot
+  // would go stale. Reading straight off `version.fields` means the display
+  // always matches whichever version is currently selected.
   const [chatTurns, setChatTurns] = useState<ChatTurnWithImage[]>([]);
   const [allImageUrls, setAllImageUrls] = useState<string[]>([]);
   const [lastImageProvider, setLastImageProvider] = useState<ImageProvider>('chatgpt');
@@ -118,12 +124,12 @@ export function GeneratedPromptPanel({
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   function currentSignature(): string {
-    return JSON.stringify({ fields: currentFields, images: allImageUrls });
+    return JSON.stringify({ fields: version.fields, images: allImageUrls });
   }
   const liked = savedSignature !== null && savedSignature === currentSignature();
 
   function copyAll() {
-    navigator.clipboard.writeText(currentFields.positive_prompt);
+    navigator.clipboard.writeText(version.fields.positive_prompt);
     toast({ title: 'Copied prompt to clipboard' });
   }
 
@@ -134,8 +140,8 @@ export function GeneratedPromptPanel({
     setLastImageProvider(provider);
     try {
       const url = await callImageGen({
-        positivePrompt: currentFields.positive_prompt,
-        brand: currentFields.brand,
+        positivePrompt: version.fields.positive_prompt,
+        brand: version.fields.brand,
         provider,
         token,
         geminiModel,
@@ -163,7 +169,7 @@ export function GeneratedPromptPanel({
     try {
       const url = await callImageGen({
         positivePrompt: refined.positive_prompt,
-        brand: currentFields.brand,
+        brand: version.fields.brand,
         provider: lastImageProvider,
         token,
         geminiModel,
@@ -179,28 +185,48 @@ export function GeneratedPromptPanel({
     }
   }
 
-  function onFieldsRefined(refined: GeneratedFields) {
-    setCurrentFields({ ...refined, brand: currentFields.brand });
+  // Refining no longer mutates this panel's own copy — it appends a new
+  // version in the parent. That is what makes stepping back possible: a
+  // component-local copy would go stale the moment the parent switched
+  // versions without unmounting us.
+  function onFieldsRefined(refined: GeneratedFields, usage: AssistantUsage | null) {
+    onNewVersion({ ...refined, brand: version.fields.brand }, usage);
   }
 
   async function onLike() {
     setSaveError(null);
     try {
+      // version.usage is AssistantUsage | null: both `generated` and `refined`
+      // versions normally carry real usage from the call that produced them
+      // (RefineChat forwards refineResult.usage through onFieldsRefined above).
+      // It can still be null — e.g. the refine endpoint's `clarify` action
+      // returns no refined fields (and no new version) at all, or a future
+      // model might not report usage — so we keep this fallback rather than
+      // assuming the field is always populated. We do NOT invent
+      // plausible-looking token numbers here: the refine endpoint
+      // (api/assistant/refine.ts) already logs its own real usage to
+      // assistant_llm_calls server-side, so this copy — denormalised onto the
+      // saved prompt row for convenience — is metadata, not the source of
+      // truth for cost. Zeroing it is honest about "not reported here",
+      // rather than fabricating a number that looks real but isn't.
+      const usage = version.usage;
       await saveAssistantPrompt({
         test_user_id: token,
-        brand: currentFields.brand,
+        brand: version.fields.brand,
         task,
         description,
-        provider: usage.provider,
-        model: usage.model,
+        provider: usage ? usage.provider : refineModel,
+        model: usage ? usage.model : '',
         all_concepts: allConcepts,
-        picked_concept: pickedConcept,
-        generated_fields: currentFields,
-        usage: {
-          input_tokens: usage.input_tokens,
-          cached_input_tokens: usage.cached_input_tokens,
-          output_tokens: usage.output_tokens,
-        },
+        picked_concept: version.concept,
+        generated_fields: version.fields,
+        usage: usage
+          ? {
+              input_tokens: usage.input_tokens,
+              cached_input_tokens: usage.cached_input_tokens,
+              output_tokens: usage.output_tokens,
+            }
+          : { input_tokens: 0, cached_input_tokens: 0, output_tokens: 0 },
         image_drive_ids: allImageUrls,
         liked: true,
       });
@@ -218,7 +244,7 @@ export function GeneratedPromptPanel({
         <div>
           <h2 className="text-2xl font-semibold">Your prompt is ready</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Based on "{pickedConcept.title}". Render below, then refine in chat.
+            Based on "{version.concept.title}". Render below, then refine in chat.
           </p>
         </div>
         <div className="flex gap-2">
@@ -292,9 +318,9 @@ export function GeneratedPromptPanel({
       {chatStarted && (
         <RefineChat
           token={token}
-          brand={currentFields.brand}
+          brand={version.fields.brand}
           model={refineModel}
-          fields={currentFields}
+          fields={version.fields}
           task={task}
           description={description}
           initialTurns={chatTurns}
@@ -320,14 +346,14 @@ export function GeneratedPromptPanel({
       {showPromptDetails && (
         <Card className="mt-3">
           <CardContent className="pt-6 space-y-4 text-sm">
-            <PromptField label="Positive prompt"  value={currentFields.positive_prompt} />
-            <PromptField label="Negative prompt"  value={currentFields.negative_prompt} />
-            <PromptField label="Subject"          value={currentFields.subject} />
-            <PromptField label="Lighting"         value={currentFields.lighting} />
-            <PromptField label="Mood"             value={currentFields.mood} />
-            <PromptField label="Background"       value={currentFields.background} />
-            <PromptField label="Primary object"   value={currentFields.primary_object} />
-            <PromptField label="Format layout"    value={currentFields.format_layout} />
+            <PromptField label="Positive prompt"  value={version.fields.positive_prompt} />
+            <PromptField label="Negative prompt"  value={version.fields.negative_prompt} />
+            <PromptField label="Subject"          value={version.fields.subject} />
+            <PromptField label="Lighting"         value={version.fields.lighting} />
+            <PromptField label="Mood"             value={version.fields.mood} />
+            <PromptField label="Background"       value={version.fields.background} />
+            <PromptField label="Primary object"   value={version.fields.primary_object} />
+            <PromptField label="Format layout"    value={version.fields.format_layout} />
           </CardContent>
         </Card>
       )}

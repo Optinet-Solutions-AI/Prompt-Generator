@@ -7,8 +7,15 @@
 //
 // This is intentionally simple. It does NOT account for:
 //   - In-flight calls (a tester firing many requests in parallel before any
-//     have logged can still over-spend; mitigated by Vercel's 10s function
-//     concurrency limits and a real human user pattern)
+//     have logged can still over-spend). The "Vercel's 10s function concurrency
+//     limits" this used to say as the mitigation is stale — a production call
+//     was measured at 27s — and the concepts endpoint (api/assistant/concepts.ts)
+//     made the exposure materially worse: it fires 4 model calls (3 concepts +
+//     1 recommendation) per request with the cap checked ONCE up front, so a
+//     set now costs roughly $0.016 rather than the ~$0.002 of the old single-call
+//     design. A $1/day cap is now about 62 sets, not ~475. The real mitigation
+//     is just the real-human-user pattern (nobody fires dozens of concept
+//     requests within the same second) — there is no hard concurrency backstop.
 //   - Image generation cost (only LLM is checked; image gens use their own
 //     budget which is bounded by the gen-image endpoint's own resource limits)
 //

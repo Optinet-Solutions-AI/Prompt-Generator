@@ -236,6 +236,38 @@ describe('_llm.chat — Gemini', () => {
     expect(body.generationConfig.temperature).toBeUndefined();
   });
 
+  it('adds thoughtsTokenCount into output_tokens (thinking is billed at the output rate)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{}' }] } }],
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 40, thoughtsTokenCount: 500 },
+      }),
+    }) as unknown as typeof fetch;
+
+    const result = await chat({
+      provider: 'gemini', model: 'gemini-3.1-pro-preview', system: 's', user: 'u', maxTokens: 2000,
+    });
+
+    expect(result.usage.output_tokens).toBe(540);
+  });
+
+  it('falls back to candidatesTokenCount alone when thoughtsTokenCount is absent (flash path)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: '{}' }] } }],
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 40 },
+      }),
+    }) as unknown as typeof fetch;
+
+    const result = await chat({
+      provider: 'gemini', model: 'gemini-2.5-flash', system: 's', user: 'u', maxTokens: 600,
+    });
+
+    expect(result.usage.output_tokens).toBe(40);
+  });
+
   it('strips additionalProperties from the schema before sending to Gemini', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

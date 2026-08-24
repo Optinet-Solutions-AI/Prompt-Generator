@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, CONCEPT_LENSES, buildAvoidClause } from './_assistant-prompts.js';
+import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, pickConceptLenses, CONCEPT_LENSES, buildAvoidClause, buildSingleConceptSystemPrompt, SINGLE_CONCEPT_JSON_SCHEMA, buildRecommendationPrompt } from './_assistant-prompts.js';
 
 describe('buildConceptsSystemPrompt', () => {
   it('includes the partner personality preamble', () => {
@@ -101,5 +101,120 @@ describe('pickConceptLens', () => {
   it('selects the lens indicated by the random value (deterministic with a stubbed rand)', () => {
     expect(pickConceptLens(() => 0)).toBe(CONCEPT_LENSES[0]);
     expect(pickConceptLens(() => 0.999)).toBe(CONCEPT_LENSES[CONCEPT_LENSES.length - 1]);
+  });
+});
+
+describe('pickConceptLenses', () => {
+  it('returns the requested number of lenses', () => {
+    expect(pickConceptLenses(3)).toHaveLength(3);
+  });
+
+  it('never returns a duplicate — this is the whole point of the function', () => {
+    // Run many times because the failure mode is probabilistic.
+    for (let i = 0; i < 200; i++) {
+      const picked = pickConceptLenses(3);
+      expect(new Set(picked).size).toBe(3);
+    }
+  });
+
+  it('only ever returns real lenses from the pool', () => {
+    for (const lens of pickConceptLenses(3)) {
+      expect(CONCEPT_LENSES).toContain(lens);
+    }
+  });
+
+  it('returns the whole pool when asked for more than exists, still without duplicates', () => {
+    const picked = pickConceptLenses(CONCEPT_LENSES.length + 5);
+    expect(picked).toHaveLength(CONCEPT_LENSES.length);
+    expect(new Set(picked).size).toBe(CONCEPT_LENSES.length);
+  });
+
+  it('returns an empty array for n <= 0 rather than throwing', () => {
+    expect(pickConceptLenses(0)).toEqual([]);
+    expect(pickConceptLenses(-1)).toEqual([]);
+  });
+
+  it('is deterministic under a seeded rand, so tests can pin the selection', () => {
+    // A rand that always returns 0 must take the pool in order.
+    const zero = () => 0;
+    expect(pickConceptLenses(3, zero)).toEqual([
+      CONCEPT_LENSES[0], CONCEPT_LENSES[1], CONCEPT_LENSES[2],
+    ]);
+  });
+});
+
+describe('buildSingleConceptSystemPrompt', () => {
+  it('keeps the brand block so brand identity still applies', () => {
+    const p = buildSingleConceptSystemPrompt('Roosterbet');
+    expect(p).toContain('Roosterbet');
+    expect(p).toMatch(/COLOR PALETTE/);
+  });
+
+  it('keeps the subject-neutrality guard', () => {
+    expect(buildSingleConceptSystemPrompt('Roosterbet')).toMatch(/DO NOT ASSUME/);
+  });
+
+  it('asks for exactly ONE concept', () => {
+    const p = buildSingleConceptSystemPrompt('Roosterbet');
+    expect(p).toMatch(/exactly ONE concept/i);
+  });
+
+  it('drops the inter-concept diversity instructions, which are meaningless for one concept', () => {
+    const p = buildSingleConceptSystemPrompt('Roosterbet');
+    expect(p).not.toMatch(/could share one background/);
+    expect(p).not.toMatch(/Return exactly 3 concepts/);
+  });
+
+  it('still tells the model to avoid the predictable take', () => {
+    expect(buildSingleConceptSystemPrompt('Roosterbet')).toMatch(/EXPAND/i);
+  });
+
+  it('handles a brand with no registered rules without throwing', () => {
+    expect(() => buildSingleConceptSystemPrompt('NoSuchBrand')).not.toThrow();
+    expect(buildSingleConceptSystemPrompt('NoSuchBrand')).toContain('NoSuchBrand');
+  });
+});
+
+describe('SINGLE_CONCEPT_JSON_SCHEMA', () => {
+  it('requires exactly one concept', () => {
+    const s = SINGLE_CONCEPT_JSON_SCHEMA as any;
+    expect(s.properties.concepts.minItems).toBe(1);
+    expect(s.properties.concepts.maxItems).toBe(1);
+  });
+
+  it('does not require a recommendation — that comes from a separate call', () => {
+    expect((SINGLE_CONCEPT_JSON_SCHEMA as any).required).toEqual(['concepts']);
+  });
+
+  it('requires title and description on the concept', () => {
+    const item = (SINGLE_CONCEPT_JSON_SCHEMA as any).properties.concepts.items;
+    expect(item.required).toEqual(['title', 'description']);
+  });
+});
+
+describe('buildRecommendationPrompt', () => {
+  const concepts = [
+    { title: 'Sky Strike', description: 'Hero dives through a gold coin storm.' },
+    { title: 'Vault Heist', description: 'Hero stands inside a cyan-lit vault.' },
+    { title: 'Cloud Throne', description: 'Hero perched atop golden cumulus.' },
+  ];
+
+  it('puts every concept title in the user message so the model can compare them', () => {
+    const { user } = buildRecommendationPrompt(concepts);
+    for (const c of concepts) expect(user).toContain(c.title);
+  });
+
+  it('includes the descriptions, not just titles', () => {
+    const { user } = buildRecommendationPrompt(concepts);
+    expect(user).toContain('gold coin storm');
+  });
+
+  it('asks for one short sentence', () => {
+    expect(buildRecommendationPrompt(concepts).system).toMatch(/one short sentence/i);
+  });
+
+  it('handles a single surviving concept (partial fan-out failure)', () => {
+    const { user } = buildRecommendationPrompt([concepts[0]]);
+    expect(user).toContain('Sky Strike');
   });
 });

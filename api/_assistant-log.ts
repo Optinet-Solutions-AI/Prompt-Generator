@@ -11,7 +11,7 @@ interface LlmUsage {
   output_tokens: number;
 }
 
-export type AssistantStep = 'concepts' | 'generate' | 'refine';
+export type AssistantStep = 'concepts' | 'generate' | 'refine' | 'concepts-recommend';
 
 export async function logLlmCall(
   testUserId: string,

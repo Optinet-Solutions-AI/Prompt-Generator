@@ -46,6 +46,24 @@ const SUBJECT_NEUTRALITY = [
   'or "a man"). If the brief already specifies a gender or ethnicity, keep it exactly.',
 ].join('\n');
 
+/**
+ * RETAINED REVERT PATH — NOT CALLED IN PRODUCTION.
+ *
+ * `buildConceptsSystemPrompt`, `CONCEPTS_JSON_SCHEMA`, and `pickConceptLens`
+ * (singular) are the pre-fan-out design: one call producing all three
+ * concepts together, with one randomly-chosen lens per request. The concepts
+ * endpoint (api/assistant/concepts.ts) now uses the fan-out design instead
+ * (buildSingleConceptSystemPrompt + SINGLE_CONCEPT_JSON_SCHEMA + pickConceptLenses,
+ * three parallel calls, one lens per concept).
+ *
+ * These three exports are kept deliberately, not dead code: the fan-out's
+ * diversity benefit currently rests on a single A/B sample, so this is the
+ * rollback path if the live A/B in
+ * docs/superpowers/specs/2026-08-22-assistant-concept-quality-design.md
+ * (risk 1) doesn't hold up on real brands. Delete all three together —
+ * this function, CONCEPTS_JSON_SCHEMA, and pickConceptLens — once that
+ * A/B validates the fan-out.
+ */
 export function buildConceptsSystemPrompt(brand: string): string {
   return [
     PERSONALITY,
@@ -141,16 +159,17 @@ export const GENERATE_JSON_SCHEMA = {
 
 // Each concepts call is stateless, so the model re-derives the same "obvious"
 // on-brand idea every time (e.g. always a hero in a golden sky). To make repeated
-// regenerations explore NEW ground, we inject one randomly-chosen creative lens per
-// request — a different angle that pushes the model off its default anchor. Brand
-// IDENTITY still applies (see brandBlock); only the creative angle rotates.
+// regenerations explore NEW ground, we inject one creative lens per concept call —
+// three distinct lenses per request, one per concept — a different angle that
+// pushes the model off its default anchor. Brand IDENTITY still applies (see
+// brandBlock); only the creative angle rotates.
 export const CONCEPT_LENSES: string[] = [
   'Lead with an UNEXPECTED SETTING you would not normally pick for this brand — surprise me with where the scene takes place.',
   'AVOID the most obvious brand image (e.g. a hero standing triumphantly in a golden sky). Find a fresh metaphor for the offer instead.',
-  'Anchor the set on a strong EMOTIONAL moment or story beat, not a product-hero pose.',
-  'Make the FIRST concept the boldest, most unexpected one — open with the stretch idea, not the safe one.',
+  'Anchor this concept on a strong EMOTIONAL moment or story beat, not a product-hero pose.',
+  'Push to the boldest, most unexpected stretch — reject the safe, on-brief reading of this brief entirely.',
   'Build around an UNUSUAL CAMERA ANGLE or perspective — top-down, worm\'s-eye, over-the-shoulder, or an extreme close detail.',
-  'Center the set on a single striking VISUAL OBJECT or symbol rather than the character.',
+  'Center this concept on a single striking VISUAL OBJECT or symbol rather than the character.',
   'Explore a different TIME or ENERGY than the default — quiet aftermath, frantic peak-action, dawn, or deep night.',
 ];
 
@@ -167,4 +186,100 @@ export function buildAvoidClause(avoid: string[]): string {
 /** Pick one creative lens at random (inject a different angle on each regenerate). */
 export function pickConceptLens(rand: () => number = Math.random): string {
   return CONCEPT_LENSES[Math.floor(rand() * CONCEPT_LENSES.length)];
+}
+
+/**
+ * Pick `n` DISTINCT creative lenses.
+ *
+ * The concepts endpoint fires one model call per concept, and each call gets a
+ * different lens from this list. That is what makes the three concepts differ
+ * in KIND — one may be an unexpected setting, another an emotional beat,
+ * another an unusual camera angle. Picking the same lens twice would waste a
+ * call, so selection is without replacement.
+ */
+export function pickConceptLenses(n: number, rand: () => number = Math.random): string[] {
+  if (n <= 0) return [];
+  const pool = [...CONCEPT_LENSES];
+  const out: string[] = [];
+  // Draw from a shrinking pool — guarantees distinctness without a retry loop.
+  while (out.length < n && pool.length > 0) {
+    const i = Math.floor(rand() * pool.length);
+    out.push(pool.splice(i, 1)[0]);
+  }
+  return out;
+}
+
+/**
+ * System prompt for a SINGLE concept.
+ *
+ * The endpoint fires three of these in parallel, each with a different lens.
+ * Compared with buildConceptsSystemPrompt this deliberately DROPS all the
+ * "make the three concepts differ from each other" instructions — there is
+ * only one concept in this call, so those lines would be wasted tokens and
+ * confusing. Divergence is now guaranteed structurally by giving each call a
+ * different lens, instead of asking one call to diverge from itself.
+ */
+export function buildSingleConceptSystemPrompt(brand: string): string {
+  return [
+    PERSONALITY,
+    '',
+    brandBlock(brand),
+    '',
+    SUBJECT_NEUTRALITY,
+    '',
+    "YOUR JOB IS TO EXPAND THE USER'S THINKING, NOT NARROW IT: propose a fresh, non-obvious direction they may not have considered. Avoid the most predictable or clichéd take on the brief.",
+    '',
+    'Return exactly ONE concept as strict JSON: {"concepts":[{"title":"...","description":"..."}]}.',
+    'The CREATIVE LENS in the user message is the defining constraint for this concept — obey it, do not treat it as one option among many.',
+    'Description must be 2-3 sentences, practical and scannable: someone should be able to picture the finished banner from it.',
+  ].join('\n');
+}
+
+export const SINGLE_CONCEPT_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['concepts'],
+  properties: {
+    concepts: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 1,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['title', 'description'],
+        properties: {
+          title: { type: 'string' },
+          description: { type: 'string' },
+        },
+      },
+    },
+  },
+} as const;
+
+/**
+ * Prompt for the recommendation sentence.
+ *
+ * This needs to see all three concepts at once to compare them, so it cannot
+ * be folded into the parallel single-concept calls. It runs on the cheapest
+ * model tier because it is a short judgement, not ideation.
+ */
+export function buildRecommendationPrompt(
+  concepts: Array<{ title: string; description: string }>,
+): { system: string; user: string } {
+  const system = [
+    PERSONALITY,
+    '',
+    'You are choosing between concept directions for a creative director.',
+    'Reply with ONE short sentence naming the concept you would pick and why.',
+    'No preamble, no list, no restating the options. Just the pick and the reason.',
+  ].join('\n');
+  const user = [
+    'Here are the concept directions:',
+    '',
+    ...concepts.map((c, i) => `${i + 1}. ${c.title} — ${c.description}`),
+    '',
+    'Which would you pick, and why?',
+  ].join('\n');
+  return { system, user };
 }

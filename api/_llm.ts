@@ -35,8 +35,10 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
 
 // Both OpenAI and Gemini occasionally return transient 5xx errors under load
 // (Gemini 2.5 Pro especially). We retry once with a short backoff before
-// surfacing the failure. Kept conservative — Vercel hobby has a 10s function
-// timeout, so we can't afford long retry chains.
+// surfacing the failure. Kept conservative — one retry, short backoff. The
+// function budget is larger than the 10s this comment used to assume (a
+// production image call succeeded at 27s on 2026-08-22), but a long retry
+// chain still risks stacking latency on top of an already slow model call.
 const RETRIABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 const RETRY_DELAY_MS = 600;
 
@@ -132,7 +134,15 @@ async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
     usage: {
       input_tokens: data.usageMetadata?.promptTokenCount ?? 0,
       cached_input_tokens: 0,
-      output_tokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+      // Gemini bills thinking tokens at the output rate, but candidatesTokenCount
+      // covers only the VISIBLE output — thoughtsTokenCount is the separate
+      // (often much larger) thinking spend and must be added in. This was a
+      // no-op while every routed model was forced to thinkingBudget: 0 (see the
+      // `flash` check above), but any thinking-enabled model — one NOT matched
+      // by that check, with a dynamic/unbounded thinking budget — would
+      // otherwise report only a fraction of its real cost.
+      output_tokens: (data.usageMetadata?.candidatesTokenCount ?? 0)
+                   + (data.usageMetadata?.thoughtsTokenCount ?? 0),
     },
   };
 }

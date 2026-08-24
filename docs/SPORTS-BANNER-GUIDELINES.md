@@ -71,6 +71,6 @@ All stored in `.env.local`. Key ones:
 
 ## Constraints
 - Airtable: 5 req/sec, 1000 record limit (at ~109)
-- Vercel: 10-second serverless timeout
+- Vercel: 10-second default, but slow routes explicitly raise it via `maxDuration` (image edit/variations routes: 300s; a production image call was measured at 27s) — do not assume every route is capped at 10s
 - AI text rendering: unreliable for non-Latin scripts (Arabic, etc.)
 - localStorage: ~5-10MB for image cache

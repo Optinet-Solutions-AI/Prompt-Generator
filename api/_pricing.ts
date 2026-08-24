@@ -26,6 +26,47 @@ export const LLM_PRICING: Record<string, ModelPrice> = {
     last_updated: '2026-05-14',
     source: 'ai.google.dev/pricing',
   },
+  // ── Models the AI Assistant actually runs ─────────────────────────────
+  // Verified against ai.google.dev/gemini-api/docs/pricing on 2026-08-22.
+  // NOTE: Gemini output prices INCLUDE thinking tokens, which is why the
+  // assistant's token budgets look generous relative to visible output.
+  'gemini-3.5-flash': {
+    input_per_million: 1.50,
+    cached_input_per_million: null,
+    output_per_million: 9.00,
+    last_updated: '2026-08-22',
+    source: 'ai.google.dev/gemini-api/docs/pricing',
+  },
+  'gemini-3.7-flash': {
+    input_per_million: 0.75,
+    cached_input_per_million: null,
+    output_per_million: 3.75,
+    last_updated: '2026-08-22',
+    // Promotional rate: rises to $1.50 in / $7.50 out on 2027-01-01.
+    source: 'ai.google.dev/gemini-api/docs/pricing — rate rises 2027-01-01',
+  },
+  'gemini-3.1-pro-preview': {
+    input_per_million: 2.00,
+    cached_input_per_million: null,
+    output_per_million: 12.00,
+    last_updated: '2026-08-22',
+    // Rates shown are for prompts <= 200k tokens ($4.00 / $18.00 above that).
+    source: 'ai.google.dev/gemini-api/docs/pricing — prompts <= 200k tokens',
+  },
+  'gemini-3.5-flash-lite': {
+    input_per_million: 0.30,
+    cached_input_per_million: null,
+    output_per_million: 2.50,
+    last_updated: '2026-08-22',
+    source: 'ai.google.dev/gemini-api/docs/pricing',
+  },
+  'gpt-5.2': {
+    input_per_million: 1.75,
+    cached_input_per_million: 0.175,
+    output_per_million: 14.00,
+    last_updated: '2026-08-22',
+    source: 'developers.openai.com/api/docs/pricing',
+  },
   // OpenAI rates: rough estimates as of 2026-05. Verify at openai.com/api/pricing before going to production.
   'gpt-4o': {
     input_per_million: 2.50,

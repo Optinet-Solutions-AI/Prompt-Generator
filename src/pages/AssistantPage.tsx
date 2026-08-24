@@ -167,7 +167,7 @@ export default function AssistantPage() {
         {concepts && (
           <section className="mt-10">
             <div className="mb-4">
-              <h2 className="text-2xl font-semibold">Three directions</h2>
+              <h2 className="text-2xl font-semibold">{concepts.length} direction{concepts.length === 1 ? '' : 's'}</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Pick one to develop into a prompt + image.
               </p>

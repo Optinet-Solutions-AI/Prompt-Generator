@@ -1,9 +1,13 @@
 // Single source of truth for the assistant's per-stage model tiering.
 // Tiering axes: Gemini model tier, and OpenAI reasoning_effort.
-// Constraint: every entry must return within Vercel's 10s function timeout —
-// that is why no Pro/flagship tier appears here and reasoning effort stays low.
+//
+// Budget: a production /api/generate-image call was measured succeeding at 27
+// seconds on 2026-08-22, so the function budget is at least that — NOT the 10s
+// this file previously assumed. That stale assumption is why the concepts stage
+// sat on a Flash tier with reasoning off. Entries are now chosen for quality
+// within roughly 30s.
 
-export type AssistantStage = 'concepts' | 'generate' | 'refine';
+export type AssistantStage = 'concepts' | 'generate' | 'refine' | 'recommend';
 export type AssistantProvider = 'openai' | 'gemini';
 
 export interface ProviderModel {
@@ -14,11 +18,14 @@ export interface ProviderModel {
 }
 
 export const ASSISTANT_MODELS: Record<AssistantStage, Record<AssistantProvider, ProviderModel>> = {
-  // Creativity + diversity, fast. Diversity comes from the rotating lens + avoid-list
-  // (gpt-5.x ignores the temperature lever; Gemini still honours it in the endpoint).
+  // Ideation. This is the stage the user reported as "obvious / clichéd", so it
+  // gets the strongest tier that fits the budget: gemini-3.1-pro-preview
+  // measured 17s for one concept, and the three concept calls run in parallel.
+  // Fallback if that ever becomes too slow: gemini-3.7-flash (7s, and cheaper
+  // than the gemini-3.5-flash this replaced) — a one-field change.
   concepts: {
-    openai: { model: 'gpt-5.2', effort: 'none', maxTokens: 1200 },
-    gemini: { model: 'gemini-3.5-flash', maxTokens: 1200 },
+    openai: { model: 'gpt-5.2', effort: 'low', maxTokens: 4000 },
+    gemini: { model: 'gemini-3.1-pro-preview', maxTokens: 4000 },
   },
   // Templated 8-field structured JSON. gemini-3.1-flash-lite was tried first (cheapest),
   // but the 2026-06-08 smoke test showed it dropped fields AND the requested theme on
@@ -32,5 +39,11 @@ export const ASSISTANT_MODELS: Record<AssistantStage, Record<AssistantProvider, 
   refine: {
     openai: { model: 'gpt-5.2', effort: 'low', maxTokens: 3000 },
     gemini: { model: 'gemini-3.5-flash', maxTokens: 2000 },
+  },
+  // Picks which of the drafted concepts to recommend. A short comparative
+  // judgement over text already written, so it runs on the cheapest tier.
+  recommend: {
+    openai: { model: 'gpt-5.2', effort: 'none', maxTokens: 600 },
+    gemini: { model: 'gemini-3.5-flash-lite', maxTokens: 600 },
   },
 };

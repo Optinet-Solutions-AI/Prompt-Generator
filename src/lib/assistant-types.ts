@@ -14,7 +14,7 @@ export interface AssistantUsage {
 }
 
 export interface ConceptsResponse {
-  concepts: AssistantConcept[];     // exactly 3
+  concepts: AssistantConcept[];     // normally 3, but can be fewer if a concept call fails
   recommendation: string;
   usage: AssistantUsage;
 }

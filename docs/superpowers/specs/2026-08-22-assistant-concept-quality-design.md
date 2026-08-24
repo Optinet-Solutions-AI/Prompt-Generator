@@ -146,6 +146,8 @@ Returns one sentence naming which concept to pick and why, matching the existing
 - Replace the stale 10s comment with the measured reality: a production image-generation call succeeded at 27s on 2026-08-22, so the budget is at least that; entries are chosen for quality within roughly 30s, not 10s.
 - `concepts.gemini`: `gemini-3.5-flash` -> `gemini-3.1-pro-preview`, `maxTokens` 1200 -> 4000.
 - `concepts.openai`: keep `gpt-5.2`; raise `effort` from `'none'` to `'low'` and `maxTokens` to 4000.
+
+`concepts.maxTokens` applies **per single-concept call**, not to the set of three. 4000 is deliberately generous for one concept: Gemini's output price and output budget both include thinking tokens, so the visible text is a fraction of what the cap must cover. Too tight a cap is exactly what caused the truncation bug, and the cap costs nothing unless consumed.
 - Add a new stage `recommend`, using `gemini-3.5-flash-lite` (Gemini) and `gpt-5.2` with `effort: 'none'` (OpenAI), `maxTokens: 600`.
 
 `AssistantStage` becomes `'concepts' | 'generate' | 'refine' | 'recommend'`.

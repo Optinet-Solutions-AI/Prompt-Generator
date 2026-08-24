@@ -41,9 +41,13 @@ export const ASSISTANT_MODELS: Record<AssistantStage, Record<AssistantProvider, 
     gemini: { model: 'gemini-3.5-flash', maxTokens: 2000 },
   },
   // Picks which of the drafted concepts to recommend. A short comparative
-  // judgement over text already written, so it runs on the cheapest tier.
+  // judgement over text already written, so it runs on a cheap tier that
+  // accepts the thinkingBudget: 0 config injected by _llm.ts for flash-named
+  // models. (gemini-3.5-flash-lite cannot be used here — it returns 400
+  // INVALID_ARGUMENT when sent thinkingBudget: 0, so gemini-3.7-flash is the
+  // cheap alternative that works.)
   recommend: {
     openai: { model: 'gpt-5.2', effort: 'none', maxTokens: 600 },
-    gemini: { model: 'gemini-3.5-flash-lite', maxTokens: 600 },
+    gemini: { model: 'gemini-3.7-flash', maxTokens: 600 },
   },
 };

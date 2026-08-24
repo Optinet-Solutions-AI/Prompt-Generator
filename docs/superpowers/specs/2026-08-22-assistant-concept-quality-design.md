@@ -78,12 +78,9 @@ Source: ai.google.dev/gemini-api/docs/pricing and developers.openai.com/api/docs
 
 ### Cost per concept set
 
-Estimating ~150 input and ~400 output tokens per concept call, plus a synthesis call:
+Live measurement on 2026-08-22: input 2092 tokens, output 3756 tokens, result **~$0.049 per set of three**. This is higher than the earlier estimate (~150 input / ~400 output) for two reasons: heavy brand mandates (LuckyVibe, Roosterbet) push the system prompt to ~700 tokens; and output token counts now include Gemini's thinking tokens, which are billed at the output rate and are often much larger than visible text.
 
-- On `gemini-3.1-pro-preview`: **~$0.017 per set of three**
-- On `gemini-3.7-flash`: **~$0.006 per set of three**
-
-Both are negligible against a single image render ($0.039 on 2.5 Flash Image, $0.134 on 3 Pro Image). Cost is therefore not a constraint on this choice, which is why the more capable tier is the default.
+The estimate remains negligible against a single image render ($0.039 on 2.5 Flash Image, $0.134 on 3 Pro Image). Cost is therefore not a constraint on the model choice, which is why the more capable tier is the default. The per-set cost varies with brand mandate length.
 
 ### Models available on this key
 

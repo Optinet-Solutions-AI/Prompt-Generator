@@ -115,7 +115,7 @@ describe('concepts fan-out', () => {
     await handler(req as any, res as any);
 
     expect((chatMock.mock.calls[0][0] as any).model).toBe('gemini-3.1-pro-preview');
-    expect((chatMock.mock.calls[3][0] as any).model).toBe('gemini-3.5-flash-lite');
+    expect((chatMock.mock.calls[3][0] as any).model).toBe('gemini-3.7-flash');
   });
 
   it('sums usage across all four calls', async () => {

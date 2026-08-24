@@ -1045,7 +1045,7 @@ git commit -m "feat: fan out concepts into parallel single-concept calls with di
   - Do the three concepts differ in **kind** — shot type, human presence, emotional register — or only in setting?
   - Is any concept obviously clichéd?
 - [ ] Run the same briefs against the previous behaviour for comparison before merging. If the fan-out does not visibly improve variety-in-kind, say so: the model-tier and truncation fixes stand on their own, and the fan-out should be reconsidered rather than kept on faith.
-- [ ] Confirm the Cost Tracker now shows real figures for concept calls instead of "price unknown", and that a set costs roughly **$0.017**.
+- [ ] Confirm the Cost Tracker now shows real figures for concept calls instead of "price unknown", and that a set costs roughly **$0.049** (measured 2026-08-22: 2092 input / 3756 output tokens, higher than initial estimate due to long brand mandates and thinking-token billing).
 - [ ] Confirm a heavy-mandate brand no longer truncates (the bug that produced a JSON parse error at `maxTokens: 1200`).
 - [ ] Record wall-clock time for a concept set. Expect ~17–20s. If it exceeds ~30s, switch `concepts.gemini` to `gemini-3.7-flash` — one field, and it is cheaper and faster than the model this replaced.
 

@@ -46,8 +46,11 @@ describe('recommend stage', () => {
     expect(ASSISTANT_MODELS.recommend.openai.model).toBeTruthy();
   });
 
-  it('uses the cheapest Gemini tier — it is a short judgement, not ideation', () => {
-    expect(ASSISTANT_MODELS.recommend.gemini.model).toBe('gemini-3.5-flash-lite');
+  it('uses a compatible cheap Gemini model that accepts thinkingBudget: 0 suppression', () => {
+    // gemini-3.5-flash-lite returns 400 INVALID_ARGUMENT when sent
+    // thinkingBudget: 0, which _llm.ts injects for any model name matching
+    // /flash/. gemini-3.7-flash is cheap and does accept the config.
+    expect(ASSISTANT_MODELS.recommend.gemini.model).toBe('gemini-3.7-flash');
   });
 
   it('keeps the recommendation budget small', () => {

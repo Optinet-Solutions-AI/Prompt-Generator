@@ -89,6 +89,9 @@ async function chatGemini(opts: ChatOptions): Promise<ChatResult> {
   // only disable thinking for Flash models; for Pro we leave the default on
   // and rely on the caller giving us enough maxTokens to cover both thinking
   // and output.
+  // WARNING: Not every flash-named model accepts this config — gemini-3.5-flash-lite
+  // returns 400 INVALID_ARGUMENT when sent thinkingBudget: 0. Any new model added to
+  // ASSISTANT_MODELS should be tested against this injection before use.
   if (opts.model.includes('flash')) {
     generationConfig.thinkingConfig = { thinkingBudget: 0 };
   }

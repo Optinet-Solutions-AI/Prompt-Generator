@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { brandSlug } from './_brand-slug.js';
 import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
+import { checkSpendCap } from './_spend-cap.js';
 
 // Image generation is the slowest operation in the app — gpt-image-2 measured
 // 79s for a 2048×1024 "high" quality render on 2026-08-22. Without this, the
@@ -452,6 +453,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!prompt || !provider) {
       return res.status(400).json({ error: 'Prompt and provider are required' });
+    }
+
+    // ── Assistant-scoped spend cap ──────────────────────────────────────
+    // Image generation is the expensive part of a request (up to $0.134 on
+    // gemini-3-pro-image, and "Generate Variations" fires four in parallel —
+    // about $0.54 in one click) yet, until now, no image endpoint checked the
+    // cap at all. This MUST run before the OpenAI/Gemini branches below —
+    // both of which spend real money — so an over-cap tester is refused
+    // BEFORE we pay for a render, not billed and then told no.
+    //
+    // Only assistant-scoped requests are checked: the same condition
+    // logAssistantImageGen() (below) uses to decide whether to log a cost
+    // row at all. A request with no test_user_id (the main app) has no
+    // tester token to key a cap on, so it is intentionally left untouched —
+    // see the "Out of scope" note in the fix's task description.
+    const body = (req as { body?: Record<string, unknown> }).body ?? {};
+    if (body.source === 'assistant' && body.test_user_id) {
+      const cap = await checkSpendCap(body.test_user_id as string);
+      if (!cap.allowed) {
+        return res.status(429).json({ error: cap.reason, spent_today_usd: cap.spent_today_usd, cap_usd: cap.cap_usd });
+      }
     }
 
     // Inject brand-mandatory style rules into the prompt

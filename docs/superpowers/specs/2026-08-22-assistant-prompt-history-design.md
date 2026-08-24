@@ -131,6 +131,8 @@ export function appendVersion(versions: PromptVersion[], next: Omit<PromptVersio
 export function versionLabel(v: PromptVersion, index: number): string
 ```
 
+`appendVersion` supplies the two fields the caller should not have to think about: `id` from `crypto.randomUUID()` (available in browsers and in Node 18+, so it works under the node-environment test runner) and `createdAt` from `Date.now()`. Tests assert that ids are unique across appends, never that a specific id or timestamp is produced. `VersionStrip` renders its button text via `versionLabel`, so the label format has exactly one definition.
+
 Unit tests (`src/lib/prompt-versions.test.ts`):
 
 - `appendVersion` returns a NEW array and does not mutate the input — the whole point is non-destructive state.

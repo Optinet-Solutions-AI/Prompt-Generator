@@ -127,7 +127,7 @@ The single-concept prompt keeps `PERSONALITY`, `brandBlock(brand)`, `SUBJECT_NEU
 
 `SINGLE_CONCEPT_JSON_SCHEMA` requires `concepts` with exactly 1 item and does not require `recommendation`.
 
-`buildConceptsSystemPrompt` and `CONCEPTS_JSON_SCHEMA` are retained unchanged — they are the fallback path (see Error handling) and removing them would widen the change unnecessarily.
+`buildConceptsSystemPrompt` and `CONCEPTS_JSON_SCHEMA` are retained unchanged and become unused by the endpoint. This is deliberate: risk 1 records that the fan-out's diversity benefit rests on a single sample, so until the manual verification on Lena's real brands passes, these are the revert path. They also remain covered by `api/_assistant-prompts.test.ts`. Once fan-out is validated, deleting them is a follow-up cleanup — not part of this change.
 
 ### 4. Recommendation synthesis
 

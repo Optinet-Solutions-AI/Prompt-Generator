@@ -907,6 +907,7 @@ export function ResultDisplay({
               disabled={isRefSaving}
               autoFocus
             />
+            {refMode === 'generated' && refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
           </div>
 
           {/* Paste mode: textarea + brand picker + Dissect button, then the

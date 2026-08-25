@@ -45,6 +45,12 @@ export function PromptForm({
   // Create blended prompt dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
+  // "Paste a finished prompt" dialog state — the new entry point that lets a
+  // user save a prompt they already have (written elsewhere, e.g. ChatGPT)
+  // without first generating one they don't want. No `generated` prop is
+  // passed below, since nothing has been generated yet on this screen.
+  const [saveAsRefOpen, setSaveAsRefOpen] = useState(false);
+
   // Archive dialog state
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);

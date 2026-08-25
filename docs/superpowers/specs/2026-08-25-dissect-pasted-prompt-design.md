@@ -94,9 +94,18 @@ While dissecting, the button shows progress and is disabled. A failed dissection
 
 ### 4. Remove the dead path
 
-`savePrompt` in `src/hooks/usePromptGenerator.ts`, and its call from `handleSave`, are removed. It posts the n8n body shape, writes an empty row, and reports success — a silent-corruption path is worse than no path. The dialog is the real entry point for saving a reference.
+**This is not dead code — it is a live button that corrupts data on every click.**
 
-Whatever UI invoked `handleSave` must be checked: if it is user-reachable it needs either rewiring to the dialog or removal, and this spec removes it rather than leaving a button that silently does nothing useful.
+`src/pages/Index.tsx:269` wires `onSave={handleSave}` to `SavePromptModal`'s "Save Prompt" button — the modal that asks "Save this prompt?" after a generation. That calls `handleSave` → `savePrompt` → posts `{ brand, generated_prompt }`. The `save-as-reference` handler does not destructure `generated_prompt`, so **every click writes a `web_image_analysis` row with an empty `prompt_name` and eight null columns**, then reports success and sets the UI to `SAVED`.
+
+So the reference table likely already contains junk rows from this, and the user has been told each one saved.
+
+The fix has two parts:
+
+1. **Point that button at a save that works.** `SavePromptModal`'s save must post the real body shape — the same eight fields from `metadata` that `handleSaveAsRef` already sends — rather than the n8n shape. It needs a `prompt_name`; the modal currently collects nothing, so it must either prompt for a title or be replaced by the Save-as-Reference dialog, which already collects one. **Replacing it with the existing dialog is the smaller, safer change** and removes a second half-working save path rather than repairing it.
+2. **Delete `savePrompt` and its `handleSave` caller** from `usePromptGenerator.ts`, along with the now-unused export at line 382 and the `Index.tsx` wiring.
+
+Existing junk rows are not cleaned up by this change. They are visible in the reference dropdown as blank-titled entries and can be removed with the existing `remove-reference` action; automating that is out of scope and would risk deleting a legitimately blank-titled row.
 
 ## Testing
 

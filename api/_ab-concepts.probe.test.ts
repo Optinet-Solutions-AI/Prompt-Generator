@@ -12,9 +12,12 @@
 // daily spend cap.
 import { describe, it } from 'vitest';
 import fs from 'node:fs';
+
+const OUT = 'ab-results.txt';
+const say = (m: string) => { fs.appendFileSync(OUT, m + String.fromCharCode(10)); };
 import { chat } from './_llm.js';
 import { buildSingleConceptSystemPrompt, SINGLE_CONCEPT_JSON_SCHEMA, CONCEPT_LENSES } from './_assistant-prompts.js';
-import { priceCall } from './_pricing.js';
+import { computeLlmCost } from './_pricing.js';
 
 // Load .env.local so chat() finds GEMINI_API_KEY.
 for (const line of fs.readFileSync('.env.local', 'utf8').split(/\r?\n/)) {
@@ -37,10 +40,10 @@ const BRIEFS = [
 describe('A/B: concepts model', () => {
   it('compares Pro vs Flash on identical briefs and lenses', async () => {
     const system = buildSingleConceptSystemPrompt(BRAND);
-    console.log(`\nsystem prompt: ${system.length} chars\n`);
+    say(`\nsystem prompt: ${system.length} chars\n`);
 
     for (const brief of BRIEFS) {
-      console.log(`\n${'='.repeat(78)}\nBRIEF: ${brief.task} — ${brief.detail}\n${'='.repeat(78)}`);
+      say(`\n${'='.repeat(78)}\nBRIEF: ${brief.task} — ${brief.detail}\n${'='.repeat(78)}`);
 
       for (const model of MODELS) {
         let cost = 0, inTok = 0, outTok = 0;
@@ -61,7 +64,7 @@ describe('A/B: concepts model', () => {
           if (r.status !== 'fulfilled') { titles.push(`!! FAILED: ${String(r.reason).slice(0, 90)}`); continue; }
           inTok += r.value.usage.input_tokens;
           outTok += r.value.usage.output_tokens;
-          cost += priceCall(model, r.value.usage) ?? 0;
+          cost += computeLlmCost(model, r.value.usage) ?? 0;
           try {
             const c = JSON.parse(r.value.text).concepts?.[0];
             titles.push(`${c?.title ?? '(no title)'} — ${String(c?.rationale ?? c?.description ?? '').replace(/\s+/g, ' ').slice(0, 150)}`);
@@ -70,9 +73,9 @@ describe('A/B: concepts model', () => {
           }
         }
 
-        console.log(`\n--- ${model} --- ${((Date.now() - started) / 1000).toFixed(1)}s`);
-        console.log(`    tokens: ${inTok} in / ${outTok} out   cost for 3 calls: $${cost.toFixed(5)}`);
-        titles.forEach((t, i) => console.log(`    ${i + 1}. ${t}`));
+        say(`\n--- ${model} --- ${((Date.now() - started) / 1000).toFixed(1)}s`);
+        say(`    tokens: ${inTok} in / ${outTok} out   cost for 3 calls: $${cost.toFixed(5)}`);
+        titles.forEach((t, i) => say(`    ${i + 1}. ${t}`));
       }
     }
   }, 600000);

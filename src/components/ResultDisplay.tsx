@@ -199,7 +199,6 @@ export function ResultDisplay({
   // Variations: use prop from parent (persists across tab switches)
   const persistedVariations = persistedVariationsProp;
   const setPersistedVariations = onVariationsChange ?? (() => {});
-  const [showSaveModal, setShowSaveModal] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState(prompt);
 
   // Edits no longer overwrite the original tile — see handleImageUpdated below.

@@ -199,7 +199,15 @@ export default function AssistantPage() {
                   <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <span className="text-foreground/80">
                     <span className="font-medium text-primary">I'd lean toward:</span>{' '}
-                    {recommendation}
+                    {/* The model writes markdown whether we ask it to or not, so
+                        **bold** is turned into real emphasis rather than shown as
+                        literal asterisks. Rendered as React elements, never as
+                        HTML — this string is model output. */}
+                    {parseBoldSegments(recommendation).map((seg, i) =>
+                      seg.bold
+                        ? <strong key={i} className="font-semibold">{seg.text}</strong>
+                        : <span key={i}>{seg.text}</span>
+                    )}
                   </span>
                 </CardContent>
               </Card>

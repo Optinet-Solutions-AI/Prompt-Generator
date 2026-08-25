@@ -814,6 +814,7 @@ export function ResultDisplay({
                         setRefMode('generated');
                         setPastedPrompt('');
                         setDissected(null);
+                        setDissectedFrom(null);
                         setPasteBrand(metadata?.brand || '');
                         setSaveAsRefOpen(true);
                       }}

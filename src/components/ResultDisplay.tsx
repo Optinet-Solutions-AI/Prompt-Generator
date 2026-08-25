@@ -214,34 +214,91 @@ export function ResultDisplay({
   const [refTitle, setRefTitle] = useState('');
   const [isRefSaving, setIsRefSaving] = useState(false);
   const [refSaveError, setRefSaveError] = useState('');
+
+  // Paste mode: save a prompt written elsewhere (e.g. in ChatGPT) as a
+  // reference. The eight fields are extracted by /api/dissect-prompt and then
+  // shown editable — a wrong field saved here is reused as if it were true,
+  // so the user confirms before it lands.
+  const [refMode, setRefMode] = useState<'generated' | 'paste'>('generated');
+  const [pastedPrompt, setPastedPrompt] = useState('');
+  const [pasteBrand, setPasteBrand] = useState<string>(metadata?.brand || '');
+  const [isDissecting, setIsDissecting] = useState(false);
+  const [dissected, setDissected] = useState<Record<string, string> | null>(null);
+
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  const REF_FIELD_KEYS = [
+    'format_layout', 'primary_object', 'subject', 'lighting',
+    'mood', 'background', 'positive_prompt', 'negative_prompt',
+  ] as const;
+
+  const handleDissect = async () => {
+    if (!pastedPrompt.trim()) { setRefSaveError('Paste a prompt first.'); return; }
+    if (!pasteBrand) { setRefSaveError('Pick a brand.'); return; }
+    setIsDissecting(true);
+    setRefSaveError('');
+    try {
+      const response = await fetch('/api/dissect-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: pastedPrompt, brand: pasteBrand }),
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`Dissect failed (${response.status}): ${detail}`);
+      }
+      const data = await response.json();
+      setDissected(data.fields);
+    } catch (e) {
+      // Leave pastedPrompt intact so it can be retried without re-pasting.
+      setRefSaveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setIsDissecting(false);
+    }
+  };
 
   const handleSaveAsRef = async () => {
     if (!refTitle.trim()) { setRefSaveError('Please enter a title.'); return; }
-    if (!metadata) return;
+    if (refMode === 'paste' && !dissected) { setRefSaveError('Dissect the prompt first.'); return; }
+    if (refMode === 'generated' && !metadata) return;
     setIsRefSaving(true);
     setRefSaveError('');
     try {
+      // Paste mode sends the (possibly edited) dissected fields and no
+      // category — resultSelectedCategory is derived from the selected
+      // reference, and a pasted prompt has none. The handler stores null.
+      const body = refMode === 'paste'
+        ? {
+            title:           refTitle.trim(),
+            brand_name:      pasteBrand,
+            prompt_category: null,
+            ...Object.fromEntries(REF_FIELD_KEYS.map(k => [k, dissected![k] || ''])),
+          }
+        : {
+            title:           refTitle.trim(),
+            brand_name:      metadata!.brand,
+            prompt_category: resultSelectedCategory,
+            format_layout:   metadata!.format_layout   || '',
+            primary_object:  metadata!.primary_object  || '',
+            subject:         metadata!.subject         || '',
+            lighting:        metadata!.lighting        || '',
+            mood:            metadata!.mood            || '',
+            background:      metadata!.background      || '',
+            positive_prompt: metadata!.positive_prompt || '',
+            negative_prompt: metadata!.negative_prompt || '',
+          };
+
       const response = await fetch('/api/save-as-reference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title:           refTitle.trim(),
-          brand_name:      metadata.brand,
-          prompt_category: resultSelectedCategory,
-          format_layout:   metadata.format_layout   || '',
-          primary_object:  metadata.primary_object  || '',
-          subject:         metadata.subject         || '',
-          lighting:        metadata.lighting        || '',
-          mood:            metadata.mood            || '',
-          background:      metadata.background      || '',
-          positive_prompt: metadata.positive_prompt || '',
-          negative_prompt: metadata.negative_prompt || '',
-        }),
+        body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error('Failed to save reference');
       setSaveAsRefOpen(false);
       setRefTitle('');
+      setPastedPrompt('');
+      setDissected(null);
+      setRefMode('generated');
       refetch();
       toast.success('Saved as new reference');
     } catch (err) {

@@ -340,20 +340,6 @@ export function ResultDisplay({
     }
   };
 
-  // Derived, not stored: true when the fields on screen were extracted from a
-  // DIFFERENT pasted prompt or brand than what's currently in the boxes above.
-  // This happens if the user edits the "Prompt text" box (or changes the
-  // brand) after a successful Dissect but before clicking Dissect again —
-  // saving in that state would attach the OLD text's fields to a title meant
-  // for the NEW text. We deliberately don't clear `dissected` when the text
-  // changes (that would destroy hand-edited fields for a trivial typo fix);
-  // instead we detect the mismatch and disable Save until the user re-runs
-  // Dissect. If the text is unchanged and a re-dissect fails, `dissectedFrom`
-  // still matches, so this correctly leaves Save enabled — the fields still
-  // describe the text on screen.
-  const dissectionStale = !!dissected && !!dissectedFrom &&
-    (pastedPrompt.trim() !== dissectedFrom.prompt || pasteBrand !== dissectedFrom.brand);
-
   // Store record_id and img_url per imageId for consistent like/unlike payloads
   const imageMetaRef = useRef<Map<string, { recordId: string; imgUrl: string }>>(new Map());
   // Store generated brand per imageId separately

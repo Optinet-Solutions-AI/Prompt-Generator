@@ -188,21 +188,26 @@ export function PromptForm({
               so "Paste a finished prompt" has somewhere to live even on a
               fresh page load with nothing selected yet. Each button inside
               is still conditional on its own requirement. */}
-          <div className="flex justify-end gap-1">
-            {/* Paste a finished prompt — always visible. Lets a user save a
-                prompt they already have (written elsewhere, e.g. ChatGPT)
-                without generating one first just to unlock the Save dialog. */}
+          {/* Split in two on purpose. LEFT: the paste entry point, as a real
+              outlined button — someone arriving with a prompt already in their
+              clipboard has to be able to FIND this on a fresh page load, and
+              the muted ghost styling used on the right reads as helper text
+              rather than something clickable. RIGHT: the reference actions,
+              which stay muted because they act on an already-chosen reference
+              and shouldn't compete for attention. */}
+          <div className="flex items-center justify-between gap-2 pt-1">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setSaveAsRefOpen(true)}
-              className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              className="h-8 gap-1.5 text-xs"
             >
-              <ClipboardPaste className="h-3 w-3" />
+              <ClipboardPaste className="h-3.5 w-3.5" />
               Paste a finished prompt
             </Button>
 
+            <div className="flex items-center gap-1">
             {/* Create New Prompt — lets user blend multiple references into a new one */}
             {formData.brand && (
               <Button

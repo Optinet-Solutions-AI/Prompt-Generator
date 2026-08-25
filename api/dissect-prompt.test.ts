@@ -56,7 +56,9 @@ describe('POST /api/dissect-prompt', () => {
     const opts = chatMock.mock.calls[0][0] as any;
     expect(opts.user).toContain('MY PASTED PROMPT');
     expect(opts.json).toBe(true);
-    expect(opts.jsonSchema).toBeTruthy();
+    // toBeTruthy() passed for ANY object here — it didn't check this is
+    // actually the eight-field schema. Pin the exact schema reference.
+    expect(opts.jsonSchema).toBe(DISSECT_JSON_SCHEMA);
   });
 
   it('uses gemini-3.7-flash — flash-lite returns 400 for the thinkingBudget the llm helper injects', async () => {

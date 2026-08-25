@@ -237,8 +237,31 @@ export function PromptForm({
               </>
             )}
             </div>
-          </div>
+          )}
         </div>
+      </div>
+
+      {/* The paste entry point gets its own row below both columns, because it
+          is a form-level action — "I already wrote a prompt elsewhere, save it"
+          — not something belonging to the Reference dropdown. It is always
+          visible, including on a fresh page load with nothing selected, and it
+          is a real outlined button rather than one of the muted ghost links
+          above: someone arriving with a prompt already in their clipboard has
+          to be able to FIND it, and muted helper-text styling did not read as
+          clickable. */}
+      <div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setSaveAsRefOpen(true)}
+          className="gap-2"
+        >
+          <ClipboardPaste className="h-4 w-4" />
+          Paste a finished prompt
+        </Button>
+        <p className="text-xs text-muted-foreground mt-1.5">
+          Already have a prompt from ChatGPT? Paste it and we'll fill in the reference fields for you.
+        </p>
       </div>
 
       {/* Show error if the prompt list failed to load */}

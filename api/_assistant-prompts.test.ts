@@ -256,7 +256,7 @@ describe('buildDissectSystemPrompt', () => {
 
   it('forbids conforming the fields to the brand', () => {
     // The brand is context for reading the prompt, not a target to rewrite toward.
-    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/describe what was pasted/i);
+    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/not a target to conform/i);
   });
 
   it('handles a brand with no registered rules without throwing', () => {

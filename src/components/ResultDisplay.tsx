@@ -914,116 +914,160 @@ export function ResultDisplay({
           in ChatGPT, and let /api/dissect-prompt split it into the eight
           fields, which are then editable before saving). */}
       <Dialog open={saveAsRefOpen} onOpenChange={setSaveAsRefOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        {/* max-h-[90vh] + flex flex-col caps the dialog to the viewport and lets
+            the body below scroll instead of overflowing top and bottom — this
+            repo's DialogContent has no height cap of its own (see dialog.tsx),
+            and this repo's Textarea grows to fit its full content (autoResize),
+            so without this a long pasted prompt used to push the Save button
+            (and even the Title field) off-screen with no way to scroll to it.
+            Same pattern as CreateBlendedPromptDialog. */}
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Save as New Reference</DialogTitle>
           </DialogHeader>
 
-          {/* Mode switch */}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={refMode === 'generated' ? "default" : "outline"}
-              size="sm"
-              onClick={() => { setRefMode('generated'); setRefSaveError(''); }}
-              className={refMode === 'generated' ? "gradient-primary" : ""}
-              disabled={isRefSaving || isDissecting}
-            >
-              From this prompt
-            </Button>
-            <Button
-              type="button"
-              variant={refMode === 'paste' ? "default" : "outline"}
-              size="sm"
-              onClick={() => { setRefMode('paste'); setRefSaveError(''); }}
-              className={refMode === 'paste' ? "gradient-primary" : ""}
-              disabled={isRefSaving || isDissecting}
-            >
-              Paste a finished prompt
-            </Button>
-          </div>
-
-          <div className="space-y-2 py-2">
-            <Label htmlFor="ref-title-result">Title</Label>
-            <Input
-              id="ref-title-result"
-              placeholder="e.g. Neon Warrior"
-              value={refTitle}
-              onChange={(e) => { setRefTitle(e.target.value); setRefSaveError(''); }}
-              onKeyDown={(e) => e.key === 'Enter' && handleSaveAsRef()}
-              disabled={isRefSaving}
-              autoFocus
-            />
-            {refMode === 'generated' && refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
-          </div>
-
-          {/* Paste mode: textarea + brand picker + Dissect button, then the
-              eight extracted fields shown editable once dissection succeeds. */}
-          {refMode === 'paste' && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="paste-prompt-result">Prompt text</Label>
-                <Textarea
-                  id="paste-prompt-result"
-                  placeholder="Paste the full prompt you want to save…"
-                  value={pastedPrompt}
-                  onChange={(e) => { setPastedPrompt(e.target.value); setRefSaveError(''); }}
-                  rows={8}
-                  disabled={isDissecting || isRefSaving}
-                />
-              </div>
-
-              <FormField
-                type="select"
-                label="Brand"
-                required
-                options={[...BRANDS]}
-                value={pasteBrand}
-                onChange={setPasteBrand}
-                placeholder="Select a brand"
-                disabled={isDissecting || isRefSaving}
-              />
-
+          {/* Everything that can grow tall lives in this one scrolling box.
+              DialogHeader and DialogFooter stay OUTSIDE it, so Cancel/Save
+              (and the title above) are always on screen no matter how long
+              the pasted prompt is or how far the user has scrolled. */}
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
+            {/* Mode switch */}
+            <div className="flex gap-2">
               <Button
                 type="button"
-                variant="outline"
-                onClick={handleDissect}
-                disabled={isDissecting || !pastedPrompt.trim()}
+                variant={refMode === 'generated' ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setRefMode('generated'); setRefSaveError(''); }}
+                className={refMode === 'generated' ? "gradient-primary" : ""}
+                disabled={isRefSaving || isDissecting}
               >
-                {isDissecting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Dissecting…</> : 'Dissect'}
+                From this prompt
               </Button>
-
-              {/* Editable once dissected — a wrong field saved here is reused
-                  as if it were true, so the user reviews before saving. */}
-              {dissected && (
-                <div className="space-y-4">
-                  {REF_FIELD_KEYS.map((key) => (
-                    <div key={key} className="space-y-2">
-                      <Label htmlFor={`dissected-${key}-result`}>{REF_FIELD_LABELS[key]}</Label>
-                      <Textarea
-                        id={`dissected-${key}-result`}
-                        value={dissected[key] || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setDissected(d => ({ ...d!, [key]: value }));
-                        }}
-                        rows={key === 'positive_prompt' ? 4 : 2}
-                        disabled={isRefSaving}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
+              <Button
+                type="button"
+                variant={refMode === 'paste' ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setRefMode('paste'); setRefSaveError(''); }}
+                className={refMode === 'paste' ? "gradient-primary" : ""}
+                disabled={isRefSaving || isDissecting}
+              >
+                Paste a finished prompt
+              </Button>
             </div>
-          )}
+
+            <div className="space-y-2">
+              <Label htmlFor="ref-title-result">Title</Label>
+              <Input
+                id="ref-title-result"
+                placeholder="e.g. Neon Warrior"
+                value={refTitle}
+                onChange={(e) => { setRefTitle(e.target.value); setRefSaveError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveAsRef()}
+                disabled={isRefSaving}
+                autoFocus
+              />
+            </div>
+
+            {/* Paste mode: textarea + brand picker + Dissect button, then the
+                eight extracted fields shown editable once dissection succeeds. */}
+            {refMode === 'paste' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="paste-prompt-result">Prompt text</Label>
+                  <Textarea
+                    id="paste-prompt-result"
+                    placeholder="Paste the full prompt you want to save…"
+                    value={pastedPrompt}
+                    onChange={(e) => { setPastedPrompt(e.target.value); setRefSaveError(''); }}
+                    rows={8}
+                    // Without this the box ignores `rows` and grows to fit the
+                    // whole pasted prompt (this component's default behaviour) —
+                    // autoResize={false} makes it a fixed-height box that
+                    // scrolls internally instead, which is what makes the
+                    // max-h-[90vh] fix above actually work.
+                    autoResize={false}
+                    disabled={isDissecting || isRefSaving}
+                  />
+                </div>
+
+                <FormField
+                  type="select"
+                  label="Brand"
+                  required
+                  options={[...BRANDS]}
+                  value={pasteBrand}
+                  onChange={setPasteBrand}
+                  placeholder="Select a brand"
+                  disabled={isDissecting || isRefSaving}
+                />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDissect}
+                  disabled={isDissecting || !pastedPrompt.trim()}
+                >
+                  {isDissecting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Dissecting…</> : 'Dissect'}
+                </Button>
+
+                {/* Shown when the text or brand above no longer matches what the
+                    fields below were extracted from (edited after Dissect ran).
+                    Save is disabled in this state — see dissectionStale — so this
+                    message is what tells the beginner user WHY the button went
+                    dead, instead of it just looking broken. */}
+                {dissectionStale && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    You changed the pasted text or brand after dissecting, so the fields below are from the old version. Click Dissect again to refresh them — Save is turned off until you do.
+                  </p>
+                )}
+
+                {/* Editable once dissected — a wrong field saved here is reused
+                    as if it were true, so the user reviews before saving.
+                    Disabled during a re-dissect too: an edit made here while a
+                    new Dissect call is in flight would otherwise be silently
+                    overwritten the moment that call resolves. */}
+                {dissected && (
+                  <div className="space-y-4">
+                    {REF_FIELD_KEYS.map((key) => (
+                      <div key={key} className="space-y-2">
+                        <Label htmlFor={`dissected-${key}-result`}>{REF_FIELD_LABELS[key]}</Label>
+                        <Textarea
+                          id={`dissected-${key}-result`}
+                          value={dissected[key] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setDissected(d => ({ ...d!, [key]: value }));
+                          }}
+                          rows={key === 'positive_prompt' ? 4 : 2}
+                          // Same reason as the "Prompt text" box above: without
+                          // this, each field ignores `rows` and grows to fit its
+                          // full content instead of scrolling internally.
+                          autoResize={false}
+                          disabled={isRefSaving || isDissecting}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Pinned outside the scroll area, right above the buttons, so it's
+              visible no matter where the user has scrolled. Used to render
+              twice — once per mode, and in paste mode all the way at the
+              bottom, below all eight fields — so a title error could appear
+              far from the Title field it was about. One render, both modes. */}
+          {refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveAsRefOpen(false)} disabled={isRefSaving}>
               Cancel
             </Button>
-            <Button onClick={handleSaveAsRef} disabled={isRefSaving || (refMode === 'paste' && !dissected)}>
+            <Button
+              onClick={handleSaveAsRef}
+              disabled={isRefSaving || isDissecting || (refMode === 'paste' && (!dissected || dissectionStale))}
+            >
               {isRefSaving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : 'Save'}
             </Button>
           </DialogFooter>

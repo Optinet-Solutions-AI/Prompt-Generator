@@ -346,8 +346,6 @@ export function usePromptGenerator() {
     isRegeneratingPrompt,
     handleFieldChange,
     handleSubmit,
-    handleSave,
-    handleDontSave,
     handleEditForm,
     handleGenerateAgain,
     handleClearForm,

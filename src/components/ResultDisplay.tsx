@@ -314,22 +314,45 @@ export function ResultDisplay({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!response.ok) throw new Error('Failed to save reference');
+      if (!response.ok) {
+        // Match handleDissect's approach: read the body so a real reason
+        // (bad brand name, Supabase error, etc.) reaches the user instead of
+        // a fixed, undiagnosable message.
+        const detail = await response.text();
+        throw new Error(`Failed to save reference (${response.status}): ${detail}`);
+      }
       setSaveAsRefOpen(false);
       setRefTitle('');
       setPastedPrompt('');
       setDissected(null);
+      setDissectedFrom(null);
       setRefMode('generated');
       setPasteBrand(metadata?.brand || ''); // don't let a paste-mode brand linger into the next paste session
       refetch();
       toast.success('Saved as new reference');
     } catch (err) {
       console.error('Error saving reference:', err);
-      setRefSaveError('Something went wrong. Please try again.');
+      // Fall back to a generic message only if the error truly has nothing
+      // useful to show (e.g. some non-Error throw with no text).
+      setRefSaveError(err instanceof Error && err.message ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setIsRefSaving(false);
     }
   };
+
+  // Derived, not stored: true when the fields on screen were extracted from a
+  // DIFFERENT pasted prompt or brand than what's currently in the boxes above.
+  // This happens if the user edits the "Prompt text" box (or changes the
+  // brand) after a successful Dissect but before clicking Dissect again —
+  // saving in that state would attach the OLD text's fields to a title meant
+  // for the NEW text. We deliberately don't clear `dissected` when the text
+  // changes (that would destroy hand-edited fields for a trivial typo fix);
+  // instead we detect the mismatch and disable Save until the user re-runs
+  // Dissect. If the text is unchanged and a re-dissect fails, `dissectedFrom`
+  // still matches, so this correctly leaves Save enabled — the fields still
+  // describe the text on screen.
+  const dissectionStale = !!dissected && !!dissectedFrom &&
+    (pastedPrompt.trim() !== dissectedFrom.prompt || pasteBrand !== dissectedFrom.brand);
 
   // Store record_id and img_url per imageId for consistent like/unlike payloads
   const imageMetaRef = useRef<Map<string, { recordId: string; imgUrl: string }>>(new Map());

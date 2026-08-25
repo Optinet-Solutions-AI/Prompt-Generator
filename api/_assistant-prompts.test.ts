@@ -247,7 +247,24 @@ describe('buildDissectSystemPrompt', () => {
   it('instructs the model to EXTRACT and not invent — the core guard', () => {
     const p = buildDissectSystemPrompt('Roosterbet');
     expect(p).toMatch(/do NOT invent/i);
-    expect(p).toMatch(/not specified/i);
+    // The full wording, not just "not specified" on its own — that shorter
+    // phrase also occurs in the separate negative_prompt line below, so a
+    // regex that only checked for it stayed green even with this entire
+    // EXTRACT sentence deleted. "for that field" only occurs in this line.
+    expect(p).toMatch(/"Not specified in the source prompt" for that field/i);
+  });
+
+  it('pins the negative_prompt instruction line', () => {
+    // Deleting this whole line previously left the suite green — nothing
+    // else in the prompt mentions exclusions, so nothing else covered it.
+    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/negative_prompt: only what the source explicitly excludes/i);
+  });
+
+  it('pins the YOUR JOB line', () => {
+    // Deleting this whole line previously left the suite green too — the
+    // "forbids conforming" test below covers a different sentence
+    // ("not a target to conform"), not this one.
+    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/describe what was pasted/i);
   });
 
   it('tells the model to keep positive_prompt as the pasted text, not a rewrite', () => {
@@ -267,5 +284,41 @@ describe('buildDissectSystemPrompt', () => {
     const p = buildDissectSystemPrompt('Roosterbet');
     expect(p).not.toMatch(/Have opinions/i);
     expect(p).not.toMatch(/senior visual concept partner/i);
+  });
+
+  it('does NOT carry brandBlock\'s generative directives', () => {
+    // brandBlock() (still used, unchanged, by concepts/generate) opens with
+    // "Apply these rules to every concept" and later says brand identity
+    // "MUST be applied to every concept". Both are generation-stage
+    // instructions with no meaning for a read-only extraction call, and
+    // previously outweighed the EXTRACT, DO NOT INVENT rule below them.
+    const p = buildDissectSystemPrompt('Roosterbet');
+    expect(p).not.toMatch(/apply these rules to every concept/i);
+    expect(p).not.toMatch(/MUST be applied to every concept/i);
+  });
+
+  it('does NOT carry a brand scene mandate (e.g. Roosterbet\'s fire signature)', () => {
+    // Roosterbet's mandate (api/_brand-rules.ts) instructs the model to wrap
+    // the subject in fire for any sports/athletic/high-energy scene — the
+    // single most likely confabulation for a sports-banner dissection. Check
+    // both a phrase unique to the mandate text itself and the "STYLE
+    // MANDATE:" label brandBlock() wraps it in — neither should appear here.
+    const p = buildDissectSystemPrompt('Roosterbet');
+    expect(p).not.toMatch(/FIRE SIGNATURE/i);
+    expect(p).not.toMatch(/STYLE MANDATE/i);
+  });
+
+  it('puts the extraction rule before the brand palette (primacy favours extraction)', () => {
+    const p = buildDissectSystemPrompt('Roosterbet');
+    const extractIdx = p.search(/EXTRACT, DO NOT INVENT/i);
+    const paletteIdx = p.search(/color palette/i);
+    expect(extractIdx).toBeGreaterThanOrEqual(0);
+    expect(paletteIdx).toBeGreaterThan(extractIdx);
+  });
+
+  it('still gives the model the brand palette, framed as read-only reference', () => {
+    const p = buildDissectSystemPrompt('Roosterbet');
+    expect(p).toMatch(/for reference only/i);
+    expect(p).toMatch(/not an instruction to apply/i);
   });
 });

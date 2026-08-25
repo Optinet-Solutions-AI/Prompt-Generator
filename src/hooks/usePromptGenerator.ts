@@ -179,22 +179,13 @@ export function usePromptGenerator() {
     }
   }, [formData, validateForm]);
 
-  const handleSave = useCallback(async () => {
-    setAppState('SAVING');
-
-    try {
-      await savePrompt(formData, generatedPrompt, generatedTimestamp);
-      setAppState('SAVED');
-    } catch (error) {
-      console.error('Error saving prompt:', error);
-      setErrorMessage('Failed to save prompt. Please try again.');
-      setAppState('RESULT');
-    }
-  }, [formData, generatedPrompt, generatedTimestamp]);
-
-  const handleDontSave = useCallback(() => {
-    setAppState('SAVED'); // Just hide the save buttons
-  }, []);
+  // NOTE: This hook used to also expose handleSave/handleDontSave, wired to a
+  // "Save this prompt?" popup (SavePromptModal) that no control could ever
+  // open (the state that showed it was never set to true). It also posted an
+  // obsolete request body the save endpoint didn't understand, so if it had
+  // ever run it would have written a blank row to the reference table. Removed
+  // as dead code — the working save path is the "Save as New Reference"
+  // dialog in ResultDisplay.tsx.
 
   const handleGenerateAgain = useCallback(async () => {
     // Use metadata values if available (for regenerating from result page)

@@ -380,6 +380,15 @@ export function PromptForm({
         onSaved={refetch}
       />
 
+      {/* Save as New Reference dialog — opened from "Paste a finished prompt"
+          above. No `generated` prop: nothing has been generated on this
+          screen yet, so the dialog operates in paste mode only. */}
+      <SaveAsReferenceDialog
+        open={saveAsRefOpen}
+        onOpenChange={setSaveAsRefOpen}
+        onSaved={refetch}
+      />
+
       {/* Archive confirmation dialog */}
       <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
         <AlertDialogContent>

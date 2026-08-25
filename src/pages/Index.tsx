@@ -28,8 +28,6 @@ const Index = () => {
     isRegeneratingPrompt,
     handleFieldChange,
     handleSubmit,
-    handleSave,
-    handleDontSave,
     handleEditForm,
     handleGenerateAgain,
     handleClearForm,

@@ -70,30 +70,6 @@ async function generatePrompt(formData: FormData): Promise<GeneratePromptRespons
   return response.json();
 }
 
-// API call to save prompt via n8n webhook
-async function savePrompt(
-  formData: FormData,
-  generatedPrompt: string,
-  timestamp: string
-): Promise<{ success: boolean; message: string }> {
-  const response = await fetch('/api/save-prompt', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      brand:            formData.brand,
-      generated_prompt: generatedPrompt, // n8n sends this to GPT for dissection
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to save prompt');
-  }
-
-  return response.json();
-}
-
 export type GeneratedImage = {
   displayUrl: string;
   editUrl: string;

@@ -337,8 +337,6 @@ function dissectBrandContext(brand: string): string {
  */
 export function buildDissectSystemPrompt(brand: string): string {
   return [
-    'YOUR JOB: read the prompt the user pasted and DESCRIBE WHAT WAS PASTED by splitting it into the eight reference fields. You are documenting an existing prompt, not writing a new one.',
-    '',
     'EXTRACT, DO NOT INVENT. If the pasted prompt does not state something — many prompts say nothing about format or layout — write exactly "Not specified in the source prompt" for that field. Do NOT invent a plausible value to fill the gap. A wrong value here is worse than an empty one, because it will be reused as if it were true.',
     '',
     dissectBrandContext(brand),

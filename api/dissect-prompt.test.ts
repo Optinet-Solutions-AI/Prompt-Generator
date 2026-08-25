@@ -4,6 +4,7 @@ const { chatMock } = vi.hoisted(() => ({ chatMock: vi.fn() }));
 vi.mock('./_llm.js', () => ({ chat: (...args: unknown[]) => chatMock(...args) }));
 
 import handler from './dissect-prompt.js';
+import { DISSECT_JSON_SCHEMA } from './_assistant-prompts.js';
 
 function mockReqRes(body: unknown, method = 'POST') {
   const req = { method, body } as any;

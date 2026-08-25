@@ -967,10 +967,10 @@ export function ResultDisplay({
                   ))}
                 </div>
               )}
+
+              {refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
             </div>
           )}
-
-          {refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveAsRefOpen(false)} disabled={isRefSaving}>

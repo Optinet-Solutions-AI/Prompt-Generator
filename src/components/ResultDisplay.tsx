@@ -7,7 +7,6 @@ import type { AppState, PromptMetadata, ReferencePromptData } from "@/types/prom
 import { BRANDS } from "@/types/prompt";
 import { usePromptList } from "@/hooks/usePromptList";
 import { ImageModal, type GalleryImage } from "./ImageModal";
-import { SavePromptModal } from "./SavePromptModal";
 import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";
 import { PositionAndRatioSelector } from "./PositionAndRatioSelector";

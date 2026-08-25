@@ -861,12 +861,41 @@ export function ResultDisplay({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Save as New Reference dialog — triggered by the 💾 toolbar button */}
+      {/* Save as New Reference dialog — triggered by the 💾 toolbar button.
+          Two modes: "From this prompt" (today's behaviour, untouched) and
+          "Paste a finished prompt" (paste something written elsewhere, e.g.
+          in ChatGPT, and let /api/dissect-prompt split it into the eight
+          fields, which are then editable before saving). */}
       <Dialog open={saveAsRefOpen} onOpenChange={setSaveAsRefOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Save as New Reference</DialogTitle>
           </DialogHeader>
+
+          {/* Mode switch */}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={refMode === 'generated' ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setRefMode('generated'); setRefSaveError(''); }}
+              className={refMode === 'generated' ? "gradient-primary" : ""}
+              disabled={isRefSaving || isDissecting}
+            >
+              From this prompt
+            </Button>
+            <Button
+              type="button"
+              variant={refMode === 'paste' ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setRefMode('paste'); setRefSaveError(''); }}
+              className={refMode === 'paste' ? "gradient-primary" : ""}
+              disabled={isRefSaving || isDissecting}
+            >
+              Paste a finished prompt
+            </Button>
+          </div>
+
           <div className="space-y-2 py-2">
             <Label htmlFor="ref-title-result">Title</Label>
             <Input
@@ -878,13 +907,75 @@ export function ResultDisplay({
               disabled={isRefSaving}
               autoFocus
             />
-            {refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
           </div>
+
+          {/* Paste mode: textarea + brand picker + Dissect button, then the
+              eight extracted fields shown editable once dissection succeeds. */}
+          {refMode === 'paste' && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="paste-prompt-result">Prompt text</Label>
+                <Textarea
+                  id="paste-prompt-result"
+                  placeholder="Paste the full prompt you want to save…"
+                  value={pastedPrompt}
+                  onChange={(e) => { setPastedPrompt(e.target.value); setRefSaveError(''); }}
+                  rows={8}
+                  disabled={isDissecting || isRefSaving}
+                />
+              </div>
+
+              <FormField
+                type="select"
+                label="Brand"
+                required
+                options={[...BRANDS]}
+                value={pasteBrand}
+                onChange={setPasteBrand}
+                placeholder="Select a brand"
+                disabled={isDissecting || isRefSaving}
+              />
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDissect}
+                disabled={isDissecting || !pastedPrompt.trim()}
+              >
+                {isDissecting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Dissecting…</> : 'Dissect'}
+              </Button>
+
+              {/* Editable once dissected — a wrong field saved here is reused
+                  as if it were true, so the user reviews before saving. */}
+              {dissected && (
+                <div className="space-y-4">
+                  {REF_FIELD_KEYS.map((key) => (
+                    <div key={key} className="space-y-2">
+                      <Label htmlFor={`dissected-${key}-result`}>{REF_FIELD_LABELS[key]}</Label>
+                      <Textarea
+                        id={`dissected-${key}-result`}
+                        value={dissected[key] || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setDissected(d => ({ ...d!, [key]: value }));
+                        }}
+                        rows={key === 'positive_prompt' ? 4 : 2}
+                        disabled={isRefSaving}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveAsRefOpen(false)} disabled={isRefSaving}>
               Cancel
             </Button>
-            <Button onClick={handleSaveAsRef} disabled={isRefSaving}>
+            <Button onClick={handleSaveAsRef} disabled={isRefSaving || (refMode === 'paste' && !dissected)}>
               {isRefSaving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : 'Save'}
             </Button>
           </DialogFooter>

@@ -283,3 +283,53 @@ export function buildRecommendationPrompt(
   ].join('\n');
   return { system, user };
 }
+
+/**
+ * System prompt for dissecting a FINISHED prompt into the eight reference
+ * fields.
+ *
+ * This is the inverse of buildGenerateSystemPrompt: that one composes eight
+ * fields from a brief, this one reads them back out of prose someone already
+ * wrote (typically in ChatGPT).
+ *
+ * The extract-don't-invent rule below is the whole feature. A model asked for
+ * eight fields will produce eight fields, and a confidently invented "lighting"
+ * looks authoritative in the Reference Prompt Data panel — then silently steers
+ * every prompt later generated from that reference. An honest "not specified"
+ * is far more useful than a plausible guess.
+ */
+export function buildDissectSystemPrompt(brand: string): string {
+  return [
+    brandBlock(brand),
+    '',
+    'YOUR JOB: read the prompt the user pasted and DESCRIBE WHAT WAS PASTED by splitting it into the eight reference fields. You are documenting an existing prompt, not writing a new one.',
+    '',
+    'EXTRACT, DO NOT INVENT. If the pasted prompt does not state something — many prompts say nothing about format or layout — write exactly "Not specified in the source prompt" for that field. Do NOT invent a plausible value to fill the gap. A wrong value here is worse than an empty one, because it will be reused as if it were true.',
+    '',
+    'Do NOT rewrite the prompt to fit the brand. The brand rules above are context for understanding what you are reading, not a target to conform the fields to. If the pasted prompt contradicts the brand palette, describe what it actually says.',
+    '',
+    'positive_prompt: the pasted text itself, trimmed of surrounding whitespace. Do NOT rewrite, shorten, improve or re-order it — the user pasted a prompt they already like.',
+    'negative_prompt: only what the source explicitly excludes. If it names no exclusions, write "Not specified in the source prompt".',
+    '',
+    'Return strict JSON with exactly these keys: format_layout, primary_object, subject, lighting, mood, background, positive_prompt, negative_prompt.',
+  ].join('\n');
+}
+
+export const DISSECT_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'format_layout', 'primary_object', 'subject', 'lighting', 'mood',
+    'background', 'positive_prompt', 'negative_prompt',
+  ],
+  properties: {
+    format_layout:   { type: 'string' },
+    primary_object:  { type: 'string' },
+    subject:         { type: 'string' },
+    lighting:        { type: 'string' },
+    mood:            { type: 'string' },
+    background:      { type: 'string' },
+    positive_prompt: { type: 'string' },
+    negative_prompt: { type: 'string' },
+  },
+} as const;

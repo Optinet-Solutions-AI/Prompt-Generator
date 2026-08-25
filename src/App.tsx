@@ -25,6 +25,8 @@ const App = () => (
           <Route path="/library" element={<ImageLibrary />} />
           <Route path="/email-content-checker" element={<EmailContentChecker />} />
           <Route path="/assistant/:token" element={<AssistantPage />} />
+          {/* THROWAWAY — see DevHarnessResultDisplay.tsx, remove together */}
+          <Route path="/__dev-harness-result-display" element={<DevHarnessResultDisplay />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

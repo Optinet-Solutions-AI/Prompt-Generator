@@ -256,7 +256,10 @@ export function ResultDisplay({
       const response = await fetch('/api/dissect-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: pastedPrompt, brand: pasteBrand }),
+        // Trimmed here so the text the model reads is exactly the text
+        // `dissectedFrom` records below — otherwise adding a trailing newline
+        // would read as a change and mark a fresh dissection stale.
+        body: JSON.stringify({ prompt: pastedPrompt.trim(), brand: pasteBrand }),
       });
       if (!response.ok) {
         const detail = await response.text();

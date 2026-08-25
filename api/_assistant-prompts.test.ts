@@ -251,7 +251,7 @@ describe('buildDissectSystemPrompt', () => {
   });
 
   it('tells the model to keep positive_prompt as the pasted text, not a rewrite', () => {
-    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/shorten, improve or re-order/i);
+    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/do NOT rewrite, shorten, improve or re-order/i);
   });
 
   it('forbids conforming the fields to the brand', () => {

@@ -285,6 +285,35 @@ export function buildRecommendationPrompt(
 }
 
 /**
+ * Read-only brand context for the DISSECT call — deliberately NOT brandBlock.
+ *
+ * brandBlock() is the GENERATION mandate: "Apply these rules to every
+ * concept", plus, for brands with one, a ~1,300-character STYLE MANDATE that
+ * tells the model to ADD things to the scene (e.g. Roosterbet's fire
+ * signature, wrapped in "MUST be applied to every concept"). Dissect is the
+ * opposite kind of call — read-only extraction, no concept, nothing being
+ * composed — so brandBlock's generative language directly fights the
+ * EXTRACT, DO NOT INVENT rule: a sports banner that never mentions fire would
+ * sit under a system prompt whose longest, most emphatic block explicitly
+ * demands fire. This helper gives the model only the brand's usual PALETTE
+ * (never the scene mandate), framed explicitly as something to *recognise*,
+ * not apply. If a future maintainer is tempted to simplify this back to
+ * brandBlock(brand) — don't: that reintroduces the exact confabulation risk
+ * this whole feature exists to prevent.
+ */
+function dissectBrandContext(brand: string): string {
+  const { palette } = buildBrandRules(brand);
+  if (!palette) {
+    return `For reference only: no brand palette is registered for ${brand}. This does not change how you extract the fields below — extract only what the pasted prompt actually says.`;
+  }
+  return [
+    `For reference only — ${brand}'s usual color palette:`,
+    palette,
+    'This is given so you can NOTICE where the pasted prompt already matches the brand. It is not an instruction to apply, and nothing from it should be added to, or used to change, any field.',
+  ].join('\n');
+}
+
+/**
  * System prompt for dissecting a FINISHED prompt into the eight reference
  * fields.
  *
@@ -297,14 +326,22 @@ export function buildRecommendationPrompt(
  * looks authoritative in the Reference Prompt Data panel — then silently steers
  * every prompt later generated from that reference. An honest "not specified"
  * is far more useful than a plausible guess.
+ *
+ * Ordering matters here: YOUR JOB and EXTRACT, DO NOT INVENT come FIRST — not
+ * after the brand context — so primacy (what the model reads first) and
+ * recency (what it reads right before acting) both favour extraction. The
+ * brand context (dissectBrandContext, palette only, read-only) sits in the
+ * weakest position, in between. A previous version led with the full
+ * generation-mandate brandBlock() before ever mentioning extraction, which is
+ * what let a brand's scene mandate outweigh the extract-don't-invent rule.
  */
 export function buildDissectSystemPrompt(brand: string): string {
   return [
-    brandBlock(brand),
-    '',
     'YOUR JOB: read the prompt the user pasted and DESCRIBE WHAT WAS PASTED by splitting it into the eight reference fields. You are documenting an existing prompt, not writing a new one.',
     '',
     'EXTRACT, DO NOT INVENT. If the pasted prompt does not state something — many prompts say nothing about format or layout — write exactly "Not specified in the source prompt" for that field. Do NOT invent a plausible value to fill the gap. A wrong value here is worse than an empty one, because it will be reused as if it were true.',
+    '',
+    dissectBrandContext(brand),
     '',
     'Do NOT rewrite the prompt to fit the brand. The brand rules above are context for understanding what you are reading, not a target to conform the fields to. If the pasted prompt contradicts the brand palette, describe what it actually says.',
     '',

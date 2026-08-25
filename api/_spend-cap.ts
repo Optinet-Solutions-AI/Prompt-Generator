@@ -12,7 +12,7 @@
 //     the same rows.
 // and refuse with 429 if the combined total meets or exceeds the cap.
 //
-// Setting: ASSISTANT_DAILY_SPEND_CAP_USD env var (default $1.00 per token).
+// Setting: ASSISTANT_DAILY_SPEND_CAP_USD env var (default $10.00 per token).
 //
 // This is intentionally simple. It does NOT account for:
 //   - In-flight calls (a tester firing many requests in parallel before any

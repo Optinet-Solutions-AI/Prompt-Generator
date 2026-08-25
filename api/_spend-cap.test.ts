@@ -80,7 +80,12 @@ describe('checkSpendCap', () => {
     // If the fix only counted one table, this would be 0.30 or 0.20 — the sum
     // (0.50) is what proves both tables actually contributed.
     expect(result.spent_today_usd).toBeCloseTo(0.50, 6);
-    expect(result.allowed).toBe(true); // default cap is $1.00
+    expect(result.allowed).toBe(true);
+    // Pin the default explicitly. The file header used to document a $1.00
+    // default alongside per-set arithmetic that no longer matched reality, and
+    // nothing failed when the two disagreed. Asserting the number means the
+    // constant cannot drift away from its documentation unnoticed.
+    expect(result.cap_usd).toBe(10);
   });
 
   it('counts cost_usd correctly when PostgREST returns it as a numeric string', async () => {

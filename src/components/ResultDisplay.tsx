@@ -278,9 +278,34 @@ export function ResultDisplay({
     }
   };
 
+  // Derived, not stored: true when the fields on screen were extracted from a
+  // DIFFERENT pasted prompt or brand than what's currently in the boxes above.
+  // This happens if the user edits the "Prompt text" box (or changes the
+  // brand) after a successful Dissect but before clicking Dissect again —
+  // saving in that state would attach the OLD text's fields to a title meant
+  // for the NEW text. We deliberately don't clear `dissected` when the text
+  // changes (that would destroy hand-edited fields for a trivial typo fix);
+  // instead we detect the mismatch and disable Save until the user re-runs
+  // Dissect. If the text is unchanged and a re-dissect fails, `dissectedFrom`
+  // still matches, so this correctly leaves Save enabled — the fields still
+  // describe the text on screen.
+  const dissectionStale = !!dissected && !!dissectedFrom &&
+    (pastedPrompt.trim() !== dissectedFrom.prompt || pasteBrand !== dissectedFrom.brand);
+
   const handleSaveAsRef = async () => {
     if (!refTitle.trim()) { setRefSaveError('Please enter a title.'); return; }
     if (refMode === 'paste' && !dissected) { setRefSaveError('Dissect the prompt first.'); return; }
+    // These two guards live HERE and not only on the Save button, because the
+    // Title box saves on Enter too — and a disabled button does not stop a
+    // keypress. Without them: paste prompt A, Dissect, replace the text with
+    // prompt B, type a title, press Enter — and A's eight fields get saved
+    // under B's title, silently. Every way of reaching a save has to pass the
+    // same checks, so they belong in the function, not on one button.
+    if (isDissecting) { setRefSaveError('Still dissecting — wait for it to finish.'); return; }
+    if (refMode === 'paste' && dissectionStale) {
+      setRefSaveError('The pasted text or brand changed since you dissected. Click Dissect again before saving.');
+      return;
+    }
     if (refMode === 'generated' && !metadata) return;
     setIsRefSaving(true);
     setRefSaveError('');

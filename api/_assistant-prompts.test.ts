@@ -218,3 +218,54 @@ describe('buildRecommendationPrompt', () => {
     expect(user).toContain('Sky Strike');
   });
 });
+
+describe('DISSECT_JSON_SCHEMA', () => {
+  const FIELDS = [
+    'format_layout', 'primary_object', 'subject', 'lighting',
+    'mood', 'background', 'positive_prompt', 'negative_prompt',
+  ];
+
+  it('requires exactly the eight reference fields', () => {
+    expect([...(DISSECT_JSON_SCHEMA as any).required].sort()).toEqual([...FIELDS].sort());
+  });
+
+  it('types every field as a string', () => {
+    const props = (DISSECT_JSON_SCHEMA as any).properties;
+    for (const f of FIELDS) expect(props[f], f).toEqual({ type: 'string' });
+  });
+
+  it('forbids extra properties so the model cannot invent columns', () => {
+    expect((DISSECT_JSON_SCHEMA as any).additionalProperties).toBe(false);
+  });
+});
+
+describe('buildDissectSystemPrompt', () => {
+  it('names the brand so the dissection has context', () => {
+    expect(buildDissectSystemPrompt('Roosterbet')).toContain('Roosterbet');
+  });
+
+  it('instructs the model to EXTRACT and not invent — the core guard', () => {
+    const p = buildDissectSystemPrompt('Roosterbet');
+    expect(p).toMatch(/do NOT invent/i);
+    expect(p).toMatch(/not specified/i);
+  });
+
+  it('tells the model to keep positive_prompt as the pasted text, not a rewrite', () => {
+    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/do NOT rewrite/i);
+  });
+
+  it('forbids conforming the fields to the brand', () => {
+    // The brand is context for reading the prompt, not a target to rewrite toward.
+    expect(buildDissectSystemPrompt('Roosterbet')).toMatch(/describe what was pasted/i);
+  });
+
+  it('handles a brand with no registered rules without throwing', () => {
+    expect(() => buildDissectSystemPrompt('NoSuchBrand')).not.toThrow();
+  });
+
+  it('does NOT carry the ideation persona — it fights extract-don\'t-invent', () => {
+    const p = buildDissectSystemPrompt('Roosterbet');
+    expect(p).not.toMatch(/Have opinions/i);
+    expect(p).not.toMatch(/senior visual concept partner/i);
+  });
+});

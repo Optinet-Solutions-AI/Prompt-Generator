@@ -77,8 +77,6 @@ export function ResultDisplay({
   referencePromptData,
   isLoadingReferenceData,
   onReferenceChange,
-  onSave,
-  onDontSave,
   onEditForm,
   onEditWizard,
   lastGenerationSource = 'form',

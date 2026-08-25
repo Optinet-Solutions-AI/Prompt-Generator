@@ -992,20 +992,6 @@ export function ResultDisplay({
         </DialogContent>
       </Dialog>
 
-      {/* Save Prompt Modal - Only opens on icon click */}
-      <SavePromptModal
-        isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        onSave={() => {
-          setShowSaveModal(false);
-          onSave();
-        }}
-        onDontSave={() => {
-          setShowSaveModal(false);
-          onDontSave();
-        }}
-      />
-
       {/* Create blended prompt dialog */}
       <CreateBlendedPromptDialog
         open={createDialogOpen}

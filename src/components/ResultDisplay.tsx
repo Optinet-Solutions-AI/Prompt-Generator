@@ -660,22 +660,7 @@ export function ResultDisplay({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        // Reset ALL Save-as-Reference state on open, not just the
-                        // title/error. Abandoning a paste-mode dissection (e.g. via
-                        // Cancel) must not leave it armed behind a Save button that
-                        // the Title field's Enter-to-save can trigger on the next
-                        // open — that would silently save stale, wrong-brand
-                        // dissected fields as if they belonged to this prompt.
-                        setRefTitle('');
-                        setRefSaveError('');
-                        setRefMode('generated');
-                        setPastedPrompt('');
-                        setDissected(null);
-                        setDissectedFrom(null);
-                        setPasteBrand(metadata?.brand || '');
-                        setSaveAsRefOpen(true);
-                      }}
+                      onClick={() => setSaveAsRefOpen(true)}
                       className="h-8 w-8 text-primary hover:bg-primary/10"
                     >
                       <Save className="w-4 h-4" />

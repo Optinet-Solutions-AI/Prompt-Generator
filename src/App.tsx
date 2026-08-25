@@ -8,9 +8,6 @@ import ImageLibrary from "./pages/ImageLibrary";
 import NotFound from "./pages/NotFound";
 import AssistantPage from "./pages/AssistantPage";
 import EmailContentChecker from "./pages/EmailContentChecker";
-// THROWAWAY — screenshot harness for the FIX 1 dialog-height fix, see the
-// file itself. Route + import removed again once the screenshot is taken.
-import DevHarnessResultDisplay from "./pages/DevHarnessResultDisplay";
 
 const queryClient = new QueryClient();
 

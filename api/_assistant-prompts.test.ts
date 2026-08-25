@@ -252,6 +252,12 @@ describe('buildDissectSystemPrompt', () => {
     // regex that only checked for it stayed green even with this entire
     // EXTRACT sentence deleted. "for that field" only occurs in this line.
     expect(p).toMatch(/"Not specified in the source prompt" for that field/i);
+    // Pin the negation to the sentence that carries it. /do NOT invent/i above
+    // is also satisfied by the "EXTRACT, DO NOT INVENT." header alone, so
+    // reversing just the instruction ("Invent a plausible value to fill the
+    // gap.") left this test green. "a plausible value" only follows the
+    // negated form.
+    expect(p).toMatch(/Do NOT invent a plausible value/i);
   });
 
   it('pins the negative_prompt instruction line', () => {

@@ -264,8 +264,14 @@ export function ResultDisplay({
       }
       const data = await response.json();
       setDissected(data.fields);
+      // Record exactly what these fields came from, trimmed the same way the
+      // request body was, so a later comparison in `dissectionStale` lines up.
+      setDissectedFrom({ prompt: pastedPrompt.trim(), brand: pasteBrand });
     } catch (e) {
       // Leave pastedPrompt intact so it can be retried without re-pasting.
+      // Note: on failure, `dissected`/`dissectedFrom` are untouched — if the
+      // text hasn't changed since the last successful dissect, the old fields
+      // are still an accurate match for it and saving them is still correct.
       setRefSaveError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsDissecting(false);

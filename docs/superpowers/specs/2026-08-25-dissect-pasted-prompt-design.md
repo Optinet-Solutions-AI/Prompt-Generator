@@ -128,7 +128,9 @@ Manual (needs a Vercel preview — `npm run dev` does not serve `/api`):
 1. **Confabulation is the core risk.** The model will be tempted to fill every field with something plausible. The prompt instruction is the only defence, and it is verified by the manual check above, not by a unit test — a mocked `chat()` proves nothing about what a real model does with a real prompt.
 2. **Dissect spend is not logged.** The Cost Tracker reads only the assistant tables, and this endpoint is ungated with no tester token, so its cost is invisible — the same gap `api/generate-prompt.ts` already has. At roughly $0.005 per call this is accepted, not solved.
 3. **Ungated endpoint.** Anyone who can reach the deployed app can call it. That matches every other main-app endpoint, and the app is an internal team tool, but it is a real property worth stating.
-4. **Removing `savePrompt` may remove a reachable button.** If `handleSave` is wired to visible UI, that UI disappears. This is intended — it currently corrupts data silently — but it is a user-visible change, not a pure cleanup.
+4. **The `savePrompt` fix is a user-visible change to a working-looking button.** `SavePromptModal`'s "Save Prompt" is reachable today and reports success. Replacing it with the Save-as-Reference dialog means the post-generation save now asks for a title where it previously asked for nothing — a small extra step in exchange for a save that actually stores the prompt. Worth stating because it will look like a regression to anyone who does not know the old one was writing empty rows.
+
+5. **Existing junk rows are not cleaned up.** However many times that button has been clicked, `web_image_analysis` holds that many blank-titled, all-null rows. They will appear in the reference dropdown. Removing them is a manual step via the existing `remove-reference` action, deliberately not automated here.
 
 ## Out of scope
 

@@ -36,7 +36,17 @@
 
 import { computeLlmCost } from './_pricing.js';
 
-const DEFAULT_CAP_USD = 1.0;
+// Raised from $1.00 to $10.00 on 2026-08-25. $1.00 turned out to be far too low
+// to evaluate the tool with: a measured breakdown of one real testing day was
+// 11 concept sets ($0.70) plus TWO images ($0.32) = $1.05, i.e. the cap was hit
+// after an hour of ordinary use. At current prices one gpt-image-2 image costs
+// ~$0.16, so a $1 cap allows about six images a day — the cap was effectively
+// a limit on looking at pictures, which is the point of the tool.
+//
+// $10/day is a working budget, not a blank cheque: ~60 images or ~150 concept
+// sets. Override per-environment with ASSISTANT_DAILY_SPEND_CAP_USD, which
+// takes precedence over this and needs no code change.
+const DEFAULT_CAP_USD = 10.0;
 
 export interface SpendCapResult {
   allowed: boolean;

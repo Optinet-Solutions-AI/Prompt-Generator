@@ -17,6 +17,7 @@ import { appendVersion } from '@/lib/prompt-versions';
 import { GeneratedPromptPanel } from '@/components/assistant/GeneratedPromptPanel';
 import { VersionStrip } from '@/components/assistant/VersionStrip';
 import { SavedPromptsPanel } from '@/components/assistant/SavedPromptsPanel';
+import { parseBoldSegments } from '@/lib/inline-bold';
 import '@/components/assistant/assistant-theme.css';
 
 function isAllowed(token: string | undefined): boolean {

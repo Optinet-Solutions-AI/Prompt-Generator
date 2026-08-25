@@ -264,8 +264,6 @@ const Index = () => {
                       referencePromptData={referencePromptData}
                       isLoadingReferenceData={isLoadingReferenceData}
                       onReferenceChange={handleReferenceChange}
-                      onSave={handleSave}
-                      onDontSave={handleDontSave}
                       onEditForm={handleEditForm}
                       onEditWizard={handleEditWizard}
                       lastGenerationSource={lastGenerationSource}

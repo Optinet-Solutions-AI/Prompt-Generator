@@ -34,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       system: buildDissectSystemPrompt(brand),
       user: `Dissect this prompt:\n\n${prompt.trim()}`,
       json: true,
-      jsonSchema: DISSECT_JSON_SCHEMA,
+      jsonSchema: { type: 'object' } as any, // MUTATION-TEST: temporarily not the real schema
       maxTokens: DISSECT_MAX_TOKENS,
     });
 

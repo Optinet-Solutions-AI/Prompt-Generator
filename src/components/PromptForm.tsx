@@ -184,10 +184,27 @@ export function PromptForm({
             disabled={!formData.brand || isLoadingList || availableReferences.length === 0}
             references={availableReferences}
           />
-          {/* Action buttons row — always visible when a brand is selected */}
-          {formData.brand && (
-            <div className="flex justify-end gap-1">
-              {/* Create New Prompt — lets user blend multiple references into a new one */}
+          {/* Action buttons row — always rendered (not gated on formData.brand)
+              so "Paste a finished prompt" has somewhere to live even on a
+              fresh page load with nothing selected yet. Each button inside
+              is still conditional on its own requirement. */}
+          <div className="flex justify-end gap-1">
+            {/* Paste a finished prompt — always visible. Lets a user save a
+                prompt they already have (written elsewhere, e.g. ChatGPT)
+                without generating one first just to unlock the Save dialog. */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSaveAsRefOpen(true)}
+              className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <ClipboardPaste className="h-3 w-3" />
+              Paste a finished prompt
+            </Button>
+
+            {/* Create New Prompt — lets user blend multiple references into a new one */}
+            {formData.brand && (
               <Button
                 type="button"
                 variant="ghost"
@@ -198,39 +215,39 @@ export function PromptForm({
                 <Sparkles className="h-3 w-3" />
                 Create New Prompt
               </Button>
+            )}
 
-              {/* Rename + Archive — only shown when a reference is selected */}
-              {formData.reference && (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      const shortName = formData.reference.split(' — ')[0].trim();
-                      setRenameInput(shortName);
-                      setRenameError('');
-                      setRenameDialogOpen(true);
-                    }}
-                    className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Rename
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setArchiveDialogOpen(true)}
-                    className="h-6 px-2 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Archive className="h-3 w-3" />
-                    Archive
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
+            {/* Rename + Archive — only shown when a reference is selected */}
+            {formData.reference && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const shortName = formData.reference.split(' — ')[0].trim();
+                    setRenameInput(shortName);
+                    setRenameError('');
+                    setRenameDialogOpen(true);
+                  }}
+                  className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Rename
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setArchiveDialogOpen(true)}
+                  className="h-6 px-2 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Archive className="h-3 w-3" />
+                  Archive
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

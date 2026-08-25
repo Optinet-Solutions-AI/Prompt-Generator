@@ -232,6 +232,19 @@ export function ResultDisplay({
     'mood', 'background', 'positive_prompt', 'negative_prompt',
   ] as const;
 
+  // Human-readable labels for the eight dissected fields, shown in the same
+  // order as REF_FIELD_KEYS.
+  const REF_FIELD_LABELS: Record<typeof REF_FIELD_KEYS[number], string> = {
+    format_layout: 'Format layout',
+    primary_object: 'Primary object',
+    subject: 'Subject',
+    lighting: 'Lighting',
+    mood: 'Mood',
+    background: 'Background',
+    positive_prompt: 'Positive prompt',
+    negative_prompt: 'Negative prompt',
+  };
+
   const handleDissect = async () => {
     if (!pastedPrompt.trim()) { setRefSaveError('Paste a prompt first.'); return; }
     if (!pasteBrand) { setRefSaveError('Pick a brand.'); return; }

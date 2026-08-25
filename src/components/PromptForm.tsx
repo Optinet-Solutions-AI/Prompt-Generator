@@ -252,6 +252,7 @@ export function PromptForm({
                 </Button>
               </>
             )}
+            </div>
           </div>
         </div>
       </div>

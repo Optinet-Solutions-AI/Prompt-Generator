@@ -1069,7 +1069,11 @@ export function ResultDisplay({
               twice — once per mode, and in paste mode all the way at the
               bottom, below all eight fields — so a title error could appear
               far from the Title field it was about. One render, both modes. */}
-          {refSaveError && <p className="text-sm text-destructive">{refSaveError}</p>}
+          {/* Capped and scrollable: this sits OUTSIDE the scrolling body so it
+              is always visible, which also means a very long message (a server
+              returning a whole HTML error page, say) would push the footer back
+              off screen — the exact bug this dialog's max-h fixes. */}
+          {refSaveError && <p className="text-sm text-destructive max-h-24 overflow-y-auto">{refSaveError}</p>}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setSaveAsRefOpen(false)} disabled={isRefSaving}>

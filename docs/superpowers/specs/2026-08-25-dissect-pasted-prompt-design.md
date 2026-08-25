@@ -88,7 +88,7 @@ Why `gemini-3.7-flash`: already priced, cheapest of the verified-working options
 
 No new save endpoint. The dissection only produces the values the existing POST already accepts.
 
-`prompt_category` uses the same control the dialog already uses in generated mode; if none is selected it is sent as null, which the handler already tolerates.
+`prompt_category` is sent as null in paste mode. There is no category control to reuse: `ResultDisplay.tsx:104` derives `resultSelectedCategory` from the *selected reference's* category (`resultAvailableReferences.find(r => r.id === metadata?.reference)?.category`), and a pasted prompt has no selected reference, so that derivation yields `''`. The handler already stores `prompt_category || null`, so null is a supported value. Adding a category picker is deliberately out of scope — it is a separate question about how references are organised.
 
 While dissecting, the button shows progress and is disabled. A failed dissection shows the error and leaves the pasted text intact so it can be retried without re-pasting.
 

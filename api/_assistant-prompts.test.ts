@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, pickConceptLenses, CONCEPT_LENSES, buildAvoidClause, buildSingleConceptSystemPrompt, SINGLE_CONCEPT_JSON_SCHEMA, buildRecommendationPrompt } from './_assistant-prompts.js';
+import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, pickConceptLenses, CONCEPT_LENSES, buildAvoidClause, buildSingleConceptSystemPrompt, SINGLE_CONCEPT_JSON_SCHEMA, buildRecommendationPrompt, buildDissectSystemPrompt, DISSECT_JSON_SCHEMA } from './_assistant-prompts.js';
 
 describe('buildConceptsSystemPrompt', () => {
   it('includes the partner personality preamble', () => {

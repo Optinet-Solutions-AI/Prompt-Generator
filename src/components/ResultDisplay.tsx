@@ -6,6 +6,7 @@ import { FavoriteHeart } from "./FavoriteHeart";
 import type { AppState, PromptMetadata, ReferencePromptData } from "@/types/prompt";
 import { BRANDS } from "@/types/prompt";
 import { usePromptList } from "@/hooks/usePromptList";
+import { SaveAsReferenceDialog } from "./SaveAsReferenceDialog";
 import { ImageModal, type GalleryImage } from "./ImageModal";
 import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";

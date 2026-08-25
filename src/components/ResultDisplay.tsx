@@ -46,8 +46,6 @@ interface ResultDisplayProps {
   referencePromptData: ReferencePromptData | null;
   isLoadingReferenceData: boolean;
   onReferenceChange: (brand: string, referenceId: string) => void;
-  onSave: () => void;
-  onDontSave: () => void;
   onEditForm: () => void;
   onEditWizard?: () => void;
   lastGenerationSource?: 'form' | 'wizard';

@@ -21,8 +21,12 @@
 //     was measured at 27s — and the concepts endpoint (api/assistant/concepts.ts)
 //     made the exposure materially worse: it fires 4 model calls (3 concepts +
 //     1 recommendation) per request with the cap checked ONCE up front, so a
-//     set now costs roughly $0.016 rather than the ~$0.002 of the old single-call
-//     design. A $1/day cap is now about 62 sets, not ~475. The real mitigation
+//     set now costs roughly $0.064 rather than the ~$0.002 of the old single-call
+//     design — the $0.016 this used to claim predated counting Gemini's thinking
+//     tokens, which are billed at the output rate and are most of a Pro call.
+//     Measured on 2026-08-25: 33 concept calls (11 sets) = $0.6989. So $10/day
+//     is roughly 150 sets, and the old $1 cap was ~15 — not the ~62 or ~475
+//     earlier versions of this comment claimed. The real mitigation
 //     is just the real-human-user pattern (nobody fires dozens of concept
 //     requests within the same second) — there is no hard concurrency backstop.
 //

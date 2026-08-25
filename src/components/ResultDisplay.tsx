@@ -218,6 +218,14 @@ export function ResultDisplay({
   const [pasteBrand, setPasteBrand] = useState<string>(metadata?.brand || '');
   const [isDissecting, setIsDissecting] = useState(false);
   const [dissected, setDissected] = useState<Record<string, string> | null>(null);
+  // What `dissected` was extracted FROM — the exact pasted text (trimmed, same
+  // as what gets sent to the API) and brand at the moment Dissect last
+  // succeeded. Used to detect when the user has since changed either one
+  // without re-dissecting, so a save can't attach fields from an old prompt
+  // to a title the user typed for a different one. See `dissectionStale`
+  // below — we deliberately do NOT clear `dissected` on every keystroke,
+  // because that would throw away hand-edited fields for a one-letter typo fix.
+  const [dissectedFrom, setDissectedFrom] = useState<{ prompt: string; brand: string } | null>(null);
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 

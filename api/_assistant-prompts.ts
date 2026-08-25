@@ -346,7 +346,6 @@ export function buildDissectSystemPrompt(brand: string): string {
     'Do NOT rewrite the prompt to fit the brand. The brand rules above are context for understanding what you are reading, not a target to conform the fields to. If the pasted prompt contradicts the brand palette, describe what it actually says.',
     '',
     'positive_prompt: the pasted text itself, trimmed of surrounding whitespace. Do NOT rewrite, shorten, improve or re-order it — the user pasted a prompt they already like.',
-    'negative_prompt: only what the source explicitly excludes. If it names no exclusions, write "Not specified in the source prompt".',
     '',
     'Return strict JSON with exactly these keys: format_layout, primary_object, subject, lighting, mood, background, positive_prompt, negative_prompt.',
   ].join('\n');

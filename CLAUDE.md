@@ -143,6 +143,42 @@ Roosterbet, FortunePlay, SpinJo, LuckyVibe, SpinsUp, PlayMojo, Lucky7even, NovaD
 
 ---
 
+## PMS (project-management board)
+
+Completed work is logged to an external kanban board. **Do this at the end of any
+turn that ships a fix, feature or deploy — without being asked.** "update pms"
+means the same thing explicitly.
+
+```bash
+node scripts/pms-update.mjs --check          # auth check, writes nothing
+node scripts/pms-update.mjs items.json       # log completed work
+```
+
+`items.json` is an array of `{ title, description, priority }`
+(`HIGH` | `MEDIUM` | `LOW`). Config lives in `.env.local` (git-ignored):
+`PMS_BASE_URL`, `PMS_PROJECT_ID`, `PMS_API_TOKEN`, `PMS_USER_ID`,
+`PMS_DONE_COLUMN_ID`, `PMS_INPROGRESS_COLUMN_ID`, `PMS_REVIEW_COLUMN_ID`.
+Board: **Prompt Generator / Desgin Tool** (the typo is theirs — don't "fix" it).
+
+Three non-obvious rules the script already handles — don't hand-roll API calls
+and re-learn them:
+
+1. **Never create a card directly in Done.** The board's Daily Report counts a
+   task only if its activity log has a `MOVED → Done` event. Creating in Done
+   logs only `CREATED`, so the work shows on the board and is invisible in the
+   report people actually read. Create in Review/QA, then move to Done.
+2. **`dueDate` must be a plain date** (`2026-08-25`), not a full ISO timestamp —
+   the API rejects the very format it stores and returns. And `PATCH` is
+   all-or-nothing: one bad field silently discards `description` and `priority`
+   too, leaving an assigned card with an empty body that looks like success.
+3. **Always read the card back** and assert the description, assignee and
+   column. Never trust the write.
+
+Write descriptions with the tested/verified discipline used everywhere else in
+this project: say explicitly what was **unit-tested** versus **verified live**,
+and name what is still unverified. A card claiming more confidence than the work
+earned is worse than no card.
+
 ## Token-Saving Rules
 
 ### Before reading files

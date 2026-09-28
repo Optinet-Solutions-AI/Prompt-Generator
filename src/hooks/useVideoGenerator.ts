@@ -4,8 +4,10 @@
  * Flow:  FORM → RENDERING (poll Higgsfield every 5s) → RESULT
  *                     ↘ on any failure → back to FORM with an error message
  *
- * When Higgsfield finishes, the video is saved to the Video Drive folder
- * automatically, so it shows up in the Video Library without an extra click.
+ * Generation runs on the Higgsfield PLAN credits of the connected account
+ * (the "Connect Higgsfield" card). When a render finishes, the server stamps
+ * the brand (corner logo + end card) and saves it to the Video Drive folder,
+ * so it shows up in the Video Library without an extra click.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildUgcPrompt, EMPTY_VIDEO_FORM, UGC_STYLES, type VideoFormData } from '@/lib/ugc-video';
@@ -15,6 +17,16 @@ export type VideoAppState = 'FORM' | 'RENDERING' | 'RESULT';
 
 const POLL_MS = 5000;
 const MAX_WAIT_MS = 15 * 60 * 1000; // give up after 15 minutes
+
+export interface VideoResult {
+  /** What the player shows: the raw Higgsfield file first, then the branded Drive copy once saved. */
+  previewUrl: string;
+  saved: LibraryVideo | null;
+  saving: boolean;
+  saveError: string;
+  /** Set when the video saved fine but the logo/end card couldn't be added. */
+  brandError: string;
+}
 
 export function useVideoGenerator() {
   const [form, setForm] = useState<VideoFormData>(EMPTY_VIDEO_FORM);
@@ -27,13 +39,52 @@ export function useVideoGenerator() {
   const [statusText, setStatusText] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<{ previewUrl: string; saved: LibraryVideo | null; saveError: string } | null>(null);
+  const [result, setResult] = useState<VideoResult | null>(null);
+
+  // Higgsfield connection ("Connected as …" / "Connect Higgsfield")
+  const [connection, setConnection] = useState<{ loading: boolean; connected: boolean; email: string | null; error: string }>(
+    { loading: true, connected: false, email: null, error: '' },
+  );
+  // Credits the current settings would cost (null = unknown / not connected)
+  const [cost, setCost] = useState<{ loading: boolean; credits: number | null }>({ loading: false, credits: null });
 
   const cancelled = useRef(false);
 
   useEffect(() => {
     if (!promptEdited) setPrompt(buildUgcPrompt(form));
   }, [form, promptEdited]);
+
+  const refreshConnection = useCallback(async () => {
+    setConnection(c => ({ ...c, loading: true, error: '' }));
+    try {
+      const s = await videoApi.hfStatus();
+      setConnection({ loading: false, connected: s.connected, email: s.email, error: '' });
+    } catch (e) {
+      setConnection({ loading: false, connected: false, email: null, error: e instanceof Error ? e.message : 'Could not check the connection' });
+    }
+  }, []);
+  useEffect(() => { refreshConnection(); }, [refreshConnection]);
+
+  // Price check whenever the settings that affect cost change (debounced so
+  // typing in the prompt doesn't fire a request per keystroke).
+  useEffect(() => {
+    if (!connection.connected || !prompt.trim()) { setCost({ loading: false, credits: null }); return; }
+    setCost(c => ({ ...c, loading: true }));
+    const t = setTimeout(async () => {
+      try {
+        const { credits } = await videoApi.cost({
+          prompt, model: form.model, aspectRatio: form.aspectRatio, duration: form.duration, audio: form.audio,
+        });
+        setCost({ loading: false, credits });
+      } catch {
+        setCost({ loading: false, credits: null });
+      }
+    }, 800);
+    return () => clearTimeout(t);
+    // Cost depends on model/duration/ratio/audio, not the exact wording — but
+    // the server needs a prompt, so re-check only when it goes empty/non-empty.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection.connected, form.model, form.aspectRatio, form.duration, form.audio, !!prompt.trim()]);
 
   // Elapsed-seconds counter while rendering.
   useEffect(() => {
@@ -58,7 +109,21 @@ export function useVideoGenerator() {
   const editPrompt = useCallback((text: string) => { setPrompt(text); setPromptEdited(true); }, []);
   const rebuildPrompt = useCallback(() => setPromptEdited(false), []);
 
+  const connect = useCallback(async () => {
+    try {
+      const { url } = await videoApi.hfConnect();
+      window.location.href = url; // Higgsfield sign-in, then back to /?hf=connected
+    } catch (e) {
+      setConnection(c => ({ ...c, error: e instanceof Error ? e.message : 'Could not start sign-in' }));
+    }
+  }, []);
+
+  const disconnectHf = useCallback(async () => {
+    try { await videoApi.hfDisconnect(); } finally { await refreshConnection(); }
+  }, [refreshConnection]);
+
   const generate = useCallback(async () => {
+    if (!connection.connected) { setError('Connect your Higgsfield account first (top of this tab).'); return; }
     if (!form.brand) { setError('Select a brand first.'); return; }
     if (!prompt.trim()) { setError('The prompt is empty — pick a UGC style or fill the fields.'); return; }
 
@@ -70,7 +135,7 @@ export function useVideoGenerator() {
 
     try {
       const { request_id } = await videoApi.submit({
-        prompt, aspectRatio: form.aspectRatio, duration: form.duration, audio: form.audio,
+        prompt, model: form.model, aspectRatio: form.aspectRatio, duration: form.duration, audio: form.audio,
         startImage: form.startImage || undefined,
       });
 
@@ -83,31 +148,35 @@ export function useVideoGenerator() {
         if (cancelled.current) return;
         const s = await videoApi.status(request_id);
         if (s.status === 'completed' && s.video_url) { videoUrl = s.video_url; break; }
-        if (['failed', 'nsfw', 'canceled'].includes(s.status)) {
+        if (['failed', 'nsfw', 'canceled', 'cancelled'].includes(s.status)) {
           throw new Error(s.status === 'nsfw'
             ? 'Higgsfield blocked this prompt as unsafe — try rewording it.'
-            : `Higgsfield ${s.status}${s.error ? `: ${s.error}` : ''}`);
+            : s.error || `Higgsfield ${s.status}`);
         }
-        setStatusText(s.status === 'queued' ? 'Waiting in Higgsfield queue…' : 'Rendering video…');
+        setStatusText(['queued', 'pending'].includes(s.status) ? 'Waiting in Higgsfield queue…' : 'Rendering video…');
       }
       if (!videoUrl) return;
 
-      // Show the video immediately, then save it to Drive in the background.
-      setResult({ previewUrl: videoUrl, saved: null, saveError: '' });
+      // Show the raw video immediately, then brand + save it in the background.
+      setResult({ previewUrl: videoUrl, saved: null, saving: true, saveError: '', brandError: '' });
       setAppState('RESULT');
       try {
-        const { file } = await videoApi.save({
+        const out = await videoApi.save({
           video_url: videoUrl, brand: form.brand, prompt, aspectRatio: form.aspectRatio, duration: form.duration,
+          brandLogo: form.brandLogo, brandEndCard: form.brandEndCard,
         });
-        setResult(r => r && { ...r, saved: file });
+        // Switch the player to the saved (branded) copy.
+        setResult(r => r && { ...r, saved: out.file, saving: false, previewUrl: out.file.video_url, brandError: out.brand_error || '' });
       } catch (e) {
-        setResult(r => r && { ...r, saveError: e instanceof Error ? e.message : 'Save failed' });
+        setResult(r => r && { ...r, saving: false, saveError: e instanceof Error ? e.message : 'Save failed' });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
       setAppState('FORM');
+      // A lost login shows up as an error here — re-check so the card updates.
+      refreshConnection();
     }
-  }, [form, prompt]);
+  }, [form, prompt, connection.connected, refreshConnection]);
 
   const cancel = useCallback(() => { cancelled.current = true; setAppState('FORM'); }, []);
   /** "Edit" — back to the form with every field and the prompt kept. */
@@ -123,6 +192,7 @@ export function useVideoGenerator() {
     form, setField, applyStyle,
     prompt, promptEdited, editPrompt, rebuildPrompt,
     appState, statusText, elapsed, error, result,
+    connection, connect, disconnectHf, refreshConnection, cost,
     generate, cancel, backToEdit, clear, markLiked,
   };
 }

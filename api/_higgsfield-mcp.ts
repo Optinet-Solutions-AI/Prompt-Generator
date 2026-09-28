@@ -267,8 +267,12 @@ export interface VideoParams {
   prompt: string;
   aspect_ratio: string;
   duration: number;
-  resolution: string;
-  generate_audio: boolean;
+  // Seedance-style settings
+  resolution?: string;
+  generate_audio?: boolean;
+  // Kling-style settings
+  mode?: string;
+  sound?: 'on' | 'off';
   medias?: Array<{ value: string; role: string }>;
 }
 
@@ -277,26 +281,30 @@ export interface VideoParams {
  * preset X" suggestion instead of rendering; we always want the literal
  * prompt, so we decline and resubmit automatically (up to 2 times).
  */
-export async function submitVideo(p: VideoParams): Promise<string> {
-  const params: Record<string, unknown> = { ...p, use_unlim: false };
+async function generateVideoLiteral(params: Record<string, unknown>) {
   for (let i = 0; i < 3; i++) {
-    const { text, data } = await callTool('generate_video', { params });
-    const notice = data.notice as { type?: string; data?: { preset?: { id?: string } } } | undefined;
+    const out = await callTool('generate_video', { params });
+    const notice = out.data.notice as { type?: string; data?: { preset?: { id?: string } } } | undefined;
     if (notice?.type === 'preset_recommendation' && notice.data?.preset?.id) {
-      params.declined_preset_id = notice.data.preset.id;
+      params = { ...params, declined_preset_id: notice.data.preset.id };
       continue;
     }
-    const results = data.results as Array<{ id?: string }> | undefined;
-    const jobId = results?.[0]?.id;
-    if (jobId) return jobId;
-    throw new HttpError(502, friendly(text || 'no job id returned'));
+    return out;
   }
   throw new HttpError(502, 'Higgsfield kept suggesting presets instead of rendering — try rewording the prompt.');
 }
 
+export async function submitVideo(p: VideoParams): Promise<string> {
+  const { text, data } = await generateVideoLiteral({ ...p, use_unlim: false });
+  const jobId = (data.results as Array<{ id?: string }> | undefined)?.[0]?.id;
+  if (jobId) return jobId;
+  throw new HttpError(502, friendly(text || 'no job id returned'));
+}
+
 /** Credits a video would cost — nothing is submitted. */
 export async function videoCost(p: VideoParams): Promise<number | null> {
-  const { data } = await callTool('generate_video', { params: { ...p, get_cost: true } });
+  // The preset suggestion can interrupt price checks too, so decline it here as well.
+  const { data } = await generateVideoLiteral({ ...p, get_cost: true });
   const cost = data.cost as { credits?: number } | undefined;
   return typeof cost?.credits === 'number' ? cost.credits : null;
 }

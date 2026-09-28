@@ -91,8 +91,11 @@ export const UGC_STYLES: UgcStyle[] = [
  * the two lists in sync. First entry = default.
  */
 export const VIDEO_MODELS = [
-  { id: 'seedance_2_5', label: 'Seedance 2.5', hint: 'Best all-round UGC look' },
-  { id: 'kling3_0', label: 'Kling 3.0', hint: 'Strong speech & lip-sync' },
+  // Picked 2026-09-28 by rendering the same Roosterbet script on both:
+  // Seedance followed the selfie direction and looked genuinely phone-shot;
+  // Kling framed it like a filmed ad, but is ~3x cheaper and 1080p.
+  { id: 'seedance_2_5', label: 'Seedance 2.5', hint: 'Most authentic UGC · ~35 credits / 5s' },
+  { id: 'kling3_0', label: 'Kling 3.0 Pro', hint: 'Sharper 1080p, more polished · ~12.5 / 5s' },
 ] as const;
 export type VideoModelId = (typeof VIDEO_MODELS)[number]['id'];
 

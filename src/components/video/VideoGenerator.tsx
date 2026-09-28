@@ -188,7 +188,7 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
 
       {/* Optional starting frame → image-to-video */}
       <div className="space-y-2">
-        <Label>Start from an image (optional)</Label>
+        <Label className="block">Start from an image (optional)</Label>
         <input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
           onChange={e => { onPickImage(e.target.files?.[0]); e.target.value = ''; }} />
         {form.startImage ? (

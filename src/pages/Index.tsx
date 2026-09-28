@@ -1,4 +1,4 @@
-import { Images, Sparkles, Trophy, Mail } from "lucide-react";
+import { Images, Sparkles, Trophy, Mail, Video, Clapperboard } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PromptForm } from "@/components/PromptForm";
@@ -7,6 +7,9 @@ import { ResultDisplay } from "@/components/ResultDisplay";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { SportsBannerWizard } from "@/components/SportsBannerWizard";
 import ImageLibrary from "@/pages/ImageLibrary";
+import VideoLibrary from "@/pages/VideoLibrary";
+import { VideoGenerator } from "@/components/video/VideoGenerator";
+import { useVideoGenerator } from "@/hooks/useVideoGenerator";
 import { usePromptGenerator } from "@/hooks/usePromptGenerator";
 import { useReferencePromptData } from "@/hooks/useReferencePromptData";
 import { useSportsBannerWizard } from "@/hooks/useSportsBannerWizard";
@@ -42,6 +45,8 @@ const Index = () => {
 
   // Wizard state lifted here so it survives switching to the form/result tab
   const wizardState = useSportsBannerWizard();
+  // Video tab state lifted here too, so a render in progress survives tab switches
+  const videoState = useVideoGenerator();
   const [wizardBrand, setWizardBrand] = useState('');
 
   // Track whether the latest result came from the wizard or the custom form
@@ -49,11 +54,14 @@ const Index = () => {
 
   // Track which top-level mode the user is in — persisted in localStorage so
   // switching to Image Library and back restores exactly where they left off
-  const [activeTab, setActiveTab] = useState<'form' | 'wizard' | 'library'>(() => {
-    try { return (localStorage.getItem('pg_activeTab') as 'form' | 'wizard' | 'library') || 'form'; }
+  type Tab = 'form' | 'wizard' | 'video' | 'library' | 'videoLibrary';
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    try { return (localStorage.getItem('pg_activeTab') as Tab) || 'form'; }
     catch { return 'form'; }
   });
-  const handleTabChange = (tab: 'form' | 'wizard' | 'library') => {
+  // Library views are full-width and replace the main card
+  const isLibraryView = activeTab === 'library' || activeTab === 'videoLibrary';
+  const handleTabChange = (tab: Tab) => {
     try { localStorage.setItem('pg_activeTab', tab); } catch { /* ignore */ }
     setActiveTab(tab);
   };
@@ -142,7 +150,7 @@ const Index = () => {
         <div className="absolute -bottom-1/2 -left-1/4 w-[600px] h-[600px] rounded-full gradient-primary opacity-[0.03] blur-3xl" />
       </div>
 
-      <div className={`relative mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-16 ${activeTab === 'library' ? 'max-w-full' : 'container max-w-3xl'}`}>
+      <div className={`relative mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-16 ${isLibraryView ? 'max-w-full' : 'container max-w-3xl'}`}>
         {/* Header */}
         <div className="text-center mb-6 sm:mb-10">
           <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl gradient-primary shadow-glow mb-4 sm:mb-6">
@@ -163,6 +171,14 @@ const Index = () => {
               <Images className="w-4 h-4" />
               Image Library
             </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('videoLibrary')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 hover:border-primary/50 text-primary font-medium text-sm transition-all duration-150 shadow-sm hover:shadow"
+            >
+              <Clapperboard className="w-4 h-4" />
+              Video Library
+            </button>
             <Link
               to="/email-content-checker"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/25 hover:border-primary/50 text-primary font-medium text-sm transition-all duration-150 shadow-sm hover:shadow"
@@ -174,7 +190,7 @@ const Index = () => {
         </div>
 
         {/* Mode tabs — hidden when library is active (library has its own top bar) */}
-        {activeTab !== 'library' && appState !== "PROCESSING" && (
+        {!isLibraryView && appState !== "PROCESSING" && (
           <div className="flex gap-1 p-1 rounded-xl bg-muted/50 border border-border mb-4">
             <button
               type="button"
@@ -202,6 +218,19 @@ const Index = () => {
               <Trophy className="w-4 h-4" />
               Sports Banner
             </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('video')}
+              className={[
+                'flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                activeTab === 'video'
+                  ? 'bg-card shadow-sm text-foreground border border-border'
+                  : 'text-muted-foreground hover:text-foreground',
+              ].join(' ')}
+            >
+              <Video className="w-4 h-4" />
+              Video
+            </button>
           </div>
         )}
 
@@ -210,9 +239,19 @@ const Index = () => {
           <ImageLibrary embedded onBack={() => handleTabChange('form')} />
         )}
 
+        {/* ── Video Library — separate Drive folder, returns to the Video tab ── */}
+        {activeTab === 'videoLibrary' && (
+          <VideoLibrary onBack={() => handleTabChange('video')} />
+        )}
+
         {/* Main Card — hidden when library is showing */}
-        <div className={`bg-card rounded-xl sm:rounded-2xl border border-border shadow-lg overflow-hidden ${activeTab === 'library' ? 'hidden' : ''}`}>
+        <div className={`bg-card rounded-xl sm:rounded-2xl border border-border shadow-lg overflow-hidden ${isLibraryView ? 'hidden' : ''}`}>
           <div className="p-4 sm:p-6 md:p-8">
+
+              {/* ── UGC Video (Higgsfield) ─────────────────────────────────────── */}
+              {activeTab === 'video' && (
+                <VideoGenerator state={videoState} onOpenLibrary={() => handleTabChange('videoLibrary')} />
+              )}
 
               {/* ── Sports Banner Wizard ─────────────────────────────────────────
                   Always rendered when wizard tab is active, regardless of appState.

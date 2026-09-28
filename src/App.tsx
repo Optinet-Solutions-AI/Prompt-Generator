@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ImageLibrary from "./pages/ImageLibrary";
+import VideoLibrary from "./pages/VideoLibrary";
 import NotFound from "./pages/NotFound";
 import AssistantPage from "./pages/AssistantPage";
 import EmailContentChecker from "./pages/EmailContentChecker";
@@ -20,6 +21,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/library" element={<ImageLibrary />} />
+          <Route path="/video-library" element={<div className="container mx-auto p-6"><VideoLibrary /></div>} />
           <Route path="/email-content-checker" element={<EmailContentChecker />} />
           <Route path="/assistant/:token" element={<AssistantPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -189,14 +189,13 @@ function toParams(body: Record<string, unknown>): VideoParams {
   if (!prompt) throw new HttpError(400, 'prompt is required');
   const model = String(body.model || DEFAULT_MODEL);
   if (!ALLOWED_MODELS.has(model)) throw new HttpError(400, `Model "${model}" is not enabled for the Video tab`);
-  return {
-    model,
-    prompt,
-    aspect_ratio: String(body.aspectRatio || '9:16'),
-    duration: Number(body.duration) || 5,
-    resolution: '720p',
-    generate_audio: body.audio !== false,
-  };
+  const common = { model, prompt, aspect_ratio: String(body.aspectRatio || '9:16'), duration: Number(body.duration) || 5 };
+  // Each model names its settings differently (from models_explore, 2026-09-28).
+  if (model === 'kling3_0') {
+    // 'pro' = higher quality (12.5 credits / 5s, 1080×1920); 'sound' instead of generate_audio.
+    return { ...common, mode: 'pro', sound: body.audio !== false ? 'on' : 'off' };
+  }
+  return { ...common, resolution: '720p', generate_audio: body.audio !== false };
 }
 
 async function cost(body: Record<string, unknown>) {

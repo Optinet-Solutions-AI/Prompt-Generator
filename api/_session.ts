@@ -137,6 +137,20 @@ export async function requireUser(req: VercelRequest): Promise<Profile> {
   return p;
 }
 
+/**
+ * The profile whose library `viewer` wants to see: themselves, or someone who
+ * shared their library with them. Throws 403 otherwise.
+ */
+export async function libraryOwner(viewer: Profile, ownerId: string | undefined | null): Promise<Profile> {
+  if (!ownerId || ownerId === viewer.id) return viewer;
+  if (!/^[0-9a-f-]{36}$/i.test(ownerId)) throw new AuthError(400, 'invalid owner');
+  const share = (await sb(`library_shares?owner_id=eq.${ownerId}&viewer_id=eq.${viewer.id}&select=owner_id`) as unknown[])[0];
+  if (!share) throw new AuthError(403, "That library hasn't been shared with you.");
+  const owner = await getProfileById(ownerId);
+  if (!owner || owner.status !== 'approved') throw new AuthError(404, 'That library is no longer available.');
+  return owner;
+}
+
 /** Public-safe view of a profile (never includes tokens). */
 export function publicProfile(p: Profile) {
   return { id: p.id, email: p.email, name: p.name, avatar_url: p.avatar_url, status: p.status, is_admin: p.is_admin };

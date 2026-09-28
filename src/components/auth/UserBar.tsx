@@ -3,7 +3,8 @@
  *   [who's online right now: avatars]  [my avatar ▾ → Drive status · Share my library · Sign out]
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ExternalLink, HardDrive, Loader2, LogOut, RefreshCw, Search, Share2, UserPlus } from 'lucide-react';
+import { BarChart3, Check, ExternalLink, HardDrive, Loader2, LogOut, RefreshCw, Search, Share2, UserPlus, Users } from 'lucide-react';
+import { MyUsageDialog, TeamUsageDialog } from './UsageDialogs';
 import { toast } from 'sonner';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -138,6 +139,8 @@ export function UserBar() {
   const { user, driveConnected, signIn, signOut } = useAuth();
   const online = useOnlineUsers(user);
   const [shareOpen, setShareOpen] = useState(false);
+  const [usageOpen, setUsageOpen] = useState(false);
+  const [teamUsageOpen, setTeamUsageOpen] = useState(false);
   if (!user) return null;
   const name = user.name || user.email;
 
@@ -185,6 +188,14 @@ export function UserBar() {
           <DropdownMenuItem onClick={() => setShareOpen(true)}>
             <UserPlus className="w-4 h-4 mr-2" />Share my library…
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setUsageOpen(true)}>
+            <BarChart3 className="w-4 h-4 mr-2" />My Higgsfield usage
+          </DropdownMenuItem>
+          {user.is_admin && (
+            <DropdownMenuItem onClick={() => setTeamUsageOpen(true)}>
+              <Users className="w-4 h-4 mr-2" />Team usage <span className="ml-auto text-[10px] text-muted-foreground">admin</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={signOut}>
             <LogOut className="w-4 h-4 mr-2" />Sign out
@@ -193,6 +204,8 @@ export function UserBar() {
       </DropdownMenu>
 
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
+      <MyUsageDialog open={usageOpen} onOpenChange={setUsageOpen} />
+      {user.is_admin && <TeamUsageDialog open={teamUsageOpen} onOpenChange={setTeamUsageOpen} />}
     </div>
   );
 }

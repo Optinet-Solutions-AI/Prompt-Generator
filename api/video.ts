@@ -206,7 +206,7 @@ async function finishUsage(jobId: string, result: 'completed' | 'failed') {
   }
 }
 
-interface UsageRow {
+export interface UsageRow {
   user_id: string; job_id: string; model: string; duration: number | null; aspect_ratio: string | null;
   brand: string | null; start_image: boolean; credits: number | string | null; status: string; created_at: string;
 }
@@ -223,7 +223,7 @@ function periodStart(daysParam: unknown): { since: string; days: number } {
  * Higgsfield normally returns credits for renders that fail (not yet verified
  * for every failure type).
  */
-function summarize(rows: UsageRow[]) {
+export function summarize(rows: UsageRow[]) {
   const counted = rows.filter(r => r.status !== 'failed');
   const credits = (list: UsageRow[]) => Math.round(list.reduce((t, r) => t + (Number(r.credits) || 0), 0) * 10) / 10;
   const group = (key: (r: UsageRow) => string) => {

@@ -108,6 +108,9 @@ export async function sb(path: string, init: RequestInit = {}) {
   });
   const text = await res.text();
   if (!res.ok) {
+    if (text.includes('video_usage') && text.includes('schema cache')) {
+      throw new AuthError(503, 'Usage tracking is not set up yet — run supabase/migrations/2026-09-29-video-usage.sql in Supabase.');
+    }
     if (/profiles|library_shares/.test(text) && text.includes('schema cache')) {
       throw new AuthError(503, 'Run the user-accounts SQL in Supabase first (supabase/migrations/2026-09-29-user-accounts.sql).');
     }

@@ -6,8 +6,34 @@
  * Supabase is used ONLY for favorites (liked_images table), not here.
  */
 
+// The original key (before accounts). It now holds the TEAM ARCHIVE cache —
+// existing browsers already have it filled, so the archive opens instantly.
 const STORAGE_KEY = 'pg_generated_images';
 const MAX_IMAGES  = 500; // Prevent localStorage overflow (~500 × ~250 bytes ≈ 125 KB)
+
+// ── Whose images? ─────────────────────────────────────────────────────────
+// Each signed-in person gets their own cache ("shelf") so two people sharing
+// a computer never see each other's library:
+//   OWN shelf   → where newly generated images are added (storeImage)
+//   VIEW shelf  → what the Image Library is currently showing (mine, a
+//                 colleague's shared library, or the team archive)
+let ownKey = STORAGE_KEY;
+let viewKey = STORAGE_KEY;
+
+/** Called on sign-in / sign-out. Also switches the library view back to "mine". */
+export function setImageStoreOwner(userId: string | null): void {
+  ownKey = userId ? `${STORAGE_KEY}:u:${userId}` : STORAGE_KEY;
+  viewKey = ownKey;
+}
+
+export type LibraryView = { kind: 'mine' } | { kind: 'archive' } | { kind: 'shared'; ownerId: string };
+
+/** Point the Image Library's reads at another shelf. */
+export function setImageLibraryView(view: LibraryView): void {
+  viewKey = view.kind === 'mine' ? ownKey
+    : view.kind === 'archive' ? STORAGE_KEY
+    : `${STORAGE_KEY}:shared:${view.ownerId}`;
+}
 
 export interface StoredImage {
   id:           string;
@@ -28,18 +54,18 @@ export interface StoredImage {
   brand?:       string;
 }
 
-function loadAll(): StoredImage[] {
+function loadAll(key = viewKey): StoredImage[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as StoredImage[]) : [];
   } catch {
     return [];
   }
 }
 
-function saveAll(images: StoredImage[]): void {
+function saveAll(images: StoredImage[], key = viewKey): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(images));
+    localStorage.setItem(key, JSON.stringify(images));
   } catch (e) {
     console.warn('[imageStore] localStorage write failed (may be full):', e);
   }
@@ -61,8 +87,9 @@ export function storeImage(params: {
     storage_path: '',
     ...params,
   };
-  const updated = [newImg, ...loadAll()].slice(0, MAX_IMAGES);
-  saveAll(updated);
+  // New images always go on the signed-in person's OWN shelf.
+  const updated = [newImg, ...loadAll(ownKey)].slice(0, MAX_IMAGES);
+  saveAll(updated, ownKey);
   return newImg;
 }
 

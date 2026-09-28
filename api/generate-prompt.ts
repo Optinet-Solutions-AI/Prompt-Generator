@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { BRAND_PALETTES, BRAND_SCENE_MANDATES } from './_brand-rules.js';
+import { guard } from './_session.js';
 
 /**
  * generate-prompt — matches the n8n "Prod - Prompt Generator" workflow exactly.
@@ -11,6 +12,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  // Signed-in, approved users only (Sign in with Google — see _session.ts).
+  if (!(await guard(req, res))) return;
 
   try {
     const apiKey = process.env.OPENAI_API_KEY;

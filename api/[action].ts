@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { OPENAI_IMAGE_MODEL } from './_image-models.js';
+import { guard } from './_session.js';
 
 // ── Cloud Run auth helper (inline — avoids cross-file import issues on Vercel) ─
 async function getCloudRunIdToken(cloudRunUrl: string, req: VercelRequest): Promise<string> {
@@ -116,6 +117,8 @@ export const config = { maxDuration: 300 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action as string;
+  // Signed-in, approved users only (Sign in with Google — see _session.ts).
+  if (!(await guard(req, res))) return;
 
   try {
     // ── REGENERATE REFERENCE — direct OpenAI (was n8n) ─────────────────────

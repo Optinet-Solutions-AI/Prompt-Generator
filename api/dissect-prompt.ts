@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { chat } from './_llm.js';
 import { buildDissectSystemPrompt, DISSECT_JSON_SCHEMA } from './_assistant-prompts.js';
+import { guard } from './_session.js';
 
 // Every slow route in this repo declares its budget. api/generate-image.ts was
 // the one that did not, and its renders were killed at the 60s plan default
@@ -19,6 +20,8 @@ const DISSECT_MAX_TOKENS = 4000;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // Signed-in, approved users only (Sign in with Google — see _session.ts).
+  if (!(await guard(req, res))) return;
 
   const { prompt, brand } = (req.body ?? {}) as { prompt?: string; brand?: string };
 

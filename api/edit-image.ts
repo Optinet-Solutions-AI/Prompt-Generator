@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
+import { guard } from './_session.js';
 
 // ── Edit Image ─────────────────────────────────────────────────────────────────
 //
@@ -378,6 +379,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+  // Signed-in, approved users only (Sign in with Google — see _session.ts).
+  if (!(await guard(req, res))) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {

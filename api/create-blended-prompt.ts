@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { guard } from './_session.js';
 
 // Brand color palettes — same as generate-prompt.ts. Keep in sync when adding new brands.
 const BRAND_PALETTES: Record<string, string> = {
@@ -46,6 +47,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  // Signed-in, approved users only (Sign in with Google — see _session.ts).
+  if (!(await guard(req, res))) return;
 
   try {
     const { brand, references } = req.body;

@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { chatMock } = vi.hoisted(() => ({ chatMock: vi.fn() }));
 vi.mock('./_llm.js', () => ({ chat: (...args: unknown[]) => chatMock(...args) }));
 
+// The route requires a signed-in user; act as one in these tests.
+vi.mock('./_session.js', () => ({ guard: async () => ({ id: 'test-user' }) }));
 import handler from './dissect-prompt.js';
 import { DISSECT_JSON_SCHEMA } from './_assistant-prompts.js';
 

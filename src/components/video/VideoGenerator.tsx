@@ -7,7 +7,7 @@
  *  - duration, audio on/off, and an optional starting image
  */
 import { useRef } from 'react';
-import { Clapperboard, Heart, ImagePlus, Loader2, Pencil, RotateCcw, Sparkles, Trash2, Video, X } from 'lucide-react';
+import { BadgeCheck, Clapperboard, Coins, Heart, ImagePlus, Link2, Loader2, LogOut, Pencil, RotateCcw, Sparkles, Trash2, Video, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/FormField';
 import { BRANDS } from '@/types/prompt';
-import { UGC_STYLES, VIDEO_ASPECT_RATIOS, VIDEO_DURATIONS } from '@/lib/ugc-video';
+import { UGC_STYLES, VIDEO_ASPECT_RATIOS, VIDEO_DURATIONS, VIDEO_MODELS } from '@/lib/ugc-video';
 import { videoApi } from '@/lib/video-api';
 import type { useVideoGenerator } from '@/hooks/useVideoGenerator';
 
@@ -47,8 +47,49 @@ function Pills<T extends string | number>({ options, value, onChange }: {
   );
 }
 
+/** "Connect Higgsfield" / "Connected as …" — generation spends this account's plan credits. */
+function ConnectionCard({ state }: { state: VideoState }) {
+  const { connection, connect, disconnectHf } = state;
+  if (connection.loading) {
+    return (
+      <div className="flex items-center gap-2 p-3 rounded-xl border border-border bg-muted/30 text-sm text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />Checking Higgsfield connection…
+      </div>
+    );
+  }
+  if (connection.connected) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl border border-primary/30 bg-primary/5">
+        <BadgeCheck className="w-5 h-5 text-primary shrink-0" />
+        <div className="text-sm min-w-0">
+          <p className="font-medium text-foreground">Higgsfield connected</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {connection.email ? `${connection.email} · ` : ''}videos use this account's plan credits
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" className="ml-auto" onClick={disconnectHf}>
+          <LogOut className="w-4 h-4 mr-1" />Disconnect
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-dashed border-primary/40 bg-primary/5">
+      <Link2 className="w-5 h-5 text-primary shrink-0" />
+      <div className="text-sm min-w-0 flex-1">
+        <p className="font-medium text-foreground">Connect your Higgsfield account</p>
+        <p className="text-xs text-muted-foreground">
+          One-time sign-in. Videos are made with your Higgsfield plan credits.
+        </p>
+        {connection.error && <p className="text-xs text-destructive mt-1">{connection.error}</p>}
+      </div>
+      <Button onClick={connect} className="gradient-primary"><Link2 className="w-4 h-4 mr-1" />Connect Higgsfield</Button>
+    </div>
+  );
+}
+
 export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; onOpenLibrary: () => void }) {
-  const { form, setField, applyStyle, prompt, promptEdited, editPrompt, rebuildPrompt,
+  const { form, setField, applyStyle, prompt, promptEdited, editPrompt, rebuildPrompt, connection, cost,
     appState, statusText, elapsed, error, result, generate, cancel, backToEdit, clear, markLiked } = state;
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -97,14 +138,18 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
           <h2 className="font-semibold text-foreground">Your UGC video · {form.brand}</h2>
         </div>
         <div className="flex justify-center bg-muted/40 rounded-xl p-3">
-          <video src={result.previewUrl} controls autoPlay loop playsInline className="max-h-[520px] rounded-lg" />
+          <video key={result.previewUrl} src={result.previewUrl} controls autoPlay loop playsInline className="max-h-[520px] rounded-lg" />
         </div>
         <p className="text-xs text-muted-foreground">
-          {result.saved
-            ? '✓ Saved to the Video Library (Google Drive).'
+          {result.saving
+            ? (form.brandLogo || form.brandEndCard
+              ? 'Adding the brand logo and saving to the Video Library…'
+              : 'Saving to the Video Library…')
             : result.saveError
               ? `⚠ Not saved to Drive: ${result.saveError}`
-              : 'Saving to the Video Library…'}
+              : result.brandError
+                ? `✓ Saved to the Video Library — but the logo couldn't be added (${result.brandError}).`
+                : '✓ Saved to the Video Library (Google Drive).'}
         </p>
         <details className="text-sm">
           <summary className="cursor-pointer text-muted-foreground">Prompt used</summary>
@@ -127,6 +172,8 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
   // ── Form ───────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
+      <ConnectionCard state={state} />
+
       {error && (
         <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">{error}</div>
       )}
@@ -156,6 +203,14 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
           onChange={v => setField('action', v)} placeholder="What happens in the clip?" />
         <FormField type="textarea" label="Camera" rows={2} value={form.camera}
           onChange={v => setField('camera', v)} placeholder="How is it filmed?" />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Video Model</Label>
+        <Pills
+          options={VIDEO_MODELS.map(m => ({ value: m.id, label: m.label, hint: m.hint }))}
+          value={form.model} onChange={v => setField('model', v)}
+        />
       </div>
 
       <div className="space-y-2">
@@ -204,6 +259,28 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
         <p className="text-xs text-muted-foreground">The video will animate from this image instead of starting from scratch.</p>
       </div>
 
+      {/* Real brand stamped on the saved video (AI can't draw logos reliably) */}
+      <div className="space-y-2">
+        <Label>Branding</Label>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer">
+            <Switch checked={form.brandLogo} onCheckedChange={v => setField('brandLogo', v)} className="mt-0.5" />
+            <span className="text-sm">
+              <span className="font-medium text-foreground block">Logo in corner</span>
+              <span className="text-xs text-muted-foreground">The brand's real logo, top-left, whole clip</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer">
+            <Switch checked={form.brandEndCard} onCheckedChange={v => setField('brandEndCard', v)} className="mt-0.5" />
+            <span className="text-sm">
+              <span className="font-medium text-foreground block">End card</span>
+              <span className="text-xs text-muted-foreground">1.5s brand screen at the end</span>
+            </span>
+          </label>
+        </div>
+        <p className="text-xs text-muted-foreground">The creator's phone screen also shows the brand's mascot and colours.</p>
+      </div>
+
       {/* Final prompt — auto-built, editable */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -219,9 +296,15 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pt-2">
-        <Button onClick={generate} disabled={!form.brand} className="gradient-primary">
+        <Button onClick={generate} disabled={!form.brand || !connection.connected} className="gradient-primary">
           <Sparkles className="w-4 h-4 mr-1" />Generate Video
         </Button>
+        {connection.connected && (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Coins className="w-3.5 h-3.5" />
+            {cost.loading ? 'Checking cost…' : cost.credits != null ? `${cost.credits} credits` : 'Cost unavailable'}
+          </span>
+        )}
         <Button variant="outline" onClick={clear}><Trash2 className="w-4 h-4 mr-1" />Clear Form</Button>
         <Button variant="outline" className="ml-auto" onClick={onOpenLibrary}>
           <Clapperboard className="w-4 h-4 mr-1" />Video Library

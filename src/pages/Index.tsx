@@ -84,6 +84,20 @@ const Index = () => {
   // Clear variations whenever a fresh batch of images is generated
   useEffect(() => { setPersistedVariations([]); }, [generatedImages]);
 
+  // Returning from the Higgsfield sign-in (/?hf=connected or /?hf=error:…):
+  // open the Video tab, show the outcome, and tidy the URL.
+  const refreshVideoConnection = videoState.refreshConnection;
+  useEffect(() => {
+    const hf = new URLSearchParams(window.location.search).get('hf');
+    if (!hf) return;
+    handleTabChange('video');
+    if (hf === 'connected') toast.success('Higgsfield connected — you can generate videos now.');
+    else toast.error(`Higgsfield sign-in failed: ${hf.replace(/^error:/, '')}`);
+    window.history.replaceState({}, '', window.location.pathname);
+    refreshVideoConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Get current brand from metadata (result view) or formData (form view)
   const currentBrand = promptMetadata?.brand || formData.brand || "";
 

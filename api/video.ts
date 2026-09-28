@@ -41,12 +41,14 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 // ── Higgsfield helpers ────────────────────────────────────────────────────
 
 function hfAuthHeader(): string {
-  const id = process.env.HF_API_KEY_ID;
-  const secret = process.env.HF_API_KEY_SECRET;
-  if (!id || !secret || id.startsWith('your_') || secret.startsWith('your_')) {
-    throw new HttpError(503, 'Higgsfield API key is not configured yet (HF_API_KEY_ID / HF_API_KEY_SECRET).');
+  // The Higgsfield console hands out ONE combined "id:secret" string.
+  // (Older keys came as two parts — still accepted via HF_API_KEY_ID + HF_API_KEY_SECRET.)
+  const { HF_API_KEY, HF_API_KEY_ID, HF_API_KEY_SECRET } = process.env;
+  const key = HF_API_KEY || (HF_API_KEY_ID && HF_API_KEY_SECRET ? `${HF_API_KEY_ID}:${HF_API_KEY_SECRET}` : '');
+  if (!key || key.startsWith('your_')) {
+    throw new HttpError(503, 'Higgsfield API key is not configured yet (HF_API_KEY).');
   }
-  return `Key ${id}:${secret}`;
+  return `Key ${key}`;
 }
 
 async function hfFetch(path: string, init: RequestInit = {}) {

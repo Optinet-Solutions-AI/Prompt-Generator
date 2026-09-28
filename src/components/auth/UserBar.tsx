@@ -170,8 +170,10 @@ export function UserBar() {
               </div>
               <DropdownMenuItem asChild>
                 <a href="https://drive.google.com/drive/my-drive" target="_blank" rel="noreferrer">
-                  <ExternalLink className="w-4 h-4 mr-2" />Open my Google Drive
-                  <span className="ml-auto text-[11px] text-muted-foreground">“Prompt Generator”</span>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  <span>Open my Google Drive
+                    <span className="block text-[11px] text-muted-foreground">Files are in the “Prompt Generator” folder</span>
+                  </span>
                 </a>
               </DropdownMenuItem>
             </>

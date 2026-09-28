@@ -7,6 +7,7 @@ import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
 import { supabaseThumbnail } from '@/lib/imageUtils';
 import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
+import { myFavoritesFilter } from '@/lib/current-user';
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -59,7 +60,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
       if (!SUPABASE_URL || !SUPABASE_ANON_KEY)
         throw new Error('Missing Supabase configuration.');
       // Supabase REST API: filter by brand_name, ordered newest first
-      const url = `${SUPABASE_URL}/rest/v1/liked_images?brand_name=eq.${encodeURIComponent(brand)}&order=created_at.desc`;
+      const url = `${SUPABASE_URL}/rest/v1/liked_images?brand_name=eq.${encodeURIComponent(brand)}&order=created_at.desc${myFavoritesFilter()}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,

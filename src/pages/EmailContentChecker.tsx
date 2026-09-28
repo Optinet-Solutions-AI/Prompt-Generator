@@ -29,6 +29,7 @@ import {
 } from '@/lib/email-model';
 import { EMAIL_TEMPLATES, buildTemplateDoc } from '@/lib/email-templates';
 import { getAllStoredImages, batchStoreImages } from '@/lib/imageStore';
+import { myFavoritesFilter } from '@/lib/current-user';
 
 const FLOW = ['Template', 'Build', 'Variations', 'Check', 'Export'];
 
@@ -69,7 +70,7 @@ async function syncFromDrive(): Promise<void> {
 async function fetchFavorites(): Promise<PickImage[]> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return [];
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/liked_images?select=*&order=created_at.desc`,
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/liked_images?select=*&order=created_at.desc${myFavoritesFilter()}`,
       { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } });
     if (!res.ok) return [];
     const raw = await res.json();

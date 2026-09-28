@@ -9,6 +9,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { authApi, type AppUser } from '@/lib/auth-api';
 import { setImageStoreOwner } from '@/lib/imageStore';
+import { setCurrentUserId } from '@/lib/current-user';
 
 interface AuthState {
   loading: boolean;
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // New images are cached in the browser under THIS person's name, so two
       // people sharing a computer don't see each other's library.
       setImageStoreOwner(me.user?.id || null);
+      setCurrentUserId(me.user?.id || null);
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not check your sign-in');
@@ -48,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try { await authApi.signOut(); } finally {
-      setUser(null); setDriveConnected(false); setImageStoreOwner(null);
+      setUser(null); setDriveConnected(false); setImageStoreOwner(null); setCurrentUserId(null);
     }
   }, []);
 

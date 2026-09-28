@@ -36,7 +36,9 @@ interface GeneratedImage {
 }
 
 import { BRANDS } from '@/types/prompt';
-import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, storeImage } from '@/lib/imageStore';
+import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, storeImage, setImageLibraryView } from '@/lib/imageStore';
+import { LibrarySourcePicker, ownerParam, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
+import { useAuth } from '@/hooks/useAuth';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
 import { getBrandOverlayUrl } from '@/lib/brandOverlays';
 import {
@@ -81,9 +83,11 @@ function fetchImages(page: number, filter: string): { data: GeneratedImage[]; ha
 // Runs every time the library opens. Fetches all images from Google Drive
 // (the source of truth) and adds any that are missing from localStorage.
 // This means the Image Library works on ANY domain — not just the original one.
-async function syncFromDrive(): Promise<number> {
+// `owner` picks whose images: '' = mine, a profile id = a shared library,
+// 'archive' = the team folder from before accounts.
+async function syncFromDrive(owner = ''): Promise<number> {
   try {
-    const res = await fetch('/api/list-drive-images');
+    const res = await fetch(`/api/list-drive-images${owner ? `?owner=${encodeURIComponent(owner)}` : ''}`);
     if (!res.ok) {
       const errText = await res.text();
       console.error('[syncFromDrive] API error:', res.status, errText);
@@ -123,8 +127,16 @@ async function syncFromDrive(): Promise<number> {
   }
 }
 
-async function fetchFavorites(brandFilter: string): Promise<{ data: GeneratedImage[]; hasMore: boolean }> {
-  let query = `liked_images?select=*&order=created_at.desc`;
+// Favorites for the library being viewed: mine (+ old team favorites from
+// before accounts), a colleague's, or only the old team ones for the archive.
+function favoritesOwnerFilter(source: LibrarySource, myId: string | undefined): string {
+  if (source.kind === 'shared') return `&owner_id=eq.${source.ownerId}`;
+  if (source.kind === 'archive' || !myId) return '&owner_id=is.null';
+  return `&or=(owner_id.eq.${myId},owner_id.is.null)`;
+}
+
+async function fetchFavorites(brandFilter: string, ownerFilter = ''): Promise<{ data: GeneratedImage[]; hasMore: boolean }> {
+  let query = `liked_images?select=*&order=created_at.desc${ownerFilter}`;
   if (brandFilter !== 'all') query += `&brand_name=eq.${encodeURIComponent(brandFilter)}`;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, { headers: SB_HEADERS });
   if (!res.ok) throw new Error(`Failed to load favorites (${res.status})`);
@@ -1625,6 +1637,12 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
 
   const isFavoritesMode = filter === 'favorites';
 
+  // Whose library is showing (My library / a colleague's / Team archive)
+  const { user } = useAuth();
+  const [source, setSource] = useState<LibrarySource>({ kind: 'mine' });
+  const sourceRef = useRef<LibrarySource>(source);
+  const [syncing, setSyncing] = useState(false);
+
   const load = useCallback(async (pageNum: number, activeFilter: string, activeBrand: string, reset = false) => {
     const isFavorites = activeFilter === 'favorites';
     // Only show loading spinner for async Supabase calls (favorites).
@@ -1633,7 +1651,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
     setError(null);
     try {
       const { data, hasMore: more } = isFavorites
-        ? await fetchFavorites(activeBrand)
+        ? await fetchFavorites(activeBrand, favoritesOwnerFilter(sourceRef.current, user?.id))
         : fetchImages(pageNum, activeFilter); // sync — no await
       setImages(prev => reset ? data : [...prev, ...data]);
       setHasMore(more);
@@ -1643,7 +1661,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
     } finally {
       if (isFavorites) setIsLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => { load(0, filter, brandFilter, true); }, [filter, brandFilter, load]);
 
@@ -1651,14 +1669,22 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
   // Any images in Drive that aren't in localStorage get added automatically.
   // This makes the library work correctly across any domain or deployment.
   useEffect(() => {
-    syncFromDrive().then(count => {
-      if (count > 0) {
+    // Point the browser cache at the chosen library, show what's cached
+    // instantly, then fill in anything new from that person's Google Drive.
+    sourceRef.current = source;
+    setImageLibraryView(source.kind === 'shared' ? { kind: 'shared', ownerId: source.ownerId } : { kind: source.kind });
+    load(0, filter, brandFilter, true);
+    setSyncing(true);
+    syncFromDrive(ownerParam(source)).then(count => {
+      if (count > 0 && sourceRef.current === source) {
         // New images were synced from Drive — reload the grid so they appear
         load(0, filter, brandFilter, true);
       }
-    });
+    }).finally(() => setSyncing(false));
+    // Leaving the library → future reads go back to my own images.
+    return () => setImageLibraryView({ kind: 'mine' });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [source]);
 
   const handleFilter = (f: string) => {
     if (f === filter) return;
@@ -1720,13 +1746,13 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
               </div>
               <div>
                 <h1 className="font-semibold text-foreground text-sm leading-tight">Image Library</h1>
-                {images.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground leading-tight">
-                    {images.length}{hasMore ? '+' : ''} image{images.length !== 1 ? 's' : ''}
-                  </p>
-                )}
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  {images.length}{hasMore ? '+' : ''} image{images.length !== 1 ? 's' : ''}
+                  {syncing ? ' · syncing…' : ''}
+                </p>
               </div>
             </div>
+            <LibrarySourcePicker value={source} onChange={setSource} />
           </div>
 
           {/* Filter tabs */}

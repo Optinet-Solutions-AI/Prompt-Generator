@@ -179,18 +179,23 @@ async function status(p: Profile, id: string) {
 // every write here is best effort.
 
 async function recordUsage(p: Profile, jobId: string, params: VideoParams, body: Record<string, unknown>, withImage: boolean, credits: number | null) {
+  const base = {
+    user_id: p.id, job_id: jobId, model: params.model, duration: params.duration,
+    aspect_ratio: params.aspect_ratio, brand: String(body.brand || '') || null,
+    start_image: withImage, credits,
+  };
+  const insert = (row: Record<string, unknown>) => sb('video_usage', {
+    method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(row),
+  });
   try {
-    await sb('video_usage', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
-      body: JSON.stringify({
-        user_id: p.id, job_id: jobId, model: params.model, duration: params.duration,
-        aspect_ratio: params.aspect_ratio, brand: String(body.brand || '') || null,
-        start_image: withImage, credits,
-      }),
-    });
+    // WHO made it and WHICH Higgsfield account paid — copied onto the record
+    // so the history stays readable even if accounts change later.
+    const hf = await connectionStatus(HF).catch(() => ({ email: null }));
+    await insert({ ...base, user_email: p.email, user_name: p.name, higgsfield_account: hf.email });
   } catch (err) {
-    console.error('[video:usage] could not record usage (render continues):', err);
+    // Account columns not added yet (older database) → still record the credits.
+    try { await insert(base); } catch { /* reported below */ }
+    console.error('[video:usage] full usage record failed (render continues):', err);
   }
 }
 
@@ -207,7 +212,8 @@ async function finishUsage(jobId: string, result: 'completed' | 'failed') {
 }
 
 export interface UsageRow {
-  user_id: string; job_id: string; model: string; duration: number | null; aspect_ratio: string | null;
+  user_id: string | null; job_id: string;
+  user_email?: string | null; user_name?: string | null; higgsfield_account?: string | null; model: string; duration: number | null; aspect_ratio: string | null;
   brand: string | null; start_image: boolean; credits: number | string | null; status: string; created_at: string;
 }
 
@@ -241,6 +247,7 @@ export function summarize(rows: UsageRow[]) {
     failed: rows.length - counted.length,
     by_model: group(r => MODEL_LABELS[r.model] || r.model),
     by_brand: group(r => r.brand || ''),
+    by_higgsfield_account: group(r => r.higgsfield_account || ''),
   };
 }
 
@@ -270,11 +277,12 @@ async function usageTeam(req: VercelRequest, res: VercelResponse, p: Profile) {
 
   if (req.query.format === 'csv') {
     const esc = (v: unknown) => { const t = v == null ? '' : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-    const lines = [['date', 'name', 'email', 'model', 'brand', 'seconds', 'ratio', 'start image', 'credits', 'status'].join(',')];
+    const lines = [['date', 'name', 'email', 'higgsfield account', 'model', 'brand', 'seconds', 'ratio', 'start image', 'credits', 'status', 'higgsfield job id'].join(',')];
     for (const r of rows) {
-      const u = byId.get(r.user_id);
-      lines.push([r.created_at, u?.name, u?.email, MODEL_LABELS[r.model] || r.model, r.brand, r.duration, r.aspect_ratio,
-        r.start_image ? 'yes' : 'no', r.credits, r.status].map(esc).join(','));
+      const u = r.user_id ? byId.get(r.user_id) : undefined;
+      lines.push([r.created_at, r.user_name || u?.name, r.user_email || u?.email, r.higgsfield_account,
+        MODEL_LABELS[r.model] || r.model, r.brand, r.duration, r.aspect_ratio,
+        r.start_image ? 'yes' : 'no', r.credits, r.status, r.job_id].map(esc).join(','));
     }
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="higgsfield-usage-last-${period.days}-days.csv"`);
@@ -282,12 +290,22 @@ async function usageTeam(req: VercelRequest, res: VercelResponse, p: Profile) {
     return;
   }
 
-  const perUser = [...new Set(rows.map(r => r.user_id))].map(uid => {
-    const u = byId.get(uid);
+  // One entry per person — keyed by account id, or by the saved email if the
+  // app account was deleted since.
+  const keyOf = (r: UsageRow) => r.user_id || `email:${r.user_email || 'unknown'}`;
+  const perUser = [...new Set(rows.map(keyOf))].map(key => {
+    const mine = rows.filter(r => keyOf(r) === key);
+    const u = mine[0].user_id ? byId.get(mine[0].user_id) : undefined;
     return {
-      user: { id: uid, email: u?.email || '(deleted user)', name: u?.name || null, avatar_url: u?.avatar_url || null },
-      ...summarize(rows.filter(r => r.user_id === uid)),
-      last_at: rows.find(r => r.user_id === uid)?.created_at || null,
+      user: {
+        id: key,
+        email: u?.email || mine[0].user_email || '(unknown)',
+        name: u?.name || mine[0].user_name || null,
+        avatar_url: u?.avatar_url || null,
+        deleted: !u,
+      },
+      ...summarize(mine),
+      last_at: mine[0]?.created_at || null,
     };
   }).sort((a, b) => b.credits - a.credits);
   res.status(200).json({ days: period.days, ...summarize(rows), people: perUser });

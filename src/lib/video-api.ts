@@ -86,11 +86,13 @@ export interface UsageSummary {
   failed: number;
   by_model: Record<string, UsageGroup>;
   by_brand: Record<string, UsageGroup>;
+  /** Which Higgsfield account paid (the team login at the time). */
+  by_higgsfield_account: Record<string, UsageGroup>;
 }
 export interface UsageRecent {
   created_at: string; model: string; brand: string | null; duration: number | null; credits: number | null; status: string;
 }
 export interface UsagePerson extends UsageSummary {
-  user: { id: string; email: string; name: string | null; avatar_url: string | null };
+  user: { id: string; email: string; name: string | null; avatar_url: string | null; deleted?: boolean };
   last_at: string | null;
 }

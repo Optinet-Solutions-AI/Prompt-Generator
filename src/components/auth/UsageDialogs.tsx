@@ -95,7 +95,7 @@ export function MyUsageDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const { data, loading, error } = useUsage<UsageSummary & { recent: UsageRecent[] }>(open, days, videoApi.usageMine);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" onOpenAutoFocus={e => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-primary" />My Higgsfield usage</DialogTitle>
           <DialogDescription>Credits your videos used from the team Higgsfield plan.</DialogDescription>
@@ -140,7 +140,7 @@ export function TeamUsageDialog({ open, onOpenChange }: { open: boolean; onOpenC
   const { data, loading, error } = useUsage<UsageSummary & { people: UsagePerson[] }>(open, days, videoApi.usageTeam);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" onOpenAutoFocus={e => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" />Team Higgsfield usage</DialogTitle>
           <DialogDescription>Who used how many credits from the team Higgsfield plan. Admins only.</DialogDescription>
@@ -169,7 +169,11 @@ export function TeamUsageDialog({ open, onOpenChange }: { open: boolean; onOpenC
                         ? <img src={u.user.avatar_url} alt="" referrerPolicy="no-referrer" className="w-7 h-7 rounded-full" />
                         : <span className="w-7 h-7 rounded-full bg-primary/15" />}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm text-foreground truncate">{u.user.name || u.user.email}</p>
+                        <p className="text-sm text-foreground truncate">
+                          {u.user.name || u.user.email}
+                          {u.user.name && <span className="text-muted-foreground font-normal"> · {u.user.email}</span>}
+                          {u.user.deleted && <span className="text-[11px] text-muted-foreground"> (account removed)</span>}
+                        </p>
                         <p className="text-[11px] text-muted-foreground truncate">
                           {Object.entries(u.by_model).map(([m, g]) => `${m}: ${g.videos}`).join(' · ')}
                           {u.last_at ? ` · last ${new Date(u.last_at).toLocaleDateString()}` : ''}
@@ -187,6 +191,7 @@ export function TeamUsageDialog({ open, onOpenChange }: { open: boolean; onOpenC
                 <Breakdown title="By model" groups={data.by_model} />
                 <Breakdown title="By brand" groups={data.by_brand} />
               </div>
+              <Breakdown title="Paid by Higgsfield account" groups={data.by_higgsfield_account} />
             </div>
           )}
         </Loading>

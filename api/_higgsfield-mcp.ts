@@ -326,11 +326,12 @@ export async function uploadImage(dataUrl: string): Promise<string> {
   if (!m) throw new HttpError(400, 'Start image must be a PNG, JPEG or WebP');
   const [, contentType, ext, b64] = m;
   const { data } = await callTool('media_upload', { filename: `start.${ext === 'jpeg' ? 'jpg' : ext}`, content_type: contentType });
-  const up = (Array.isArray(data.files) ? data.files[0] : data) as { media_id?: string; id?: string; upload_url?: string; headers?: Record<string, string> };
-  const mediaId = up.media_id || up.id;
+  // Reply shape (2026-09-28): { uploads: [{ upload_url, media_id, method: 'PUT', content_type }] }
+  const up = (data.uploads as Array<{ media_id?: string; upload_url?: string }> | undefined)?.[0] || {};
+  const mediaId = up.media_id;
   if (!up.upload_url || !mediaId) throw new HttpError(502, 'Higgsfield did not return an upload URL');
   const put = await fetch(up.upload_url, {
-    method: 'PUT', headers: { 'Content-Type': contentType, ...(up.headers || {}) }, body: Buffer.from(b64, 'base64'),
+    method: 'PUT', headers: { 'Content-Type': contentType }, body: Buffer.from(b64, 'base64'),
   });
   if (!put.ok) throw new HttpError(502, `Start image upload failed (${put.status})`);
   await callTool('media_confirm', { type: 'image', media_id: mediaId });

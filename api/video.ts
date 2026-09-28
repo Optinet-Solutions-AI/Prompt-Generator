@@ -15,7 +15,7 @@
  * the function timeout, so the browser polls `status` every few seconds instead.
  *
  * ENV VARS (see .env.local):
- *   HF_API_KEY_ID, HF_API_KEY_SECRET   — Higgsfield console → API keys
+ *   HF_API_KEY                          — Higgsfield console → API keys ("id:secret")
  *   HF_VIDEO_MODEL_T2V                  — text-to-video endpoint path
  *   HF_VIDEO_MODEL_I2V                  — image-to-video endpoint path
  *   GOOGLE_DRIVE_VIDEO_FOLDER_ID        — the NEW Drive folder for videos
@@ -57,7 +57,14 @@ async function hfFetch(path: string, init: RequestInit = {}) {
     headers: { Authorization: hfAuthHeader(), 'Content-Type': 'application/json', ...(init.headers || {}) },
   });
   const text = await res.text();
-  if (!res.ok) throw new HttpError(res.status, `Higgsfield ${res.status}: ${text.slice(0, 300)}`);
+  if (!res.ok) {
+    // Turn Higgsfield's short codes into messages a user can act on.
+    if (text.includes('not_enough_credits')) {
+      throw new HttpError(402, 'Higgsfield account is out of credits — top up at cloud.higgsfield.ai, then try again.');
+    }
+    if (res.status === 401) throw new HttpError(401, 'Higgsfield rejected the API key — check HF_API_KEY.');
+    throw new HttpError(res.status, `Higgsfield ${res.status}: ${text.slice(0, 300)}`);
+  }
   return text ? JSON.parse(text) : {};
 }
 

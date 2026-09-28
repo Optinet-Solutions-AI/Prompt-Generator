@@ -138,6 +138,19 @@ export async function requireUser(req: VercelRequest): Promise<Profile> {
 }
 
 /**
+ * One-line guard for routes: `const me = await guard(req, res); if (!me) return;`
+ * Sends the 401/403 itself when the caller isn't a signed-in, approved user.
+ */
+export async function guard(req: VercelRequest, res: VercelResponse): Promise<Profile | null> {
+  try {
+    return await requireUser(req);
+  } catch (err) {
+    if (err instanceof AuthError) { res.status(err.status).json({ error: err.message }); return null; }
+    throw err;
+  }
+}
+
+/**
  * The profile whose library `viewer` wants to see: themselves, or someone who
  * shared their library with them. Throws 403 otherwise.
  */

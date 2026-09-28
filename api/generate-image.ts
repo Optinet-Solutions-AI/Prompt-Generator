@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { brandSlug } from './_brand-slug.js';
 import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 import { checkSpendCap } from './_spend-cap.js';
+import { requireUser, AuthError, type Profile } from './_session.js';
+import { uploadToUserDrive, makeUserFilePublic, ensureFolder } from './_user-drive.js';
 
 // Image generation is the slowest operation in the app — gpt-image-2 measured
 // 79s for a 2048×1024 "high" quality render on 2026-08-22. Without this, the
@@ -282,6 +284,37 @@ async function uploadImageToDrive(params: {
   return file.id;
 }
 
+/**
+ * Save a generated image and return its Drive file id.
+ *
+ * WHERE IT GOES:
+ *   - main app → the signed-in user's OWN Drive (My Drive / Prompt Generator / Images)
+ *   - AI Assistant tester links (no Google sign-in) → the shared folder, as
+ *     before accounts existed (GOOGLE_DRIVE_FOLDER_ID)
+ *
+ * Either way the file is set to "anyone with the link can view", because
+ * Edit, Variations and the lh3.googleusercontent.com preview URLs fetch the
+ * image by link without a login — exactly as before.
+ */
+async function saveGeneratedImage(owner: Profile | null, img: {
+  imageBuffer: Buffer; mimeType: string; filename: string;
+  provider: string; aspectRatio: string; resolution: string; brand?: string;
+}): Promise<string> {
+  if (owner) {
+    const appProperties: Record<string, string> = { provider: img.provider, aspectRatio: img.aspectRatio, resolution: img.resolution };
+    if (img.brand && img.brand.trim()) appProperties.brand = img.brand.trim();
+    const id = await uploadToUserDrive(owner, 'images', { buffer: img.imageBuffer, mimeType: img.mimeType, name: img.filename, appProperties });
+    await makeUserFilePublic(owner, id);
+    return id;
+  }
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!folderId) throw new Error('GOOGLE_DRIVE_FOLDER_ID is not configured');
+  const accessToken = await getGoogleAccessToken();
+  const id = await uploadImageToDrive({ ...img, folderId, accessToken });
+  await makeFilePublic(id, accessToken);
+  return id;
+}
+
 // ------------------------------------------------------------------
 // Brand-specific mandatory style rules.
 // These are injected into EVERY prompt for the matching brand so the
@@ -476,6 +509,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // ── Who is generating? ──────────────────────────────────────────────
+    // Main-app requests need a signed-in, approved user; their image goes to
+    // their own Drive. Checked (and their Images folder made ready) BEFORE the
+    // paid OpenAI/Gemini calls below, so nobody is billed for an image that
+    // then has nowhere to go. AI Assistant tester links keep the old behaviour.
+    const isAssistantRequest = body.source === 'assistant' && !!body.test_user_id;
+    let owner: Profile | null = null;
+    if (!isAssistantRequest) {
+      try {
+        owner = await requireUser(req);
+        await ensureFolder(owner, 'images');
+      } catch (authErr) {
+        if (authErr instanceof AuthError) {
+          const driveMissing = authErr.message === 'DRIVE_NOT_CONNECTED';
+          return res.status(authErr.status).json({
+            error: driveMissing ? 'Your Google Drive is not connected — click "Reconnect Google Drive".' : authErr.message,
+            ...(driveMissing ? { code: 'DRIVE_NOT_CONNECTED' } : {}),
+          });
+        }
+        throw authErr;
+      }
+    }
+
     // Inject brand-mandatory style rules into the prompt
     const enrichedPrompt = enrichPromptWithBrandStyle(prompt, brand || '');
 
@@ -582,11 +638,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // ── Save ChatGPT image to Google Drive ─────────────────────────────
       // This makes it persistent and visible in the Image Library across
       // any domain/deployment — not just in the current browser's localStorage.
-      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-      if (folderId) {
+      if (owner || process.env.GOOGLE_DRIVE_FOLDER_ID) {
         try {
-          const accessToken = await getGoogleAccessToken();
-
           // Fetch or decode the image bytes
           let imageBuffer: Buffer;
           let imageMime = 'image/png';
@@ -611,20 +664,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const slug     = brandSlug(brand);
           const filename = `${slug ? slug + '-' : ''}chatgpt-${Date.now()}.${ext}`;
 
-          const fileId = await uploadImageToDrive({
+          const fileId = await saveGeneratedImage(owner, {
             imageBuffer,
             mimeType:    imageMime,
             filename,
-            folderId,
             provider:    'chatgpt',
             aspectRatio: aspectRatio || '16:9',
             resolution:  resolution  || '1K',
-            accessToken,
             brand,
           });
-
-          // Make public so server-side fetches (edit, variations) work without auth
-          await makeFilePublic(fileId, accessToken);
 
           // Prefer usage-based cost over the legacy size/quality table: Task 5's
           // real-shape sizes (e.g. "2048x1024") have no row in IMAGE_PRICING, so
@@ -675,8 +723,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // this used to run after generateGeminiImage(), so a missing env var
       // threw away an image the user had already been billed up to $0.24 for.
       // Fail fast, at no cost, same as the OpenAI branch above.
-      const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-      if (!folderId) {
+      if (!owner && !process.env.GOOGLE_DRIVE_FOLDER_ID) {
         return res.status(500).json({ error: 'GOOGLE_DRIVE_FOLDER_ID is not configured' });
       }
 
@@ -733,19 +780,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // `driveSaveFailed: true` tells the caller it never reached the shared
       // Image Library (won't show up on other devices; localStorage is the only copy).
       try {
-        const accessToken = await getGoogleAccessToken();
-        const fileId = await uploadImageToDrive({
+        const fileId = await saveGeneratedImage(owner, {
           imageBuffer: imgBuf,
           mimeType:    imgMime,
           filename:    `${gSlug ? gSlug + '-' : ''}gemini-${Date.now()}.${ext}`,
-          folderId,
           provider:    'gemini',
           aspectRatio: aspectRatio || '16:9',
           resolution:  resolution  || '1K',
-          accessToken,
           brand,
         });
-        await makeFilePublic(fileId, accessToken);
         await logAssistantImageGen(
           req, fileId, 'gemini', geminiSpec.id, aspectRatio || '1:1', null, gen.usage,
         );
@@ -879,8 +922,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // ── Save Gemini image to our Drive folder ───────────────────────
           // Cloud Run may save to its own folder. We re-save to our designated
           // folder so the Image Library can list ALL images from one place.
-          const geminiFolder = process.env.GOOGLE_DRIVE_FOLDER_ID;
-          if (geminiFolder) {
+          if (owner || process.env.GOOGLE_DRIVE_FOLDER_ID) {
             try {
               // Get the image URL from Cloud Run response
               const cloudRunImageUrl =
@@ -889,7 +931,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 (result.fileId ? `https://lh3.googleusercontent.com/d/${result.fileId}` : null);
 
               if (cloudRunImageUrl && !cloudRunImageUrl.startsWith('data:')) {
-                const geminiAccessToken = await getGoogleAccessToken();
                 const imgRes  = await fetch(cloudRunImageUrl);
                 const rawMime = imgRes.headers.get('content-type')?.split(';')[0] || 'image/png';
                 const rawBuf  = Buffer.from(await imgRes.arrayBuffer());
@@ -902,20 +943,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const ext     = imgMime.split('/')[1] || 'png';
                 const gSlug   = brandSlug(brand);
 
-                const geminiFileId = await uploadImageToDrive({
+                const geminiFileId = await saveGeneratedImage(owner, {
                   imageBuffer: imgBuf,
                   mimeType:    imgMime,
                   filename:    `${gSlug ? gSlug + '-' : ''}gemini-${Date.now()}.${ext}`,
-                  folderId:    geminiFolder,
                   provider:    'gemini',
                   aspectRatio: aspectRatio || '16:9',
                   resolution:  resolution  || '1K',
-                  accessToken: geminiAccessToken,
                   brand,
                 });
-
-                // Make public so server-side fetches (edit, variations) work without auth
-                await makeFilePublic(geminiFileId, geminiAccessToken);
 
                 // Was the literal string 'imagen', which made Gemini image spend impossible
                 // to attribute to a model in the Cost Tracker.

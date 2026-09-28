@@ -55,6 +55,9 @@ export default defineConfig(({ mode }) => ({
       "/api": {
         target: process.env.VITE_API_PROXY || "http://localhost:3939",
         changeOrigin: true,
+        // Pass the browser's real host (localhost:8080) as X-Forwarded-Host so
+        // API redirects (e.g. the Higgsfield sign-in callback) return to vite.
+        xfwd: true,
       },
     },
   },

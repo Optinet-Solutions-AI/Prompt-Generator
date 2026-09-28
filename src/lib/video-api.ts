@@ -26,6 +26,8 @@ export interface LibraryVideo {
 /** The generation settings the server needs (for both `cost` and `submit`). */
 export interface VideoRequest {
   prompt: string;
+  /** Recorded with the usage so the summary can show credits per brand. */
+  brand?: string;
   model: string;
   aspectRatio: string;
   duration: number;
@@ -68,4 +70,27 @@ export const videoApi = {
   like: (v: Pick<LibraryVideo, 'id' | 'brand' | 'video_url' | 'prompt'>) =>
     call('like', { body: { file_id: v.id, brand: v.brand, video_url: v.video_url, prompt: v.prompt } }),
   unlike: (id: string) => call('unlike', { body: { file_id: id } }),
+
+  // Higgsfield credit usage
+  usageMine: (days: number) => call<UsageSummary & { days: number; recent: UsageRecent[] }>('usage-mine', { query: { days: String(days) } }),
+  usageTeam: (days: number) => call<UsageSummary & { days: number; people: UsagePerson[] }>('usage-team', { query: { days: String(days) } }),
+  /** CSV download link (admins). */
+  usageCsvUrl: (days: number) => `/api/video?action=usage-team&days=${days}&format=csv`,
 };
+
+export interface UsageGroup { videos: number; credits: number }
+export interface UsageSummary {
+  credits: number;
+  videos: number;
+  /** Failed renders — listed, not counted (Higgsfield normally returns their credits). */
+  failed: number;
+  by_model: Record<string, UsageGroup>;
+  by_brand: Record<string, UsageGroup>;
+}
+export interface UsageRecent {
+  created_at: string; model: string; brand: string | null; duration: number | null; credits: number | null; status: string;
+}
+export interface UsagePerson extends UsageSummary {
+  user: { id: string; email: string; name: string | null; avatar_url: string | null };
+  last_at: string | null;
+}

@@ -19,6 +19,8 @@
  *   GET  ?action=list            → &owner=<profile id> (default me) | &owner=archive
  *   GET  ?action=stream          → &id=<drive id>&owner=…  plays a video (range slices)
  *   POST ?action=like / unlike   → favorites on MY videos (Supabase `liked_videos`)
+ *   GET  ?action=usage-mine      → &days=30  my Higgsfield credit usage
+ *   GET  ?action=usage-team      → (admins) &days=30[&format=csv]  everyone's usage
  *
  * "owner=archive" = the old shared team folder (GOOGLE_DRIVE_VIDEO_FOLDER_ID)
  * from before accounts existed — read-only for everyone signed in.
@@ -144,20 +146,151 @@ function toParams(body: Record<string, unknown>): VideoParams {
 
 async function submit(p: Profile, body: Record<string, unknown>) {
   const params = toParams(body);
-  if (typeof body.startImage === 'string' && body.startImage) {
-    params.medias = [{ value: await uploadImage(HF, body.startImage), role: 'start_image' }];
+  const withImage = typeof body.startImage === 'string' && !!body.startImage;
+  if (withImage) {
+    params.medias = [{ value: await uploadImage(HF, body.startImage as string), role: 'start_image' }];
   }
-  return { request_id: await submitVideo(HF, params) };
+  // Ask Higgsfield for the exact price of THIS render at the same time as we
+  // submit it (the price check never creates a job), so usage is recorded
+  // without making Generate any slower.
+  const [jobId, credits] = await Promise.all([
+    submitVideo(HF, params),
+    videoCost(HF, params).catch(() => null),
+  ]);
+  await recordUsage(p, jobId, params, body, withImage, credits);
+  return { request_id: jobId };
 }
 
 async function status(p: Profile, id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'invalid id');
   const s = await videoStatus(HF, id);
   // Map Higgsfield's words onto the ones the browser already understands.
+  const failedStatus = ['failed', 'nsfw', 'canceled', 'cancelled', 'ip_detected'].includes(s.status);
+  if (s.status === 'completed' || failedStatus) await finishUsage(id, s.status === 'completed' ? 'completed' : 'failed');
   if (s.status === 'ip_detected') {
     return { status: 'failed', video_url: null, error: 'Higgsfield flagged possible copyrighted content (a real person, character or brand) — reword the prompt.' };
   }
   return { status: s.status, video_url: s.url, error: s.error };
+}
+
+// ── Usage (who spent which Higgsfield credits) ────────────────────────────
+// Everyone renders on the one team account, so we keep our own record per
+// person in Supabase `video_usage`. Recording must NEVER break a render, so
+// every write here is best effort.
+
+async function recordUsage(p: Profile, jobId: string, params: VideoParams, body: Record<string, unknown>, withImage: boolean, credits: number | null) {
+  try {
+    await sb('video_usage', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify({
+        user_id: p.id, job_id: jobId, model: params.model, duration: params.duration,
+        aspect_ratio: params.aspect_ratio, brand: String(body.brand || '') || null,
+        start_image: withImage, credits,
+      }),
+    });
+  } catch (err) {
+    console.error('[video:usage] could not record usage (render continues):', err);
+  }
+}
+
+async function finishUsage(jobId: string, result: 'completed' | 'failed') {
+  try {
+    // Only the first terminal status counts (the browser polls repeatedly).
+    await sb(`video_usage?job_id=eq.${encodeURIComponent(jobId)}&status=eq.submitted`, {
+      method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: result, finished_at: new Date().toISOString() }),
+    });
+  } catch (err) {
+    console.error('[video:usage] could not update usage status:', err);
+  }
+}
+
+interface UsageRow {
+  user_id: string; job_id: string; model: string; duration: number | null; aspect_ratio: string | null;
+  brand: string | null; start_image: boolean; credits: number | string | null; status: string; created_at: string;
+}
+
+const MODEL_LABELS: Record<string, string> = { seedance_2_5: 'Seedance 2.5', kling3_0: 'Kling 3.0 Pro' };
+
+function periodStart(daysParam: unknown): { since: string; days: number } {
+  const days = Math.min(Math.max(parseInt(String(daysParam || '30'), 10) || 30, 1), 3650);
+  return { since: new Date(Date.now() - days * 86400_000).toISOString(), days };
+}
+
+/**
+ * Totals for a set of renders. Failed renders are listed but NOT counted:
+ * Higgsfield normally returns credits for renders that fail (not yet verified
+ * for every failure type).
+ */
+function summarize(rows: UsageRow[]) {
+  const counted = rows.filter(r => r.status !== 'failed');
+  const credits = (list: UsageRow[]) => Math.round(list.reduce((t, r) => t + (Number(r.credits) || 0), 0) * 10) / 10;
+  const group = (key: (r: UsageRow) => string) => {
+    const out: Record<string, { videos: number; credits: number }> = {};
+    for (const r of counted) {
+      const k = key(r) || '—';
+      out[k] = out[k] || { videos: 0, credits: 0 };
+      out[k].videos++; out[k].credits = Math.round((out[k].credits + (Number(r.credits) || 0)) * 10) / 10;
+    }
+    return out;
+  };
+  return {
+    credits: credits(counted),
+    videos: counted.length,
+    failed: rows.length - counted.length,
+    by_model: group(r => MODEL_LABELS[r.model] || r.model),
+    by_brand: group(r => r.brand || ''),
+  };
+}
+
+async function usageRows(filter: string, since: string): Promise<UsageRow[]> {
+  return await sb(`video_usage?select=*&created_at=gte.${encodeURIComponent(since)}${filter}&order=created_at.desc&limit=5000`) as UsageRow[];
+}
+
+async function usageMine(p: Profile, days: unknown) {
+  const period = periodStart(days);
+  const rows = await usageRows(`&user_id=eq.${p.id}`, period.since);
+  return {
+    days: period.days,
+    ...summarize(rows),
+    recent: rows.slice(0, 25).map(r => ({
+      created_at: r.created_at, model: MODEL_LABELS[r.model] || r.model, brand: r.brand, duration: r.duration,
+      credits: Number(r.credits) || null, status: r.status,
+    })),
+  };
+}
+
+async function usageTeam(req: VercelRequest, res: VercelResponse, p: Profile) {
+  if (!p.is_admin) throw new HttpError(403, 'Only an admin can see the team usage summary.');
+  const period = periodStart(req.query.days);
+  const rows = await usageRows('', period.since);
+  const people = await sb('profiles?select=id,email,name,avatar_url') as Array<{ id: string; email: string; name: string | null; avatar_url: string | null }>;
+  const byId = new Map(people.map(u => [u.id, u]));
+
+  if (req.query.format === 'csv') {
+    const esc = (v: unknown) => { const t = v == null ? '' : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+    const lines = [['date', 'name', 'email', 'model', 'brand', 'seconds', 'ratio', 'start image', 'credits', 'status'].join(',')];
+    for (const r of rows) {
+      const u = byId.get(r.user_id);
+      lines.push([r.created_at, u?.name, u?.email, MODEL_LABELS[r.model] || r.model, r.brand, r.duration, r.aspect_ratio,
+        r.start_image ? 'yes' : 'no', r.credits, r.status].map(esc).join(','));
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="higgsfield-usage-last-${period.days}-days.csv"`);
+    res.status(200).send(lines.join('\n'));
+    return;
+  }
+
+  const perUser = [...new Set(rows.map(r => r.user_id))].map(uid => {
+    const u = byId.get(uid);
+    return {
+      user: { id: uid, email: u?.email || '(deleted user)', name: u?.name || null, avatar_url: u?.avatar_url || null },
+      ...summarize(rows.filter(r => r.user_id === uid)),
+      last_at: rows.find(r => r.user_id === uid)?.created_at || null,
+    };
+  }).sort((a, b) => b.credits - a.credits);
+  res.status(200).json({ days: period.days, ...summarize(rows), people: perUser });
 }
 
 // Only download finished videos from Higgsfield's own storage — `save` must
@@ -325,6 +458,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST' && action === 'save') return res.status(200).json(await save(req, p, body));
     if (req.method === 'POST' && action === 'like') return res.status(200).json(await like(p, body));
     if (req.method === 'POST' && action === 'unlike') return res.status(200).json(await unlike(p, body));
+    if (req.method === 'GET' && action === 'usage-mine') return res.status(200).json(await usageMine(p, req.query.days));
+    if (req.method === 'GET' && action === 'usage-team') return await usageTeam(req, res, p);
     return res.status(404).json({ error: `Unknown action "${action}" for ${req.method}` });
   } catch (err) {
     // Drive disconnected → a code the page turns into a "Reconnect Google Drive" button.

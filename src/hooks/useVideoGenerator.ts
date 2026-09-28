@@ -136,7 +136,7 @@ export function useVideoGenerator() {
 
     try {
       const { request_id } = await videoApi.submit({
-        prompt, model: form.model, aspectRatio: form.aspectRatio, duration: form.duration, audio: form.audio,
+        prompt, brand: form.brand, model: form.model, aspectRatio: form.aspectRatio, duration: form.duration, audio: form.audio,
         startImage: form.startImage || undefined,
       });
 

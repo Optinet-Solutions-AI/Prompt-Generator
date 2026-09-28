@@ -41,8 +41,13 @@ export interface Profile {
 
 function secret(): string {
   const s = process.env.SESSION_SECRET;
-  if (!s || s.length < 32) throw new AuthError(503, 'SESSION_SECRET is not configured (needs 32+ characters)');
-  return s;
+  if (s && s.length >= 32) return s;
+  // No SESSION_SECRET set → derive one from the Supabase service-role key,
+  // which is already a server-only secret on Vercel. Setting SESSION_SECRET
+  // later is still preferred (and signs everyone out once when changed).
+  const base = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!base) throw new AuthError(503, 'SESSION_SECRET is not configured (needs 32+ characters)');
+  return crypto.createHmac('sha256', base).update('prompt-generator-session-v1').digest('base64url');
 }
 
 const sign = (payload: string) => crypto.createHmac('sha256', secret()).update(payload).digest('base64url');

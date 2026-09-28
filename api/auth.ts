@@ -14,11 +14,13 @@
  *
  * APPROVAL:
  *   - emails on AUTO_APPROVE_DOMAINS (default optinetsolutions.com) → approved
+ *   - emails on AUTO_APPROVE_EMAILS (pre-approved outside people) → approved
  *   - everyone else → 'pending' until an admin sets status = 'approved' in
  *     Supabase → Table editor → profiles
  *
  * ENV: GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, SESSION_SECRET,
- *      AUTO_APPROVE_DOMAINS (optional, comma-separated), ADMIN_EMAILS (optional)
+ *      AUTO_APPROVE_DOMAINS (optional, comma-separated), ADMIN_EMAILS (optional),
+ *      AUTO_APPROVE_EMAILS (optional — specific outside people let in without waiting)
  */
 import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -41,6 +43,21 @@ function listEnv(name: string, fallback = ''): string[] {
 }
 
 // ── Sign-in ───────────────────────────────────────────────────────────────
+
+/**
+ * Does this email get in without waiting for an admin?
+ * Admins, company domains (AUTO_APPROVE_DOMAINS) and specific pre-approved
+ * people (AUTO_APPROVE_EMAILS). Case never matters (Lena@… = lena@…).
+ */
+export function approvalFor(rawEmail: string): { isAdmin: boolean; preApproved: boolean } {
+  const email = rawEmail.trim().toLowerCase();
+  const domain = email.split('@')[1] || '';
+  const isAdmin = listEnv('ADMIN_EMAILS').includes(email);
+  const preApproved = isAdmin
+    || listEnv('AUTO_APPROVE_DOMAINS', 'optinetsolutions.com').includes(domain)
+    || listEnv('AUTO_APPROVE_EMAILS').includes(email);
+  return { isAdmin, preApproved };
+}
 
 function googleStart(req: VercelRequest, res: VercelResponse) {
   const { id } = googleClient();
@@ -96,17 +113,20 @@ async function googleCallback(req: VercelRequest, res: VercelResponse) {
       ...(t.refresh_token ? { drive_refresh_token: t.refresh_token } : {}),
     } : {};
 
+    const { isAdmin, preApproved } = approvalFor(email);
+
     let profile: Profile;
     if (existing) {
+      // Someone added to the pre-approved list AFTER they first signed in
+      // gets let in on their next sign-in. A 'blocked' person stays blocked.
+      const promote = existing.status === 'pending' && preApproved;
       await updateProfile(existing.id, {
         email, name: claims.name || existing.name, avatar_url: claims.picture || existing.avatar_url,
-        last_seen_at: new Date().toISOString(), ...driveFields,
+        last_seen_at: new Date().toISOString(), ...driveFields, ...(promote ? { status: 'approved' } : {}),
       });
-      profile = { ...existing, ...driveFields };
+      profile = { ...existing, ...driveFields, ...(promote ? { status: 'approved' as const } : {}) };
     } else {
-      const domain = email.split('@')[1] || '';
-      const isAdmin = listEnv('ADMIN_EMAILS').includes(email);
-      const approved = isAdmin || listEnv('AUTO_APPROVE_DOMAINS', 'optinetsolutions.com').includes(domain);
+      const approved = preApproved;
       profile = (await sb('profiles', {
         method: 'POST',
         body: JSON.stringify({

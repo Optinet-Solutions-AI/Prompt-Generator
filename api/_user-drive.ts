@@ -26,8 +26,10 @@ const FOLDER_MIME = 'application/vnd.google-apps.folder';
 export type DriveFolderKind = 'images' | 'videos';
 
 export function googleClient() {
-  const id = process.env.GOOGLE_OAUTH_CLIENT_ID;
-  const secret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  // Falls back to the Google client the shared Drive setup already uses
+  // (same Web client in the "Multi-Brand AI Prompt Gen" Google Cloud project).
+  const id = process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.CLOUD_RUN_CLIENT_ID;
+  const secret = process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.CLOUD_RUN_CLIENT_SECRET;
   if (!id || !secret) throw new AuthError(503, 'GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET are not configured');
   return { id, secret };
 }

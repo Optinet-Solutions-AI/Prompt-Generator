@@ -102,7 +102,7 @@ export async function ensureFolder(p: Profile, kind: DriveFolderKind): Promise<s
     await updateProfile(p.id, { drive_root_folder_id: root });
     p.drive_root_folder_id = root;
   }
-  const id = await createFolder(token, kind === 'images' ? 'Images' : 'Videos', root);
+  const id = await createFolder(token, kind === 'images' ? 'Images' : 'Videos', root || undefined);
   await updateProfile(p.id, { [key]: id } as Partial<Profile>);
   p[key] = id;
   return id;

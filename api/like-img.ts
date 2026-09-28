@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { guard } from './_session.js';
 
 const SUPABASE_URL             = process.env.SUPABASE_URL             || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -26,6 +27,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // Signed-in users only; the favorite belongs to them.
+  const me = await guard(req, res);
+  if (!me) return;
+
   try {
     const { record_id, img_url, brand_name } = req.body;
     if (!img_url) return res.status(400).json({ error: 'img_url is required' });
@@ -36,6 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         record_id:  record_id || `liked-${Date.now()}`,
         img_url,
         brand_name: brand_name || null,
+        owner_id:   me.id,
       },
       { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
     );

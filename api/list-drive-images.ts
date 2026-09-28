@@ -7,9 +7,15 @@
  *   2. Auto-discovered Gemini folder — found by looking up the parent of a
  *      known Gemini image file ID (GOOGLE_DRIVE_GEMINI_SAMPLE_FILE_ID)
  *
- * Self-contained — no local imports (Vercel API routes must be self-contained).
+ * WITH ACCOUNTS (?owner=…):
+ *   ?owner=<my id> or no owner  → MY images (My Drive / Prompt Generator / Images)
+ *   ?owner=<someone's id>        → their images, if they shared their library with me
+ *   ?owner=archive               → the old shared team folders above (before accounts)
+ * Every call needs a signed-in, approved user.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { guard, libraryOwner } from './_session.js';
+import { listUserFolder } from './_user-drive.js';
 
 interface DriveFile {
   id:            string;
@@ -124,6 +130,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
+  const me = await guard(req, res);
+  if (!me) return;
+
+  // ── My images, or a colleague's shared library ────────────────────────
+  const ownerParam = String(req.query.owner || '');
+  if (ownerParam !== 'archive') {
+    try {
+      const owner = await libraryOwner(me, ownerParam);
+      const files = (await listUserFolder(owner, 'images')).map(f => mapFile(f as DriveFile, f.appProperties?.provider || 'chatgpt'));
+      return res.status(200).json({ owner: owner.id, files });
+    } catch (error) {
+      const status = (error as { status?: number }).status || 500;
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (message === 'DRIVE_NOT_CONNECTED') return res.status(200).json({ owner: me.id, files: [], drive_connected: false });
+      return res.status(status).json({ error: message });
+    }
+  }
+
+  // ── Team archive: the shared folders from before accounts ─────────────
   const chatgptFolderId    = process.env.GOOGLE_DRIVE_FOLDER_ID;
   // A known Gemini image file ID used to auto-discover the Gemini folder
   const geminiSampleFileId = process.env.GOOGLE_DRIVE_GEMINI_SAMPLE_FILE_ID || '1w28G_akdjVs-GRN0heLiJ5Y-qc3-S4wN';

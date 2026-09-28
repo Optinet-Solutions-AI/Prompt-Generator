@@ -19,6 +19,16 @@ export interface LibraryVideo {
   liked: boolean;
 }
 
+/** The generation settings the server needs (for both `cost` and `submit`). */
+export interface VideoRequest {
+  prompt: string;
+  model: string;
+  aspectRatio: string;
+  duration: number;
+  audio: boolean;
+  startImage?: string;
+}
+
 async function call<T>(action: string, init?: { body?: unknown; query?: Record<string, string> }): Promise<T> {
   const qs = new URLSearchParams({ action, ...(init?.query || {}) });
   const res = await fetch(`/api/video?${qs}`, init?.body !== undefined
@@ -33,12 +43,22 @@ async function call<T>(action: string, init?: { body?: unknown; query?: Record<s
 }
 
 export const videoApi = {
-  submit: (body: { prompt: string; aspectRatio: string; duration: number; audio: boolean; startImage?: string }) =>
-    call<{ request_id: string }>('submit', { body }),
+  // Higgsfield connection
+  hfStatus: () => call<{ connected: boolean; email: string | null }>('hf-status'),
+  hfConnect: () => call<{ url: string }>('hf-connect', { body: {} }),
+  hfDisconnect: () => call('hf-disconnect', { body: {} }),
+
+  // Generation
+  cost: (body: Omit<VideoRequest, 'startImage'>) => call<{ credits: number | null }>('cost', { body }),
+  submit: (body: VideoRequest) => call<{ request_id: string }>('submit', { body }),
   status: (id: string) =>
     call<{ status: string; video_url: string | null; error: string | null }>('status', { query: { id } }),
-  save: (body: { video_url: string; brand: string; prompt: string; aspectRatio: string; duration: number }) =>
-    call<{ file: LibraryVideo }>('save', { body }),
+  save: (body: {
+    video_url: string; brand: string; prompt: string; aspectRatio: string; duration: number;
+    brandLogo: boolean; brandEndCard: boolean;
+  }) => call<{ file: LibraryVideo; branded: boolean; brand_error: string | null }>('save', { body }),
+
+  // Library
   list: () => call<{ files: LibraryVideo[] }>('list'),
   like: (v: Pick<LibraryVideo, 'id' | 'brand' | 'video_url' | 'prompt'>) =>
     call('like', { body: { file_id: v.id, brand: v.brand, video_url: v.video_url, prompt: v.prompt } }),

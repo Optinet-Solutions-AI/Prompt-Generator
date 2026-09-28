@@ -1,31 +1,30 @@
 /**
  * video.ts — every server-side step of the UGC Video feature, in one route.
  *
+ * EVERY action needs a signed-in, approved user (see _session.ts). Videos are
+ * saved to THAT user's own Google Drive (My Drive / Prompt Generator / Videos)
+ * and rendered with THEIR Higgsfield account.
+ *
  * Pick the step with ?action=…
- *   GET  ?action=hf-status       → is Higgsfield connected? { connected, email }
+ *   GET  ?action=hf-status       → is MY Higgsfield connected? { connected, email }
  *   POST ?action=hf-connect      → returns { url } — the Higgsfield sign-in page
  *   GET  ?action=oauth-callback  → Higgsfield sends the browser back here after sign-in
- *   POST ?action=hf-disconnect   → forget the Higgsfield login
+ *   POST ?action=hf-disconnect   → forget my Higgsfield login
  *   POST ?action=cost            → credits a video would cost (nothing is rendered)
  *   POST ?action=submit          → start a render, returns { request_id }
  *   GET  ?action=status          → &id=<request_id>, returns { status, video_url? }
  *   POST ?action=save            → download the finished video, stamp the brand
- *                                  (corner logo + end card), upload to the VIDEO
- *                                  Drive folder, returns { file }
- *   GET  ?action=list            → every video in the Drive folder (+ liked flag)
- *   GET  ?action=stream          → &id=<drive id>, plays a video (range slices)
- *   POST ?action=like / unlike   → favorites (Supabase `liked_videos`)
+ *                                  (corner logo + end card), upload to MY Drive
+ *   GET  ?action=list            → &owner=<profile id> (default me) | &owner=archive
+ *   GET  ?action=stream          → &id=<drive id>&owner=…  plays a video (range slices)
+ *   POST ?action=like / unlike   → favorites on MY videos (Supabase `liked_videos`)
  *
- * GENERATION GOES THROUGH THE HIGGSFIELD MCP, on the connected account's PLAN
- * credits (see _higgsfield-mcp.ts for why, and for the token-renewal rules).
+ * "owner=archive" = the old shared team folder (GOOGLE_DRIVE_VIDEO_FOLDER_ID)
+ * from before accounts existed — read-only for everyone signed in.
  *
  * WHY SUBMIT + STATUS INSTEAD OF ONE CALL:
  * Renders take minutes. Holding one request open that long risks the function
  * timeout, so the browser polls `status` every few seconds instead.
- *
- * ENV VARS:
- *   GOOGLE_DRIVE_VIDEO_FOLDER_ID  — the Drive folder for videos
- *   CLOUD_RUN_* + SUPABASE_*      — same Google/Supabase creds as images
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
@@ -33,12 +32,11 @@ import {
   submitVideo, videoCost, videoStatus, uploadImage, type VideoParams,
 } from './_higgsfield-mcp.js';
 import { brandVideo, END_CARD_SECONDS } from './_video-brand.js';
+import { AuthError, requireUser, libraryOwner, sb, type Profile } from './_session.js';
+import { uploadToUserDrive, listUserFolder, userFileMeta, fetchUserFileRange, type UserDriveFile } from './_user-drive.js';
 
 // Downloading, branding and re-uploading a video to Drive can take a while.
 export const config = { maxDuration: 300 };
-
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Video models the Video tab may use (Higgsfield MCP model ids). Anything else
 // sent by the browser is rejected, so the page can't spend credits on a
@@ -46,13 +44,18 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ALLOWED_MODELS = new Set(['seedance_2_5', 'kling3_0']);
 const DEFAULT_MODEL = 'seedance_2_5';
 
-// ── Google Drive helpers ──────────────────────────────────────────────────
+function siteOrigin(req: VercelRequest): string {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+  return `${host.startsWith('localhost') ? 'http' : 'https'}://${host}`;
+}
+
+// ── Team archive (the shared folder from before accounts) ─────────────────
 
 // Reused while valid — video playback makes many small `stream` calls in a row.
-let cachedToken: { value: string; expires: number } | null = null;
+let archiveToken: { value: string; expires: number } | null = null;
 
-async function getGoogleAccessToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expires) return cachedToken.value;
+async function archiveAccessToken(): Promise<string> {
+  if (archiveToken && Date.now() < archiveToken.expires) return archiveToken.value;
   const { CLOUD_RUN_REFRESH_TOKEN, CLOUD_RUN_CLIENT_ID, CLOUD_RUN_CLIENT_SECRET } = process.env;
   if (!CLOUD_RUN_REFRESH_TOKEN || !CLOUD_RUN_CLIENT_ID || !CLOUD_RUN_CLIENT_SECRET) {
     throw new HttpError(503, 'Google Drive credentials (CLOUD_RUN_*) are not configured');
@@ -61,80 +64,36 @@ async function getGoogleAccessToken(): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: CLOUD_RUN_REFRESH_TOKEN,
-      client_id: CLOUD_RUN_CLIENT_ID,
-      client_secret: CLOUD_RUN_CLIENT_SECRET,
+      grant_type: 'refresh_token', refresh_token: CLOUD_RUN_REFRESH_TOKEN,
+      client_id: CLOUD_RUN_CLIENT_ID, client_secret: CLOUD_RUN_CLIENT_SECRET,
     }),
   });
   if (!res.ok) throw new HttpError(502, `Google token refresh failed: ${await res.text()}`);
   const data = await res.json() as { access_token?: string; expires_in?: number };
   if (!data.access_token) throw new HttpError(502, 'No Google access_token returned');
-  cachedToken = { value: data.access_token, expires: Date.now() + ((data.expires_in || 3600) - 300) * 1000 };
+  archiveToken = { value: data.access_token, expires: Date.now() + ((data.expires_in || 3600) - 300) * 1000 };
   return data.access_token;
 }
 
-function videoFolderId(): string {
-  const id = process.env.GOOGLE_DRIVE_VIDEO_FOLDER_ID;
-  if (!id || id.startsWith('your_')) {
-    throw new HttpError(503, 'GOOGLE_DRIVE_VIDEO_FOLDER_ID is not configured yet');
-  }
-  return id;
+const archiveFolderId = () => process.env.GOOGLE_DRIVE_VIDEO_FOLDER_ID || '';
+
+async function listArchive(): Promise<UserDriveFile[]> {
+  if (!archiveFolderId()) return [];
+  const token = await archiveAccessToken();
+  const q = `'${archiveFolderId()}' in parents and trashed = false and mimeType contains 'video/'`;
+  const fields = 'files(id,name,createdTime,mimeType,description,thumbnailLink,appProperties)';
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&orderBy=createdTime desc&pageSize=500`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new HttpError(502, `Drive list failed: ${await res.text()}`);
+  return ((await res.json()) as { files?: UserDriveFile[] }).files || [];
 }
 
-/**
- * Upload with Drive's "resumable" protocol. The simpler multipart upload is
- * meant for files ≤5 MB, and videos are usually bigger than that.
- */
-async function uploadVideoToDrive(p: {
-  buffer: Buffer; mimeType: string; filename: string; brand: string;
-  prompt: string; aspectRatio: string; duration: string; accessToken: string;
-}): Promise<string> {
-  const metadata = {
-    name: p.filename,
-    parents: [videoFolderId()],
-    // The prompt goes in `description` — appProperties are capped at 124 bytes each.
-    description: p.prompt.slice(0, 4000),
-    appProperties: { provider: 'higgsfield', brand: p.brand, aspectRatio: p.aspectRatio, duration: p.duration },
-  };
-  const start = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${p.accessToken}`,
-      'Content-Type': 'application/json; charset=UTF-8',
-      'X-Upload-Content-Type': p.mimeType,
-      'X-Upload-Content-Length': String(p.buffer.length),
-    },
-    body: JSON.stringify(metadata),
-  });
-  const sessionUrl = start.headers.get('location');
-  if (!start.ok || !sessionUrl) throw new HttpError(502, `Drive upload start failed: ${await start.text()}`);
+// ── Shape sent to the browser ─────────────────────────────────────────────
 
-  const put = await fetch(sessionUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': p.mimeType, 'Content-Length': String(p.buffer.length) },
-    body: p.buffer,
-  });
-  if (!put.ok) throw new HttpError(502, `Drive upload failed: ${await put.text()}`);
-  const file = await put.json() as { id: string };
-
-  // Anyone-with-link can view, so the <video> tag can stream it (same as images).
-  await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/permissions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${p.accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
-  });
-  return file.id;
-}
-
-interface DriveVideo {
-  id: string; name: string; createdTime: string; mimeType: string;
-  description?: string; thumbnailLink?: string;
-  appProperties?: { brand?: string; aspectRatio?: string; duration?: string };
-}
-
-/** The shape the frontend receives for every video. */
-function mapVideo(f: DriveVideo, liked: Set<string>) {
+/** `owner` = profile id, or 'archive'. */
+function mapVideo(f: UserDriveFile, owner: string, liked: Set<string>) {
   return {
     id: f.id,
     name: f.name,
@@ -143,45 +102,27 @@ function mapVideo(f: DriveVideo, liked: Set<string>) {
     aspect_ratio: f.appProperties?.aspectRatio || '',
     duration: f.appProperties?.duration || '',
     prompt: f.description || '',
+    owner,
     // Browsers refuse to play Drive links inside a <video> tag, so playback
-    // goes through our `stream` action; the Drive link is kept for downloads.
-    video_url: `/api/video?action=stream&id=${f.id}`,
-    download_url: `https://drive.google.com/uc?export=download&id=${f.id}`,
+    // goes through our `stream` action (which also checks who may watch).
+    video_url: `/api/video?action=stream&id=${f.id}&owner=${owner}`,
+    download_url: `/api/video?action=stream&id=${f.id}&owner=${owner}&download=1`,
     thumbnail_url: f.thumbnailLink || '',
     liked: liked.has(f.id),
   };
 }
 
-// ── Supabase favorites (`liked_videos` table) ─────────────────────────────
-
-async function sb(path: string, init: RequestInit = {}) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) throw new HttpError(503, 'Supabase is not configured');
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
-  const text = await res.text();
-  if (!res.ok) throw new HttpError(res.status, `Supabase ${res.status}: ${text.slice(0, 300)}`);
-  return text ? JSON.parse(text) : [];
-}
-
-async function likedIds(): Promise<Set<string>> {
+async function likedIds(ownerId: string): Promise<Set<string>> {
   try {
-    const rows = await sb('liked_videos?select=drive_file_id') as Array<{ drive_file_id: string }>;
+    const rows = await sb(`liked_videos?owner_id=eq.${ownerId}&select=drive_file_id`) as Array<{ drive_file_id: string }>;
     return new Set(rows.map(r => r.drive_file_id));
   } catch (err) {
-    // Missing table shouldn't break the library — just show nothing as liked.
     console.warn('[video] liked_videos unavailable:', err instanceof Error ? err.message : err);
     return new Set();
   }
 }
 
-// ── Actions ───────────────────────────────────────────────────────────────
+// ── Generation ────────────────────────────────────────────────────────────
 
 /** Turn the Video tab's settings into Higgsfield MCP parameters. */
 function toParams(body: Record<string, unknown>): VideoParams {
@@ -198,21 +139,17 @@ function toParams(body: Record<string, unknown>): VideoParams {
   return { ...common, resolution: '720p', generate_audio: body.audio !== false };
 }
 
-async function cost(body: Record<string, unknown>) {
-  return { credits: await videoCost(toParams(body)) };
-}
-
-async function submit(body: Record<string, unknown>) {
+async function submit(p: Profile, body: Record<string, unknown>) {
   const params = toParams(body);
   if (typeof body.startImage === 'string' && body.startImage) {
-    params.medias = [{ value: await uploadImage(body.startImage), role: 'start_image' }];
+    params.medias = [{ value: await uploadImage(p.id, body.startImage), role: 'start_image' }];
   }
-  return { request_id: await submitVideo(params) };
+  return { request_id: await submitVideo(p.id, params) };
 }
 
-async function status(id: string) {
+async function status(p: Profile, id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'invalid id');
-  const s = await videoStatus(id);
+  const s = await videoStatus(p.id, id);
   // Map Higgsfield's words onto the ones the browser already understands.
   if (s.status === 'ip_detected') {
     return { status: 'failed', video_url: null, error: 'Higgsfield flagged possible copyrighted content (a real person, character or brand) — reword the prompt.' };
@@ -229,13 +166,7 @@ function isHiggsfieldUrl(url: string): boolean {
   } catch { return false; }
 }
 
-/** This deployment's own origin, e.g. https://prompt-generator-virid-delta.vercel.app */
-function siteOrigin(req: VercelRequest): string {
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
-  return `${host.startsWith('localhost') ? 'http' : 'https'}://${host}`;
-}
-
-async function save(req: VercelRequest, body: Record<string, unknown>) {
+async function save(req: VercelRequest, p: Profile, body: Record<string, unknown>) {
   const url = String(body.video_url || '');
   if (!isHiggsfieldUrl(url)) throw new HttpError(400, 'video_url must be a Higgsfield result URL');
   const brand = String(body.brand || '').trim();
@@ -260,52 +191,64 @@ async function save(req: VercelRequest, body: Record<string, unknown>) {
   const baseSeconds = Number(body.duration) || 0;
   const duration = baseSeconds ? String(branded && opts.endCard ? baseSeconds + END_CARD_SECONDS : baseSeconds) : '';
   const slug = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const filename = `${slug ? slug + '-' : ''}ugc-${Date.now()}.mp4`;
+  const name = `${slug ? slug + '-' : ''}ugc-${Date.now()}.mp4`;
   const prompt = String(body.prompt || '');
   const aspectRatio = String(body.aspectRatio || '');
-  const accessToken = await getGoogleAccessToken();
-  const id = await uploadVideoToDrive({ buffer, mimeType: 'video/mp4', filename, brand, accessToken, prompt, aspectRatio, duration });
+  const appProperties = { provider: 'higgsfield', brand, aspectRatio, duration };
+  const id = await uploadToUserDrive(p, 'videos', { buffer, mimeType: 'video/mp4', name, description: prompt, appProperties });
   return {
     branded,
     brand_error: brandError || null,
-    file: mapVideo({
-      id, name: filename, createdTime: new Date().toISOString(), mimeType: 'video/mp4',
-      description: prompt, appProperties: { brand, aspectRatio, duration },
-    }, new Set()),
+    file: mapVideo({ id, name, createdTime: new Date().toISOString(), mimeType: 'video/mp4', description: prompt, appProperties }, p.id, new Set()),
   };
+}
+
+// ── Library ───────────────────────────────────────────────────────────────
+
+async function list(p: Profile, ownerParam: string) {
+  if (ownerParam === 'archive') {
+    return { owner: 'archive', files: (await listArchive()).map(f => mapVideo(f, 'archive', new Set())) };
+  }
+  const owner = await libraryOwner(p, ownerParam);
+  const liked = await likedIds(owner.id);
+  return { owner: owner.id, files: (await listUserFolder(owner, 'videos')).map(f => mapVideo(f, owner.id, liked)) };
 }
 
 // Vercel caps a function response at ~4.5 MB, so each playback request returns
 // at most one 4 MB slice. Browsers then ask for the next slice by themselves.
 const STREAM_CHUNK = 4 * 1024 * 1024;
-const verifiedVideoIds = new Set<string>();
 
-/** Serve one byte-range slice of a video from the Video Drive folder. */
-async function stream(req: VercelRequest, res: VercelResponse) {
+/** Serve one byte-range slice of a video the signed-in user is allowed to watch. */
+async function stream(req: VercelRequest, res: VercelResponse, p: Profile) {
   const id = String(req.query.id || '');
   if (!/^[\w-]+$/.test(id)) throw new HttpError(400, 'invalid id');
-  const accessToken = await getGoogleAccessToken();
-
-  // Only stream files that really live in the Video folder — this route must
-  // not become a way to read any other file on the Drive account.
-  if (!verifiedVideoIds.has(id)) {
-    const meta = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=parents,mimeType`,
-      { headers: { Authorization: `Bearer ${accessToken}` } });
-    const m = meta.ok ? await meta.json() as { parents?: string[]; mimeType?: string } : {};
-    if (!m.parents?.includes(videoFolderId()) || !m.mimeType?.startsWith('video/')) {
-      throw new HttpError(404, 'Video not found');
-    }
-    verifiedVideoIds.add(id);
-  }
+  const ownerParam = String(req.query.owner || p.id);
 
   const asked = String(req.headers.range || '').match(/bytes=(\d*)-(\d*)/);
   const start = asked?.[1] ? parseInt(asked[1], 10) : 0;
   const wantedEnd = asked?.[2] ? parseInt(asked[2], 10) : Infinity;
   const end = Math.min(wantedEnd, start + STREAM_CHUNK - 1);
 
-  const drive = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
-    headers: { Authorization: `Bearer ${accessToken}`, Range: `bytes=${start}-${end}` },
-  });
+  let drive: Response;
+  let name = 'video.mp4';
+  if (ownerParam === 'archive') {
+    // Only files that really live in the archive folder.
+    const token = await archiveAccessToken();
+    const meta = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=name,parents,mimeType`, { headers: { Authorization: `Bearer ${token}` } });
+    const m = meta.ok ? await meta.json() as { name?: string; parents?: string[]; mimeType?: string } : {};
+    if (!archiveFolderId() || !m.parents?.includes(archiveFolderId()) || !m.mimeType?.startsWith('video/')) throw new HttpError(404, 'Video not found');
+    name = m.name || name;
+    drive = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, { headers: { Authorization: `Bearer ${token}`, Range: `bytes=${start}-${end}` } });
+  } else {
+    // Mine, or someone who shared their library with me — and only files in their Videos folder.
+    const owner = await libraryOwner(p, ownerParam);
+    const m = await userFileMeta(owner, id);
+    if (!m || !owner.drive_videos_folder_id || !m.parents?.includes(owner.drive_videos_folder_id) || !m.mimeType.startsWith('video/')) {
+      throw new HttpError(404, 'Video not found');
+    }
+    name = m.name || name;
+    drive = await fetchUserFileRange(owner, id, start, end);
+  }
   if (drive.status === 416) { res.status(416).end(); return; }
   if (!drive.ok) throw new HttpError(502, `Drive stream failed (${drive.status})`);
 
@@ -313,58 +256,43 @@ async function stream(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', drive.headers.get('content-type') || 'video/mp4');
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Cache-Control', 'private, max-age=3600');
+  if (req.query.download) res.setHeader('Content-Disposition', `attachment; filename="${name.replace(/"/g, '')}"`);
   const range = drive.headers.get('content-range');
   if (range) res.setHeader('Content-Range', range);
   res.setHeader('Content-Length', String(body.length));
   res.status(drive.status === 206 ? 206 : 200).send(body);
 }
 
-async function list() {
-  const accessToken = await getGoogleAccessToken();
-  const q = `'${videoFolderId()}' in parents and trashed = false and mimeType contains 'video/'`;
-  const fields = 'files(id,name,createdTime,mimeType,description,thumbnailLink,appProperties)';
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${encodeURIComponent(fields)}&orderBy=createdTime desc&pageSize=500`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
-  if (!res.ok) throw new HttpError(502, `Drive list failed: ${await res.text()}`);
-  const { files = [] } = await res.json() as { files?: DriveVideo[] };
-  const liked = await likedIds();
-  return { files: files.map(f => mapVideo(f, liked)) };
-}
-
-async function like(body: Record<string, unknown>) {
+async function like(p: Profile, body: Record<string, unknown>) {
   const id = String(body.file_id || '');
   if (!id) throw new HttpError(400, 'file_id is required');
   await sb('liked_videos', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({
-      drive_file_id: id,
-      brand_name: body.brand || null,
-      video_url: body.video_url || null,
-      prompt: body.prompt || null,
+      drive_file_id: id, owner_id: p.id,
+      brand_name: body.brand || null, video_url: body.video_url || null, prompt: body.prompt || null,
     }),
   });
   return { success: true };
 }
 
-async function unlike(body: Record<string, unknown>) {
+async function unlike(p: Profile, body: Record<string, unknown>) {
   const id = String(body.file_id || '');
   if (!id) throw new HttpError(400, 'file_id is required');
-  await sb(`liked_videos?drive_file_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+  await sb(`liked_videos?drive_file_id=eq.${encodeURIComponent(id)}&owner_id=eq.${p.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
   return { success: true };
 }
 
 // ── Higgsfield sign-in ────────────────────────────────────────────────────
 
-async function oauthCallback(req: VercelRequest, res: VercelResponse) {
+async function oauthCallback(req: VercelRequest, res: VercelResponse, p: Profile) {
   const code = String(req.query.code || '');
   const state = String(req.query.state || '');
   let result = 'connected';
   try {
     if (!code) throw new HttpError(400, String(req.query.error_description || req.query.error || 'Sign-in was cancelled'));
-    await finishConnect(code, state);
+    await finishConnect(p.id, code, state);
   } catch (err) {
     result = 'error:' + (err instanceof Error ? err.message : 'sign-in failed');
     console.error('[video:oauth-callback]', err);
@@ -378,21 +306,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = String(req.query.action || '');
   const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
   try {
-    if (req.method === 'GET' && action === 'hf-status') return res.status(200).json(await connectionStatus());
-    if (req.method === 'POST' && action === 'hf-connect') return res.status(200).json({ url: await startConnect(`${siteOrigin(req)}/api/video?action=oauth-callback`) });
-    if (req.method === 'GET' && action === 'oauth-callback') return await oauthCallback(req, res);
-    if (req.method === 'POST' && action === 'hf-disconnect') { await disconnect(); return res.status(200).json({ success: true }); }
-    if (req.method === 'POST' && action === 'cost') return res.status(200).json(await cost(body));
-    if (req.method === 'GET' && action === 'status') return res.status(200).json(await status(String(req.query.id || '')));
-    if (req.method === 'GET' && action === 'stream') return await stream(req, res);
-    if (req.method === 'GET' && action === 'list') return res.status(200).json(await list());
-    if (req.method === 'POST' && action === 'submit') return res.status(200).json(await submit(body));
-    if (req.method === 'POST' && action === 'save') return res.status(200).json(await save(req, body));
-    if (req.method === 'POST' && action === 'like') return res.status(200).json(await like(body));
-    if (req.method === 'POST' && action === 'unlike') return res.status(200).json(await unlike(body));
+    const p = await requireUser(req);
+    if (req.method === 'GET' && action === 'hf-status') return res.status(200).json(await connectionStatus(p.id));
+    if (req.method === 'POST' && action === 'hf-connect') return res.status(200).json({ url: await startConnect(p.id, `${siteOrigin(req)}/api/video?action=oauth-callback`) });
+    if (req.method === 'GET' && action === 'oauth-callback') return await oauthCallback(req, res, p);
+    if (req.method === 'POST' && action === 'hf-disconnect') { await disconnect(p.id); return res.status(200).json({ success: true }); }
+    if (req.method === 'POST' && action === 'cost') return res.status(200).json({ credits: await videoCost(p.id, toParams(body)) });
+    if (req.method === 'GET' && action === 'status') return res.status(200).json(await status(p, String(req.query.id || '')));
+    if (req.method === 'GET' && action === 'stream') return await stream(req, res, p);
+    if (req.method === 'GET' && action === 'list') return res.status(200).json(await list(p, String(req.query.owner || '')));
+    if (req.method === 'POST' && action === 'submit') return res.status(200).json(await submit(p, body));
+    if (req.method === 'POST' && action === 'save') return res.status(200).json(await save(req, p, body));
+    if (req.method === 'POST' && action === 'like') return res.status(200).json(await like(p, body));
+    if (req.method === 'POST' && action === 'unlike') return res.status(200).json(await unlike(p, body));
     return res.status(404).json({ error: `Unknown action "${action}" for ${req.method}` });
   } catch (err) {
-    const code = err instanceof HttpError ? err.status : 500;
+    // Drive disconnected → a code the page turns into a "Reconnect Google Drive" button.
+    if (err instanceof AuthError && err.message === 'DRIVE_NOT_CONNECTED') {
+      return res.status(409).json({ error: 'Your Google Drive is not connected — click "Reconnect Google Drive".', code: 'DRIVE_NOT_CONNECTED' });
+    }
+    const code = err instanceof HttpError || err instanceof AuthError ? err.status : 500;
     console.error(`[video:${action}]`, err);
     return res.status(code).json({ error: err instanceof Error ? err.message : 'Unknown error' });
   }

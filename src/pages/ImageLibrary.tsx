@@ -1839,10 +1839,16 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
               {filter === 'all' ? 'No images yet' : `No ${providerLabel(filter).toLowerCase()} images`}
             </h2>
             <p className="text-muted-foreground mb-8">
-              {filter === 'all' ? "Generate some images and they'll appear here." : 'Try a different filter.'}
+              {filter !== 'all' ? 'Try a different filter.'
+                : source.kind === 'mine'
+                  ? "Images you generate are saved to your own Google Drive and appear here. Looking for images made before accounts? They're in the Team archive."
+                  : "Generate some images and they'll appear here."}
             </p>
             <div className="flex gap-3 justify-center">
               {filter !== 'all' && <Button variant="outline" onClick={() => handleFilter('all')}>Show all</Button>}
+              {filter === 'all' && source.kind === 'mine' && (
+                <Button variant="outline" onClick={() => setSource({ kind: 'archive' })}>Open Team archive</Button>
+              )}
               {embedded ? (
                 <Button onClick={onBack}>Generate images</Button>
               ) : (

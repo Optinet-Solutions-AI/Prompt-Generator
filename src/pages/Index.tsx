@@ -17,6 +17,12 @@ import { LikedImagesPanel } from "@/components/LikedImagesPanel";
 import { toast } from "sonner";
 import { FormData } from "@/types/prompt";
 import type { GalleryImage } from "@/components/ImageModal";
+import { announceActivity } from "@/hooks/useOnlineUsers";
+
+// Shown to others in the "who's online" list.
+const TAB_LABELS: Record<string, string> = {
+  form: 'Custom Prompt', wizard: 'Sports Banner', video: 'Video', library: 'Image Library', videoLibrary: 'Video Library',
+};
 
 const Index = () => {
   const {
@@ -66,6 +72,9 @@ const Index = () => {
     try { localStorage.setItem('pg_activeTab', tab); } catch { /* ignore */ }
     setActiveTab(tab);
   };
+
+  // Tell the "who's online" bar what I'm doing (shown when hovering my avatar).
+  useEffect(() => { announceActivity(TAB_LABELS[activeTab]); }, [activeTab]);
 
   const { referencePromptData, isLoadingReferenceData, fetchReferencePromptData, clearReferencePromptData } =
     useReferencePromptData();

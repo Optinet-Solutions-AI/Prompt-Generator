@@ -1,9 +1,10 @@
 /**
  * VideoLibrary — every UGC video saved to the Video Drive folder.
  *
- * Separate from the Image Library: its own Drive folder
- * (GOOGLE_DRIVE_VIDEO_FOLDER_ID) and its own favorites table (liked_videos).
- * Drive is the source of truth, so the library is the same on every device.
+ * Separate from the Image Library. Shows MY videos (My Drive / Prompt
+ * Generator / Videos), a colleague's library they shared with me, or the team
+ * archive from before accounts. Favorites (liked_videos) are per person, so
+ * the heart only appears on my own videos.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Clapperboard, Download, Heart, Loader2, RefreshCw } from 'lucide-react';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { BRANDS } from '@/types/prompt';
 import { videoApi, type LibraryVideo } from '@/lib/video-api';
+import { LibrarySourcePicker, ownerParam, sourceLabel, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
 
 export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const [videos, setVideos] = useState<LibraryVideo[]>([]);
@@ -18,13 +20,15 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const [error, setError] = useState('');
   const [brand, setBrand] = useState('All');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [source, setSource] = useState<LibrarySource>({ kind: 'mine' });
+  const isMine = source.kind === 'mine';
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
-    try { setVideos((await videoApi.list()).files); }
+    try { setVideos((await videoApi.list(ownerParam(source))).files); }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not load videos'); }
     finally { setLoading(false); }
-  }, []);
+  }, [source]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -55,10 +59,11 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
           <h2 className="text-xl font-bold text-foreground">Video Library</h2>
           {!loading && <span className="text-sm text-muted-foreground">{videos.length} videos</span>}
         </div>
+        <LibrarySourcePicker value={source} onChange={s => { setSource(s); setBrand('All'); setFavoritesOnly(false); }} />
         <div className="ml-auto flex gap-2">
-          <Button variant={favoritesOnly ? 'default' : 'outline'} size="sm" onClick={() => setFavoritesOnly(f => !f)}>
+          {isMine && <Button variant={favoritesOnly ? 'default' : 'outline'} size="sm" onClick={() => setFavoritesOnly(f => !f)}>
             <Heart className={`w-4 h-4 mr-1 ${favoritesOnly ? 'fill-current' : ''}`} />Favorites
-          </Button>
+          </Button>}
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
           </Button>
@@ -93,7 +98,9 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
       {!loading && !error && shown.length === 0 && (
         <div className="text-center py-16 text-muted-foreground">
           <Clapperboard className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          {videos.length === 0 ? 'No videos yet — generate one in the Video tab.' : 'No videos match these filters.'}
+          {videos.length === 0
+            ? (isMine ? 'No videos yet — generate one in the Video tab.' : `No videos in ${sourceLabel(source)} yet.`)
+            : 'No videos match these filters.'}
         </div>
       )}
 
@@ -105,10 +112,12 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
               <div className="relative bg-black aspect-[9/16]">
                 <video src={v.video_url} poster={v.thumbnail_url || undefined} controls preload="metadata" playsInline
                   className="absolute inset-0 w-full h-full object-contain" />
-                <button type="button" onClick={() => toggleLike(v)} aria-label="Favorite"
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 hover:bg-black/70">
-                  <Heart className={`w-4 h-4 ${v.liked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-                </button>
+                {isMine && (
+                  <button type="button" onClick={() => toggleLike(v)} aria-label="Favorite"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 hover:bg-black/70">
+                    <Heart className={`w-4 h-4 ${v.liked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                  </button>
+                )}
               </div>
               <div className="p-2.5 space-y-1">
                 <div className="flex items-center justify-between gap-2">

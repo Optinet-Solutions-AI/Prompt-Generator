@@ -13,10 +13,12 @@ export interface LibraryVideo {
   prompt: string;
   /** Playback URL (streams through our API). */
   video_url: string;
-  /** Direct Google Drive download link. */
+  /** Download link (same stream route, sent as a file download). */
   download_url: string;
   thumbnail_url: string;
   liked: boolean;
+  /** Whose library it's in: a profile id, or 'archive' (before accounts). */
+  owner: string;
 }
 
 /** The generation settings the server needs (for both `cost` and `submit`). */
@@ -59,7 +61,8 @@ export const videoApi = {
   }) => call<{ file: LibraryVideo; branded: boolean; brand_error: string | null }>('save', { body }),
 
   // Library
-  list: () => call<{ files: LibraryVideo[] }>('list'),
+  /** owner: '' = mine, a profile id = a shared library, 'archive' = team archive */
+  list: (owner = '') => call<{ files: LibraryVideo[] }>('list', owner ? { query: { owner } } : undefined),
   like: (v: Pick<LibraryVideo, 'id' | 'brand' | 'video_url' | 'prompt'>) =>
     call('like', { body: { file_id: v.id, brand: v.brand, video_url: v.video_url, prompt: v.prompt } }),
   unlike: (id: string) => call('unlike', { body: { file_id: id } }),

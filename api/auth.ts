@@ -2,7 +2,7 @@
  * auth.ts — Sign in with Google (+ Google Drive), approval, and library sharing.
  *
  *   GET  ?action=google-start     → redirects to Google's sign-in screen
- *   GET  ?action=google-callback  → Google sends the browser back here
+ *   GET  ?action=google-callback  → Google sends the browser back here (via /api/google-callback)
  *   GET  ?action=me               → who am I? { user, drive_connected } or { user: null }
  *   POST ?action=logout           → sign out (clears the cookie)
  *   GET  ?action=users            → approved app users (for the "Share with…" picker)
@@ -26,7 +26,7 @@ import {
   AuthError, sb, currentProfile, requireUser, setSessionCookie, clearSessionCookie,
   readCookie, publicProfile, updateProfile, type Profile,
 } from './_session.js';
-import { DRIVE_SCOPE, googleClient } from './_user-drive.js';
+import { DRIVE_SCOPE, googleClient, ensureFolder } from './_user-drive.js';
 
 const STATE_COOKIE = 'pg_oauth_state';
 
@@ -34,7 +34,7 @@ function origin(req: VercelRequest): string {
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
   return `${host.startsWith('localhost') ? 'http' : 'https'}://${host}`;
 }
-const callbackUrl = (req: VercelRequest) => `${origin(req)}/api/auth?action=google-callback`;
+const callbackUrl = (req: VercelRequest) => `${origin(req)}/api/google-callback`;
 
 function listEnv(name: string, fallback = ''): string[] {
   return (process.env[name] || fallback).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -46,7 +46,7 @@ function googleStart(req: VercelRequest, res: VercelResponse) {
   const { id } = googleClient();
   const state = crypto.randomBytes(16).toString('hex');
   const secure = origin(req).startsWith('https') ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${STATE_COOKIE}=${state}; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=600${secure}`);
+  res.setHeader('Set-Cookie', `${STATE_COOKIE}=${state}; Path=/api; HttpOnly; SameSite=Lax; Max-Age=600${secure}`);
   const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
     client_id: id,
     redirect_uri: callbackUrl(req),
@@ -116,6 +116,14 @@ async function googleCallback(req: VercelRequest, res: VercelResponse) {
       }) as Profile[])[0];
     }
 
+    // Create "My Drive / Prompt Generator / Images + Videos" right away, so the
+    // folder is there the moment they look — not only after the first save.
+    // Best effort: a hiccup here must never block signing in.
+    if (driveGranted && profile.status === 'approved') {
+      try { await ensureFolder(profile, 'images'); await ensureFolder(profile, 'videos'); }
+      catch (e) { console.warn('[auth] could not pre-create Drive folders (will retry on first save):', e); }
+    }
+
     setSessionCookie(req, res, profile.id);
     return back(driveGranted ? '?auth=signed-in' : '?auth=no-drive');
   } catch (err) {
@@ -130,6 +138,11 @@ async function me(req: VercelRequest) {
   // Refresh "last seen" at most every 10 minutes.
   if (!p.last_seen_at || Date.now() - Date.parse(p.last_seen_at) > 10 * 60_000) {
     updateProfile(p.id, { last_seen_at: new Date().toISOString() }).catch(() => undefined);
+  }
+  // Signed in before the folders existed → create them now (once, best effort).
+  if (p.status === 'approved' && p.drive_refresh_token && (!p.drive_images_folder_id || !p.drive_videos_folder_id)) {
+    try { await ensureFolder(p, 'images'); await ensureFolder(p, 'videos'); }
+    catch (e) { console.warn('[auth:me] could not create Drive folders yet:', e); }
   }
   return { user: publicProfile(p), drive_connected: !!p.drive_refresh_token };
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildUgcPrompt, EMPTY_VIDEO_FORM, UGC_REALISM, UGC_STYLES } from './ugc-video';
+import { buildUgcPrompt, BRAND_SCREEN_HINTS, EMPTY_VIDEO_FORM, UGC_REALISM, UGC_STYLES } from './ugc-video';
+import { BRANDS } from '@/types/prompt';
 
 const base = { ...EMPTY_VIDEO_FORM, ...UGC_STYLES[0], brand: 'SpinJo' };
 

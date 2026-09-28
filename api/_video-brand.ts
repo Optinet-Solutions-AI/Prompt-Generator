@@ -27,13 +27,13 @@ const run = promisify(execFile);
 const BRAND_KIT: Record<string, { panel: string; accent: string; logo: string }> = {
   roosterbet: { panel: '#140000', accent: '#FF3333', logo: 'logo-1.svg' },
   fortuneplay: { panel: '#0F0800', accent: '#FFD700', logo: 'logo-1.svg' },
-  spinjo: { panel: '#020B18', accent: '#00B4D8', logo: 'logo-1.svg' },
-  luckyvibe: { panel: '#0A0F1A', accent: '#29B6F6', logo: 'logo-1.svg' },
-  spinsup: { panel: '#12001A', accent: '#FF00FF', logo: 'logo-1.svg' },
-  playmojo: { panel: '#001418', accent: '#00BCD4', logo: 'logo-1.svg' },
-  lucky7even: { panel: '#12001F', accent: '#CE93D8', logo: 'logo-1.svg' },
-  novadreams: { panel: '#000A1A', accent: '#40C4FF', logo: 'logo-long.svg' },
-  rollero: { panel: '#120D00', accent: '#D4A017', logo: 'logo-long.svg' },
+  spinjo: { panel: '#000D1A', accent: '#00B4D8', logo: 'logo-1.svg' },
+  luckyvibe: { panel: '#001A33', accent: '#29B6F6', logo: 'logo-1.svg' },
+  spinsup: { panel: '#08001C', accent: '#FF00FF', logo: 'logo-1.svg' },
+  playmojo: { panel: '#020D16', accent: '#00BCD4', logo: 'logo-1.svg' },
+  lucky7even: { panel: '#08001A', accent: '#CE93D8', logo: 'logo-1.svg' },
+  novadreams: { panel: '#00030F', accent: '#40C4FF', logo: 'logo-long.svg' },
+  rollero: { panel: '#080600', accent: '#D4A017', logo: 'logo-long.svg' },
 };
 
 export const END_CARD_SECONDS = 1.5;

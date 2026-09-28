@@ -83,6 +83,39 @@ export const UGC_STYLES: UgcStyle[] = [
   },
 ];
 
+// ── Models ────────────────────────────────────────────────────────────────
+
+/**
+ * Higgsfield video models offered in the Video tab (MCP model ids).
+ * The server only accepts ids listed in ALLOWED_MODELS in api/video.ts — keep
+ * the two lists in sync. First entry = default.
+ */
+export const VIDEO_MODELS = [
+  { id: 'seedance_2_5', label: 'Seedance 2.5', hint: 'Best all-round UGC look' },
+  { id: 'kling3_0', label: 'Kling 3.0', hint: 'Strong speech & lip-sync' },
+] as const;
+export type VideoModelId = (typeof VIDEO_MODELS)[number]['id'];
+
+// ── Brand on the phone screen (option C) ──────────────────────────────────
+
+/**
+ * What the creator's phone screen shows, per brand — the brand's mascot and
+ * colours, so viewers get a visual hint during the clip. We describe the
+ * mascot instead of naming the brand: video models turn brand names into
+ * garbled lettering. The REAL logo is added afterwards (see api/_video-brand.ts).
+ */
+export const BRAND_SCREEN_HINTS: Record<string, string> = {
+  Roosterbet: 'a fierce red-and-white rooster mascot on a red and black game screen',
+  FortunePlay: 'a majestic golden lion mascot on a black and gold game screen',
+  SpinJo: 'a cyan astronaut-helmet mascot on a deep navy space-themed game screen',
+  LuckyVibe: 'a stylish woman-with-headphones mascot on a bright blue and sunset-orange game screen',
+  SpinsUp: 'a magician in a pink top hat mascot on a neon purple and magenta game screen',
+  PlayMojo: 'a cool grey bunny mascot on a dark navy and teal game screen',
+  Lucky7even: 'a glowing purple-and-gold number 7 on a deep violet game screen',
+  NovaDreams: 'a white astronaut mascot on a dark cosmic cyan game screen',
+  Rollero: 'a golden spartan-helmet emblem on a black and gold game screen',
+};
+
 // ── Form data ─────────────────────────────────────────────────────────────
 
 export interface VideoFormData {
@@ -99,6 +132,11 @@ export interface VideoFormData {
   audio: boolean;
   /** Optional starting frame (data URL) — switches Higgsfield to image-to-video. */
   startImage: string;
+  model: VideoModelId;
+  /** Stamp the real brand logo in the corner of the saved video. */
+  brandLogo: boolean;
+  /** Add a 1.5s closing brand card to the saved video. */
+  brandEndCard: boolean;
 }
 
 export const EMPTY_VIDEO_FORM: VideoFormData = {
@@ -113,13 +151,16 @@ export const EMPTY_VIDEO_FORM: VideoFormData = {
   duration: 5,
   audio: true,
   startImage: '',
+  model: 'seedance_2_5',
+  brandLogo: true,
+  brandEndCard: true,
 };
 
 /** Fixed realism block — keeps every clip looking phone-shot, not commercial. */
 export const UGC_REALISM =
   'Authentic user-generated content: shot on a smartphone, natural imperfect lighting, ' +
   'realistic skin texture, casual unscripted body language, no cinematic color grading, ' +
-  'no studio lighting, no on-screen text, captions, logos or watermarks.';
+  'no studio lighting, no readable on-screen text, captions, logos or watermarks.';
 
 /**
  * Assemble the final Higgsfield prompt from the structured fields.
@@ -137,6 +178,10 @@ export function buildUgcPrompt(data: VideoFormData): string {
   if (data.audio && clean(data.dialogue)) {
     parts.push(`They say: "${clean(data.dialogue)}"`);
   }
+
+  // The brand's mascot on the phone screen — a hint viewers can spot mid-clip.
+  const screen = BRAND_SCREEN_HINTS[data.brand];
+  if (screen) parts.push(`Their phone screen glows with ${screen}.`);
 
   // Brand palette hints at the clothing/lighting accents — kept subtle for UGC.
   const palette = BRAND_PALETTES[data.brand];

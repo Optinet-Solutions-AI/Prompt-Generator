@@ -13,6 +13,17 @@ describe('buildUgcPrompt', () => {
     expect(p.endsWith(UGC_REALISM)).toBe(true);
   });
 
+  it('puts the brand mascot on the phone screen without naming the brand there', () => {
+    const p = buildUgcPrompt(base);
+    expect(p).toContain(`Their phone screen glows with ${BRAND_SCREEN_HINTS.SpinJo}.`);
+    expect(BRAND_SCREEN_HINTS.SpinJo).not.toMatch(/spinjo/i);
+    expect(buildUgcPrompt({ ...base, brand: 'UnknownBrand' })).not.toContain('phone screen glows');
+  });
+
+  it('has a phone-screen hint for every brand in the system', () => {
+    for (const b of BRANDS) expect(BRAND_SCREEN_HINTS[b], b).toBeTruthy();
+  });
+
   it('adds the brand palette for known brands', () => {
     expect(buildUgcPrompt(base)).toContain('SpinJo color accents');
     expect(buildUgcPrompt({ ...base, brand: 'UnknownBrand' })).not.toContain('color accents');

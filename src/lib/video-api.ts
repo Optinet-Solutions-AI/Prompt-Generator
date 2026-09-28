@@ -11,7 +11,10 @@ export interface LibraryVideo {
   aspect_ratio: string;
   duration: string;
   prompt: string;
+  /** Playback URL (streams through our API). */
   video_url: string;
+  /** Direct Google Drive download link. */
+  download_url: string;
   thumbnail_url: string;
   liked: boolean;
 }

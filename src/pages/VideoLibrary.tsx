@@ -113,7 +113,7 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
               <div className="p-2.5 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-foreground truncate">{v.brand || 'No brand'}</span>
-                  <a href={v.video_url} download={v.name} className="text-muted-foreground hover:text-foreground" aria-label="Download">
+                  <a href={v.download_url} download={v.name} className="text-muted-foreground hover:text-foreground" aria-label="Download">
                     <Download className="w-4 h-4" />
                   </a>
                 </div>

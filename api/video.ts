@@ -89,7 +89,11 @@ async function uploadStartImage(dataUrl: string): Promise<string> {
 
 // ── Google Drive helpers ──────────────────────────────────────────────────
 
+// Reused while valid — video playback makes many small `stream` calls in a row.
+let cachedToken: { value: string; expires: number } | null = null;
+
 async function getGoogleAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < cachedToken.expires) return cachedToken.value;
   const { CLOUD_RUN_REFRESH_TOKEN, CLOUD_RUN_CLIENT_ID, CLOUD_RUN_CLIENT_SECRET } = process.env;
   if (!CLOUD_RUN_REFRESH_TOKEN || !CLOUD_RUN_CLIENT_ID || !CLOUD_RUN_CLIENT_SECRET) {
     throw new HttpError(503, 'Google Drive credentials (CLOUD_RUN_*) are not configured');
@@ -105,8 +109,9 @@ async function getGoogleAccessToken(): Promise<string> {
     }),
   });
   if (!res.ok) throw new HttpError(502, `Google token refresh failed: ${await res.text()}`);
-  const data = await res.json() as { access_token?: string };
+  const data = await res.json() as { access_token?: string; expires_in?: number };
   if (!data.access_token) throw new HttpError(502, 'No Google access_token returned');
+  cachedToken = { value: data.access_token, expires: Date.now() + ((data.expires_in || 3600) - 300) * 1000 };
   return data.access_token;
 }
 
@@ -179,7 +184,10 @@ function mapVideo(f: DriveVideo, liked: Set<string>) {
     aspect_ratio: f.appProperties?.aspectRatio || '',
     duration: f.appProperties?.duration || '',
     prompt: f.description || '',
-    video_url: `https://drive.google.com/uc?export=download&id=${f.id}`,
+    // Browsers refuse to play Drive links inside a <video> tag, so playback
+    // goes through our `stream` action; the Drive link is kept for downloads.
+    video_url: `/api/video?action=stream&id=${f.id}`,
+    download_url: `https://drive.google.com/uc?export=download&id=${f.id}`,
     thumbnail_url: f.thumbnailLink || '',
     liked: liked.has(f.id),
   };
@@ -279,6 +287,50 @@ async function save(body: Record<string, unknown>) {
   };
 }
 
+// Vercel caps a function response at ~4.5 MB, so each playback request returns
+// at most one 4 MB slice. Browsers then ask for the next slice by themselves.
+const STREAM_CHUNK = 4 * 1024 * 1024;
+const verifiedVideoIds = new Set<string>();
+
+/** Serve one byte-range slice of a video from the Video Drive folder. */
+async function stream(req: VercelRequest, res: VercelResponse) {
+  const id = String(req.query.id || '');
+  if (!/^[\w-]+$/.test(id)) throw new HttpError(400, 'invalid id');
+  const accessToken = await getGoogleAccessToken();
+
+  // Only stream files that really live in the Video folder — this route must
+  // not become a way to read any other file on the Drive account.
+  if (!verifiedVideoIds.has(id)) {
+    const meta = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=parents,mimeType`,
+      { headers: { Authorization: `Bearer ${accessToken}` } });
+    const m = meta.ok ? await meta.json() as { parents?: string[]; mimeType?: string } : {};
+    if (!m.parents?.includes(videoFolderId()) || !m.mimeType?.startsWith('video/')) {
+      throw new HttpError(404, 'Video not found');
+    }
+    verifiedVideoIds.add(id);
+  }
+
+  const asked = String(req.headers.range || '').match(/bytes=(\d*)-(\d*)/);
+  const start = asked?.[1] ? parseInt(asked[1], 10) : 0;
+  const wantedEnd = asked?.[2] ? parseInt(asked[2], 10) : Infinity;
+  const end = Math.min(wantedEnd, start + STREAM_CHUNK - 1);
+
+  const drive = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, {
+    headers: { Authorization: `Bearer ${accessToken}`, Range: `bytes=${start}-${end}` },
+  });
+  if (drive.status === 416) { res.status(416).end(); return; }
+  if (!drive.ok) throw new HttpError(502, `Drive stream failed (${drive.status})`);
+
+  const body = Buffer.from(await drive.arrayBuffer());
+  res.setHeader('Content-Type', drive.headers.get('content-type') || 'video/mp4');
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  const range = drive.headers.get('content-range');
+  if (range) res.setHeader('Content-Range', range);
+  res.setHeader('Content-Length', String(body.length));
+  res.status(drive.status === 206 ? 206 : 200).send(body);
+}
+
 async function list() {
   const accessToken = await getGoogleAccessToken();
   const q = `'${videoFolderId()}' in parents and trashed = false and mimeType contains 'video/'`;
@@ -321,6 +373,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
   try {
     if (req.method === 'GET' && action === 'status') return res.status(200).json(await status(String(req.query.id || '')));
+    if (req.method === 'GET' && action === 'stream') return await stream(req, res);
     if (req.method === 'GET' && action === 'list') return res.status(200).json(await list());
     if (req.method === 'POST' && action === 'submit') return res.status(200).json(await submit(body));
     if (req.method === 'POST' && action === 'save') return res.status(200).json(await save(body));

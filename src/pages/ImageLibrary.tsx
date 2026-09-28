@@ -75,8 +75,8 @@ const SB_HEADERS = {
   'Content-Type': 'application/json',
 };
 
-function fetchImages(page: number, filter: string): { data: GeneratedImage[]; hasMore: boolean } {
-  return getImages(page, filter) as { data: GeneratedImage[]; hasMore: boolean };
+function fetchImages(page: number, filter: string, brand = 'all'): { data: GeneratedImage[]; hasMore: boolean } {
+  return getImages(page, filter, 40, brand) as { data: GeneratedImage[]; hasMore: boolean };
 }
 
 // ── Sync from Google Drive → localStorage ──────────────────────────────────────
@@ -1635,7 +1635,6 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
   const [brandFilter, setBrandFilter] = useState('all');
   const [lightbox,    setLightbox]    = useState<GeneratedImage | null>(null);
 
-  const isFavoritesMode = filter === 'favorites';
 
   // Whose library is showing (My library / a colleague's / Team archive)
   const { user } = useAuth();
@@ -1652,7 +1651,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
     try {
       const { data, hasMore: more } = isFavorites
         ? await fetchFavorites(activeBrand, favoritesOwnerFilter(sourceRef.current, user?.id))
-        : fetchImages(pageNum, activeFilter); // sync — no await
+        : fetchImages(pageNum, activeFilter, activeBrand); // sync — no await
       setImages(prev => reset ? data : [...prev, ...data]);
       setHasMore(more);
       setPage(pageNum);
@@ -1689,7 +1688,8 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
   const handleFilter = (f: string) => {
     if (f === filter) return;
     setFilter(f);
-    setBrandFilter('all');
+    // Keep the chosen brand when switching Gemini/ChatGPT/Edited, so combos
+    // like "Gemini + Roosterbet" work.
     setPage(0);
     // Don't clear images here — load() with reset=true replaces them immediately
     // (sync for localStorage, spinner shown for async Favorites)
@@ -1786,8 +1786,8 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
         </div>
       </div>
 
-      {/* Brand sub-filter — only shown in Favorites mode */}
-      {isFavoritesMode && (
+      {/* Brand filter — works together with All/Gemini/ChatGPT/Edited/Favorites */}
+      {(
         <div className="sticky top-16 z-30 bg-background/80 backdrop-blur-md border-b border-border/50">
           <div className="max-w-[1600px] mx-auto px-6 h-11 flex items-center gap-2 overflow-x-auto">
             <span className="text-xs text-muted-foreground font-medium shrink-0 mr-1">Brand:</span>

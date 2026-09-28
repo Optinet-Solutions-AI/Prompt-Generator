@@ -47,7 +47,10 @@ function Pills<T extends string | number>({ options, value, onChange }: {
   );
 }
 
-/** "Connect Higgsfield" / "Connected as …" — generation spends this account's plan credits. */
+/**
+ * The TEAM Higgsfield connection — one account every user renders with.
+ * Everyone sees its status; only admins get Connect / Disconnect.
+ */
 function ConnectionCard({ state }: { state: VideoState }) {
   const { connection, connect, disconnectHf } = state;
   if (connection.loading) {
@@ -62,14 +65,16 @@ function ConnectionCard({ state }: { state: VideoState }) {
       <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl border border-primary/30 bg-primary/5">
         <BadgeCheck className="w-5 h-5 text-primary shrink-0" />
         <div className="text-sm min-w-0">
-          <p className="font-medium text-foreground">Higgsfield connected</p>
+          <p className="font-medium text-foreground">Higgsfield connected · team account</p>
           <p className="text-xs text-muted-foreground truncate">
-            {connection.email ? `${connection.email} · ` : ''}videos use this account's plan credits
+            {connection.canManage && connection.email ? `${connection.email} · ` : ''}videos use the team's Higgsfield plan credits
           </p>
         </div>
-        <Button variant="ghost" size="sm" className="ml-auto" onClick={disconnectHf}>
-          <LogOut className="w-4 h-4 mr-1" />Disconnect
-        </Button>
+        {connection.canManage && (
+          <Button variant="ghost" size="sm" className="ml-auto" onClick={disconnectHf}>
+            <LogOut className="w-4 h-4 mr-1" />Disconnect
+          </Button>
+        )}
       </div>
     );
   }
@@ -77,13 +82,19 @@ function ConnectionCard({ state }: { state: VideoState }) {
     <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-dashed border-primary/40 bg-primary/5">
       <Link2 className="w-5 h-5 text-primary shrink-0" />
       <div className="text-sm min-w-0 flex-1">
-        <p className="font-medium text-foreground">Connect your Higgsfield account</p>
+        <p className="font-medium text-foreground">
+          {connection.canManage ? 'Connect the team Higgsfield account' : 'Video generation is not set up yet'}
+        </p>
         <p className="text-xs text-muted-foreground">
-          One-time sign-in. Videos are made with your Higgsfield plan credits.
+          {connection.canManage
+            ? 'One-time sign-in. Everyone in the app will make videos with this account.'
+            : 'An admin needs to connect the team Higgsfield account. Please let them know.'}
         </p>
         {connection.error && <p className="text-xs text-destructive mt-1">{connection.error}</p>}
       </div>
-      <Button onClick={connect} className="gradient-primary"><Link2 className="w-4 h-4 mr-1" />Connect Higgsfield</Button>
+      {connection.canManage && (
+        <Button onClick={connect} className="gradient-primary"><Link2 className="w-4 h-4 mr-1" />Connect Higgsfield</Button>
+      )}
     </div>
   );
 }

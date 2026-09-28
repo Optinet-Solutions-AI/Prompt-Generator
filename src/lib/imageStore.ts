@@ -93,14 +93,18 @@ export function storeImage(params: {
   return newImg;
 }
 
-/** Read a page of images, optionally filtered by provider. */
+/** Read a page of images, optionally filtered by provider and/or brand. */
 export function getImages(
   page: number,
   filter: string,
-  pageSize = 40
+  pageSize = 40,
+  brand = 'all',
 ): { data: StoredImage[]; hasMore: boolean } {
   const all      = loadAll();
-  const filtered = filter === 'all' ? all : all.filter(i => i.provider === filter);
+  const wanted   = brand.toLowerCase();
+  const filtered = all.filter(i =>
+    (filter === 'all' || i.provider === filter) &&
+    (brand === 'all' || (i.brand || '').toLowerCase() === wanted));
   const offset   = page * pageSize;
   const data     = filtered.slice(offset, offset + pageSize);
   return { data, hasMore: data.length === pageSize };

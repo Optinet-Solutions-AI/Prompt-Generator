@@ -10,6 +10,8 @@ export interface LibraryVideo {
   brand: string;
   aspect_ratio: string;
   duration: string;
+  /** Higgsfield model id, '' if unknown (older videos). */
+  model: string;
   prompt: string;
   /** Playback URL (streams through our API). */
   video_url: string;
@@ -46,7 +48,7 @@ async function call<T>(action: string, init?: { body?: unknown; query?: Record<s
 
 export const videoApi = {
   // Higgsfield connection
-  hfStatus: () => call<{ connected: boolean; email: string | null }>('hf-status'),
+  hfStatus: () => call<{ connected: boolean; email: string | null; can_manage: boolean }>('hf-status'),
   hfConnect: () => call<{ url: string }>('hf-connect', { body: {} }),
   hfDisconnect: () => call('hf-disconnect', { body: {} }),
 
@@ -57,7 +59,7 @@ export const videoApi = {
     call<{ status: string; video_url: string | null; error: string | null }>('status', { query: { id } }),
   save: (body: {
     video_url: string; brand: string; prompt: string; aspectRatio: string; duration: number;
-    brandLogo: boolean; brandEndCard: boolean;
+    model: string; brandLogo: boolean; brandEndCard: boolean;
   }) => call<{ file: LibraryVideo; branded: boolean; brand_error: string | null }>('save', { body }),
 
   // Library

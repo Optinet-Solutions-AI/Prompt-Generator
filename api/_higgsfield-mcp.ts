@@ -20,9 +20,10 @@
  *   - a short lock row (`refreshing_until`) guarantees only one server
  *     instance renews at a time; the others wait and re-read.
  *
- * PER USER: every function takes `uid` (the signed-in profile id). Each
- * person connects their own Higgsfield account and spends their own credits;
- * the row id in higgsfield_connection is their profile id.
+ * ONE TEAM CONNECTION: every function takes a connection key. The Video tab
+ * always passes TEAM_CONNECTION, so every signed-in user renders with the one
+ * Higgsfield account an admin connected (row id 'team' in
+ * higgsfield_connection). Only admins may connect / disconnect it.
  *
  * Underscore file = helper, not its own Vercel route.
  */
@@ -74,8 +75,11 @@ async function sb(path: string, init: RequestInit = {}) {
   return text ? JSON.parse(text) : [];
 }
 
+/** The shared Higgsfield login every user of the Video tab renders with. */
+export const TEAM_CONNECTION = 'team';
+
 const rowId = (uid: string) => {
-  if (!/^[0-9a-f-]{36}$/i.test(uid)) throw new HttpError(401, 'Please sign in first.');
+  if (uid !== TEAM_CONNECTION && !/^[0-9a-f-]{36}$/i.test(uid)) throw new HttpError(401, 'Please sign in first.');
   return uid;
 };
 
@@ -88,7 +92,7 @@ async function writeRow(uid: string, fields: Partial<ConnRow>) {
   await sb('higgsfield_connection?on_conflict=id', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify({ id: rowId(uid), owner_id: uid, ...fields, updated_at: new Date().toISOString() }),
+    body: JSON.stringify({ id: rowId(uid), ...fields, updated_at: new Date().toISOString() }),
   });
 }
 
@@ -189,7 +193,7 @@ async function accessToken(uid: string): Promise<string> {
   for (let attempt = 0; attempt < 10; attempt++) {
     const row = await readRow(uid);
     if (!row?.refresh_token || !row.client_id) {
-      throw new HttpError(401, 'Higgsfield is not connected — click "Connect Higgsfield" in the Video tab.');
+      throw new HttpError(401, 'Higgsfield is not connected yet — an admin needs to click "Connect Higgsfield" in the Video tab.');
     }
     const fresh = row.access_token && row.expires_at && Date.parse(row.expires_at) - Date.now() > 10 * 60 * 1000;
     if (fresh) return row.access_token as string;

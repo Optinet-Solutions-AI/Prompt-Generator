@@ -42,8 +42,9 @@ export function useVideoGenerator() {
   const [result, setResult] = useState<VideoResult | null>(null);
 
   // Higgsfield connection ("Connected as …" / "Connect Higgsfield")
-  const [connection, setConnection] = useState<{ loading: boolean; connected: boolean; email: string | null; error: string }>(
-    { loading: true, connected: false, email: null, error: '' },
+  // One shared TEAM connection for everyone; only admins can change it (canManage).
+  const [connection, setConnection] = useState<{ loading: boolean; connected: boolean; email: string | null; canManage: boolean; error: string }>(
+    { loading: true, connected: false, email: null, canManage: false, error: '' },
   );
   // Credits the current settings would cost (null = unknown / not connected)
   const [cost, setCost] = useState<{ loading: boolean; credits: number | null }>({ loading: false, credits: null });
@@ -58,9 +59,9 @@ export function useVideoGenerator() {
     setConnection(c => ({ ...c, loading: true, error: '' }));
     try {
       const s = await videoApi.hfStatus();
-      setConnection({ loading: false, connected: s.connected, email: s.email, error: '' });
+      setConnection({ loading: false, connected: s.connected, email: s.email, canManage: !!s.can_manage, error: '' });
     } catch (e) {
-      setConnection({ loading: false, connected: false, email: null, error: e instanceof Error ? e.message : 'Could not check the connection' });
+      setConnection({ loading: false, connected: false, email: null, canManage: false, error: e instanceof Error ? e.message : 'Could not check the connection' });
     }
   }, []);
   useEffect(() => { refreshConnection(); }, [refreshConnection]);
@@ -163,7 +164,7 @@ export function useVideoGenerator() {
       try {
         const out = await videoApi.save({
           video_url: videoUrl, brand: form.brand, prompt, aspectRatio: form.aspectRatio, duration: form.duration,
-          brandLogo: form.brandLogo, brandEndCard: form.brandEndCard,
+          model: form.model, brandLogo: form.brandLogo, brandEndCard: form.brandEndCard,
         });
         // Switch the player to the saved (branded) copy.
         setResult(r => r && { ...r, saved: out.file, saving: false, previewUrl: out.file.video_url, brandError: out.brand_error || '' });

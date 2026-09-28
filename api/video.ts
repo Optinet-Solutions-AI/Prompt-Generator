@@ -3,13 +3,14 @@
  *
  * EVERY action needs a signed-in, approved user (see _session.ts). Videos are
  * saved to THAT user's own Google Drive (My Drive / Prompt Generator / Videos)
- * and rendered with THEIR Higgsfield account.
+ * and rendered with the ONE team Higgsfield account an admin connected
+ * (every user shares it — see TEAM_CONNECTION in _higgsfield-mcp.ts).
  *
  * Pick the step with ?action=…
- *   GET  ?action=hf-status       → is MY Higgsfield connected? { connected, email }
- *   POST ?action=hf-connect      → returns { url } — the Higgsfield sign-in page
+ *   GET  ?action=hf-status       → is the TEAM Higgsfield connected? { connected, email }
+ *   POST ?action=hf-connect      → (admins) returns { url } — the Higgsfield sign-in page
  *   GET  ?action=oauth-callback  → Higgsfield sends the browser back here after sign-in
- *   POST ?action=hf-disconnect   → forget my Higgsfield login
+ *   POST ?action=hf-disconnect   → (admins) forget the team Higgsfield login
  *   POST ?action=cost            → credits a video would cost (nothing is rendered)
  *   POST ?action=submit          → start a render, returns { request_id }
  *   GET  ?action=status          → &id=<request_id>, returns { status, video_url? }
@@ -29,7 +30,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   HttpError, startConnect, finishConnect, disconnect, connectionStatus,
-  submitVideo, videoCost, videoStatus, uploadImage, type VideoParams,
+  submitVideo, videoCost, videoStatus, uploadImage, TEAM_CONNECTION as HF, type VideoParams,
 } from './_higgsfield-mcp.js';
 import { brandVideo, END_CARD_SECONDS } from './_video-brand.js';
 import { AuthError, requireUser, libraryOwner, sb, type Profile } from './_session.js';
@@ -101,6 +102,8 @@ function mapVideo(f: UserDriveFile, owner: string, liked: Set<string>) {
     brand: f.appProperties?.brand || '',
     aspect_ratio: f.appProperties?.aspectRatio || '',
     duration: f.appProperties?.duration || '',
+    // Higgsfield model id (e.g. 'seedance_2_5'); empty for videos saved before models were recorded.
+    model: f.appProperties?.model || '',
     prompt: f.description || '',
     owner,
     // Browsers refuse to play Drive links inside a <video> tag, so playback
@@ -142,14 +145,14 @@ function toParams(body: Record<string, unknown>): VideoParams {
 async function submit(p: Profile, body: Record<string, unknown>) {
   const params = toParams(body);
   if (typeof body.startImage === 'string' && body.startImage) {
-    params.medias = [{ value: await uploadImage(p.id, body.startImage), role: 'start_image' }];
+    params.medias = [{ value: await uploadImage(HF, body.startImage), role: 'start_image' }];
   }
-  return { request_id: await submitVideo(p.id, params) };
+  return { request_id: await submitVideo(HF, params) };
 }
 
 async function status(p: Profile, id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'invalid id');
-  const s = await videoStatus(p.id, id);
+  const s = await videoStatus(HF, id);
   // Map Higgsfield's words onto the ones the browser already understands.
   if (s.status === 'ip_detected') {
     return { status: 'failed', video_url: null, error: 'Higgsfield flagged possible copyrighted content (a real person, character or brand) — reword the prompt.' };
@@ -194,7 +197,8 @@ async function save(req: VercelRequest, p: Profile, body: Record<string, unknown
   const name = `${slug ? slug + '-' : ''}ugc-${Date.now()}.mp4`;
   const prompt = String(body.prompt || '');
   const aspectRatio = String(body.aspectRatio || '');
-  const appProperties = { provider: 'higgsfield', brand, aspectRatio, duration };
+  const model = ALLOWED_MODELS.has(String(body.model)) ? String(body.model) : '';
+  const appProperties = { provider: 'higgsfield', brand, aspectRatio, duration, model };
   const id = await uploadToUserDrive(p, 'videos', { buffer, mimeType: 'video/mp4', name, description: prompt, appProperties });
   return {
     branded,
@@ -286,13 +290,13 @@ async function unlike(p: Profile, body: Record<string, unknown>) {
 
 // ── Higgsfield sign-in ────────────────────────────────────────────────────
 
-async function oauthCallback(req: VercelRequest, res: VercelResponse, p: Profile) {
+async function oauthCallback(req: VercelRequest, res: VercelResponse) {
   const code = String(req.query.code || '');
   const state = String(req.query.state || '');
   let result = 'connected';
   try {
     if (!code) throw new HttpError(400, String(req.query.error_description || req.query.error || 'Sign-in was cancelled'));
-    await finishConnect(p.id, code, state);
+    await finishConnect(HF, code, state);
   } catch (err) {
     result = 'error:' + (err instanceof Error ? err.message : 'sign-in failed');
     console.error('[video:oauth-callback]', err);
@@ -307,11 +311,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
   try {
     const p = await requireUser(req);
-    if (req.method === 'GET' && action === 'hf-status') return res.status(200).json(await connectionStatus(p.id));
-    if (req.method === 'POST' && action === 'hf-connect') return res.status(200).json({ url: await startConnect(p.id, `${siteOrigin(req)}/api/video?action=oauth-callback`) });
-    if (req.method === 'GET' && action === 'oauth-callback') return await oauthCallback(req, res, p);
-    if (req.method === 'POST' && action === 'hf-disconnect') { await disconnect(p.id); return res.status(200).json({ success: true }); }
-    if (req.method === 'POST' && action === 'cost') return res.status(200).json({ credits: await videoCost(p.id, toParams(body)) });
+    // Only admins may change the shared team connection.
+    const adminOnly = () => { if (!p.is_admin) throw new HttpError(403, 'Only an admin can change the Higgsfield connection.'); };
+    if (req.method === 'GET' && action === 'hf-status') return res.status(200).json({ ...(await connectionStatus(HF)), can_manage: p.is_admin });
+    if (req.method === 'POST' && action === 'hf-connect') { adminOnly(); return res.status(200).json({ url: await startConnect(HF, `${siteOrigin(req)}/api/video?action=oauth-callback`) }); }
+    if (req.method === 'GET' && action === 'oauth-callback') { adminOnly(); return await oauthCallback(req, res); }
+    if (req.method === 'POST' && action === 'hf-disconnect') { adminOnly(); await disconnect(HF); return res.status(200).json({ success: true }); }
+    if (req.method === 'POST' && action === 'cost') return res.status(200).json({ credits: await videoCost(HF, toParams(body)) });
     if (req.method === 'GET' && action === 'status') return res.status(200).json(await status(p, String(req.query.id || '')));
     if (req.method === 'GET' && action === 'stream') return await stream(req, res, p);
     if (req.method === 'GET' && action === 'list') return res.status(200).json(await list(p, String(req.query.owner || '')));

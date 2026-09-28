@@ -12,6 +12,10 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { BRANDS } from '@/types/prompt';
 import { videoApi, type LibraryVideo } from '@/lib/video-api';
+import { VIDEO_MODELS } from '@/lib/ugc-video';
+
+/** 'seedance_2_5' → 'Seedance 2.5'; '' → '' (older videos didn't record a model). */
+const modelLabel = (id: string) => VIDEO_MODELS.find(m => m.id === id)?.label || id;
 import { LibrarySourcePicker, ownerParam, sourceLabel, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
 
 export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
@@ -19,6 +23,7 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [brand, setBrand] = useState('All');
+  const [model, setModel] = useState('All');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [source, setSource] = useState<LibrarySource>({ kind: 'mine' });
   const isMine = source.kind === 'mine';
@@ -33,9 +38,14 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   useEffect(() => { load(); }, [load]);
 
   const shown = useMemo(() => videos.filter(v =>
-    (brand === 'All' || v.brand === brand) && (!favoritesOnly || v.liked)), [videos, brand, favoritesOnly]);
+    (brand === 'All' || v.brand === brand) &&
+    (model === 'All' || v.model === model) &&
+    (!favoritesOnly || v.liked)), [videos, brand, model, favoritesOnly]);
 
-  const countFor = (b: string) => videos.filter(v => b === 'All' || v.brand === b).length;
+  // Counts respect the OTHER filter, so "Roosterbet (2)" means 2 with the chosen model.
+  const countFor = (b: string) => videos.filter(v => (b === 'All' || v.brand === b) && (model === 'All' || v.model === model)).length;
+  const countModel = (m: string) => videos.filter(v => (m === 'All' || v.model === m) && (brand === 'All' || v.brand === brand)).length;
+  const hasUnknownModel = videos.some(v => !v.model);
 
   const toggleLike = async (v: LibraryVideo) => {
     // Optimistic: flip the heart now, undo if the server says no.
@@ -59,7 +69,7 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
           <h2 className="text-xl font-bold text-foreground">Video Library</h2>
           {!loading && <span className="text-sm text-muted-foreground">{videos.length} videos</span>}
         </div>
-        <LibrarySourcePicker value={source} onChange={s => { setSource(s); setBrand('All'); setFavoritesOnly(false); }} />
+        <LibrarySourcePicker value={source} onChange={s => { setSource(s); setBrand('All'); setModel('All'); setFavoritesOnly(false); }} />
         <div className="ml-auto flex gap-2">
           {isMine && <Button variant={favoritesOnly ? 'default' : 'outline'} size="sm" onClick={() => setFavoritesOnly(f => !f)}>
             <Heart className={`w-4 h-4 mr-1 ${favoritesOnly ? 'fill-current' : ''}`} />Favorites
@@ -70,8 +80,23 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
+      {/* Model filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground mr-1">Model:</span>
+        {[{ id: 'All', label: 'All models' }, ...VIDEO_MODELS, ...(hasUnknownModel ? [{ id: '', label: 'Not recorded' }] : [])].map(m => (
+          <button key={m.id || 'unknown'} type="button" onClick={() => setModel(m.id)}
+            className={[
+              'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+              model === m.id ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground',
+            ].join(' ')}>
+            {m.label} <span className="opacity-70">({countModel(m.id)})</span>
+          </button>
+        ))}
+      </div>
+
       {/* Brand filter */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground mr-1">Brand:</span>
         {['All', ...BRANDS].map(b => (
           <button key={b} type="button" onClick={() => setBrand(b)}
             className={[
@@ -127,7 +152,7 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
                   </a>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  {[v.aspect_ratio, v.duration && `${v.duration}s`, new Date(v.created_at).toLocaleDateString()].filter(Boolean).join(' · ')}
+                  {[modelLabel(v.model), v.aspect_ratio, v.duration && `${v.duration}s`, new Date(v.created_at).toLocaleDateString()].filter(Boolean).join(' · ')}
                 </p>
                 {v.prompt && <p className="text-[11px] text-muted-foreground line-clamp-2" title={v.prompt}>{v.prompt}</p>}
               </div>

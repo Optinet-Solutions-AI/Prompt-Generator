@@ -2,90 +2,49 @@
  * video.ts — every server-side step of the UGC Video feature, in one route.
  *
  * Pick the step with ?action=…
- *   POST ?action=submit   → send the prompt to Higgsfield, returns { request_id }
- *   GET  ?action=status   → &id=<request_id>, returns { status, video_url? }
- *   POST ?action=save     → download the finished video, upload it to the
- *                           VIDEO Drive folder, returns { file }
- *   GET  ?action=list     → every video in the Drive folder (+ liked flag)
- *   POST ?action=like     → add a video to favorites (Supabase `liked_videos`)
- *   POST ?action=unlike   → remove it from favorites
+ *   GET  ?action=hf-status       → is Higgsfield connected? { connected, email }
+ *   POST ?action=hf-connect      → returns { url } — the Higgsfield sign-in page
+ *   GET  ?action=oauth-callback  → Higgsfield sends the browser back here after sign-in
+ *   POST ?action=hf-disconnect   → forget the Higgsfield login
+ *   POST ?action=cost            → credits a video would cost (nothing is rendered)
+ *   POST ?action=submit          → start a render, returns { request_id }
+ *   GET  ?action=status          → &id=<request_id>, returns { status, video_url? }
+ *   POST ?action=save            → download the finished video, stamp the brand
+ *                                  (corner logo + end card), upload to the VIDEO
+ *                                  Drive folder, returns { file }
+ *   GET  ?action=list            → every video in the Drive folder (+ liked flag)
+ *   GET  ?action=stream          → &id=<drive id>, plays a video (range slices)
+ *   POST ?action=like / unlike   → favorites (Supabase `liked_videos`)
+ *
+ * GENERATION GOES THROUGH THE HIGGSFIELD MCP, on the connected account's PLAN
+ * credits (see _higgsfield-mcp.ts for why, and for the token-renewal rules).
  *
  * WHY SUBMIT + STATUS INSTEAD OF ONE CALL:
- * Higgsfield renders take minutes. Holding one request open that long risks
- * the function timeout, so the browser polls `status` every few seconds instead.
+ * Renders take minutes. Holding one request open that long risks the function
+ * timeout, so the browser polls `status` every few seconds instead.
  *
- * ENV VARS (see .env.local):
- *   HF_API_KEY                          — Higgsfield console → API keys ("id:secret")
- *   HF_VIDEO_MODEL_T2V                  — text-to-video endpoint path
- *   HF_VIDEO_MODEL_I2V                  — image-to-video endpoint path
- *   GOOGLE_DRIVE_VIDEO_FOLDER_ID        — the NEW Drive folder for videos
- *   CLOUD_RUN_* + SUPABASE_*            — same Google/Supabase creds as images
- *
- * Self-contained (no local imports), matching the other Drive routes.
+ * ENV VARS:
+ *   GOOGLE_DRIVE_VIDEO_FOLDER_ID  — the Drive folder for videos
+ *   CLOUD_RUN_* + SUPABASE_*      — same Google/Supabase creds as images
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  HttpError, startConnect, finishConnect, disconnect, connectionStatus,
+  submitVideo, videoCost, videoStatus, uploadImage, type VideoParams,
+} from './_higgsfield-mcp.js';
+import { brandVideo, END_CARD_SECONDS } from './_video-brand.js';
 
-// Downloading + re-uploading a video to Drive can take a while.
+// Downloading, branding and re-uploading a video to Drive can take a while.
 export const config = { maxDuration: 300 };
-
-const HF_BASE = 'https://api.higgsfield.ai';
-// Defaults are the Seedance endpoints from Higgsfield's quick-start. The I2V
-// path is a best guess until checked against the model page in the console —
-// override either one with an env var without touching code.
-const T2V_MODEL = process.env.HF_VIDEO_MODEL_T2V || 'bytedance/seedance-2.0/text-to-video';
-const I2V_MODEL = process.env.HF_VIDEO_MODEL_I2V || 'bytedance/seedance-2.0/image-to-video';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// ── Higgsfield helpers ────────────────────────────────────────────────────
-
-function hfAuthHeader(): string {
-  // The Higgsfield console hands out ONE combined "id:secret" string.
-  // (Older keys came as two parts — still accepted via HF_API_KEY_ID + HF_API_KEY_SECRET.)
-  const { HF_API_KEY, HF_API_KEY_ID, HF_API_KEY_SECRET } = process.env;
-  const key = HF_API_KEY || (HF_API_KEY_ID && HF_API_KEY_SECRET ? `${HF_API_KEY_ID}:${HF_API_KEY_SECRET}` : '');
-  if (!key || key.startsWith('your_')) {
-    throw new HttpError(503, 'Higgsfield API key is not configured yet (HF_API_KEY).');
-  }
-  return `Key ${key}`;
-}
-
-async function hfFetch(path: string, init: RequestInit = {}) {
-  const res = await fetch(`${HF_BASE}/${path.replace(/^\//, '')}`, {
-    ...init,
-    headers: { Authorization: hfAuthHeader(), 'Content-Type': 'application/json', ...(init.headers || {}) },
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    // Turn Higgsfield's short codes into messages a user can act on.
-    if (text.includes('not_enough_credits')) {
-      throw new HttpError(402, 'Higgsfield account is out of credits — top up at cloud.higgsfield.ai, then try again.');
-    }
-    if (res.status === 401) throw new HttpError(401, 'Higgsfield rejected the API key — check HF_API_KEY.');
-    throw new HttpError(res.status, `Higgsfield ${res.status}: ${text.slice(0, 300)}`);
-  }
-  return text ? JSON.parse(text) : {};
-}
-
-/** Upload the optional start image to Higgsfield storage, return its public URL. */
-async function uploadStartImage(dataUrl: string): Promise<string> {
-  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-  if (!m) throw new HttpError(400, 'startImage must be a base64 data URL');
-  const [, contentType, b64] = m;
-  const signed = await hfFetch('files/generate-upload-url', {
-    method: 'POST',
-    body: JSON.stringify({ content_type: contentType }),
-  }) as { upload_url: string; upload_headers?: Record<string, string>; public_url: string };
-  // The signed PUT must NOT carry our API key.
-  const put = await fetch(signed.upload_url, {
-    method: 'PUT',
-    headers: { 'Content-Type': contentType, ...(signed.upload_headers || {}) },
-    body: Buffer.from(b64, 'base64'),
-  });
-  if (!put.ok) throw new HttpError(502, `Start image upload failed (${put.status})`);
-  return signed.public_url;
-}
+// Video models the Video tab may use (Higgsfield MCP model ids). Anything else
+// sent by the browser is rejected, so the page can't spend credits on a
+// surprise model. Keep in sync with VIDEO_MODELS in src/lib/ugc-video.ts.
+const ALLOWED_MODELS = new Set(['seedance_2_5', 'kling3_0']);
+const DEFAULT_MODEL = 'seedance_2_5';
 
 // ── Google Drive helpers ──────────────────────────────────────────────────
 
@@ -224,65 +183,95 @@ async function likedIds(): Promise<Set<string>> {
 
 // ── Actions ───────────────────────────────────────────────────────────────
 
-class HttpError extends Error {
-  constructor(public status: number, message: string) { super(message); }
-}
-
-async function submit(body: Record<string, unknown>) {
+/** Turn the Video tab's settings into Higgsfield MCP parameters. */
+function toParams(body: Record<string, unknown>): VideoParams {
   const prompt = String(body.prompt || '').trim();
   if (!prompt) throw new HttpError(400, 'prompt is required');
-
-  const payload: Record<string, unknown> = {
+  const model = String(body.model || DEFAULT_MODEL);
+  if (!ALLOWED_MODELS.has(model)) throw new HttpError(400, `Model "${model}" is not enabled for the Video tab`);
+  return {
+    model,
     prompt,
     aspect_ratio: String(body.aspectRatio || '9:16'),
     duration: Number(body.duration) || 5,
     resolution: '720p',
     generate_audio: body.audio !== false,
   };
+}
 
-  let model = T2V_MODEL;
+async function cost(body: Record<string, unknown>) {
+  return { credits: await videoCost(toParams(body)) };
+}
+
+async function submit(body: Record<string, unknown>) {
+  const params = toParams(body);
   if (typeof body.startImage === 'string' && body.startImage) {
-    payload.image_url = await uploadStartImage(body.startImage);
-    model = I2V_MODEL;
+    params.medias = [{ value: await uploadImage(body.startImage), role: 'start_image' }];
   }
-
-  const data = await hfFetch(model, { method: 'POST', body: JSON.stringify(payload) }) as { request_id?: string };
-  if (!data.request_id) throw new HttpError(502, 'Higgsfield did not return a request_id');
-  return { request_id: data.request_id, model };
+  return { request_id: await submitVideo(params) };
 }
 
 async function status(id: string) {
-  if (!/^[\w-]+$/.test(id)) throw new HttpError(400, 'invalid id');
-  const data = await hfFetch(`requests/${id}/status`) as {
-    status?: string; video?: { url?: string }; error?: string;
-  };
-  return { status: data.status || 'unknown', video_url: data.video?.url || null, error: data.error || null };
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'invalid id');
+  const s = await videoStatus(id);
+  // Map Higgsfield's words onto the ones the browser already understands.
+  if (s.status === 'ip_detected') {
+    return { status: 'failed', video_url: null, error: 'Higgsfield flagged possible copyrighted content (a real person, character or brand) — reword the prompt.' };
+  }
+  return { status: s.status, video_url: s.url, error: s.error };
 }
 
-async function save(body: Record<string, unknown>) {
+// Only download finished videos from Higgsfield's own storage — `save` must
+// not become a way to make the server fetch arbitrary URLs.
+function isHiggsfieldUrl(url: string): boolean {
+  try {
+    const h = new URL(url).hostname;
+    return url.startsWith('https://') && (h.endsWith('.cloudfront.net') || h.endsWith('higgsfield.ai'));
+  } catch { return false; }
+}
+
+/** This deployment's own origin, e.g. https://prompt-generator-virid-delta.vercel.app */
+function siteOrigin(req: VercelRequest): string {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+  return `${host.startsWith('localhost') ? 'http' : 'https'}://${host}`;
+}
+
+async function save(req: VercelRequest, body: Record<string, unknown>) {
   const url = String(body.video_url || '');
-  if (!/^https:\/\//.test(url)) throw new HttpError(400, 'video_url must be an https URL');
+  if (!isHiggsfieldUrl(url)) throw new HttpError(400, 'video_url must be a Higgsfield result URL');
   const brand = String(body.brand || '').trim();
 
   const vid = await fetch(url);
   if (!vid.ok) throw new HttpError(502, `Could not download the video (${vid.status})`);
-  const mimeType = vid.headers.get('content-type')?.split(';')[0] || 'video/mp4';
-  const buffer = Buffer.from(await vid.arrayBuffer());
+  let buffer = Buffer.from(await vid.arrayBuffer());
 
+  // Stamp the real brand (corner logo + end card) unless switched off.
+  const opts = { logo: body.brandLogo !== false, endCard: body.brandEndCard !== false };
+  let branded = false;
+  let brandError = '';
+  try {
+    const out = await brandVideo(buffer, brand, opts, siteOrigin(req));
+    buffer = out.buffer; branded = out.branded;
+  } catch (err) {
+    // Never lose the render over branding — save the plain video and say why.
+    brandError = err instanceof Error ? err.message : String(err);
+    console.error('[video:save] branding failed, saving unbranded:', err);
+  }
+
+  const baseSeconds = Number(body.duration) || 0;
+  const duration = baseSeconds ? String(branded && opts.endCard ? baseSeconds + END_CARD_SECONDS : baseSeconds) : '';
   const slug = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const filename = `${slug ? slug + '-' : ''}ugc-${Date.now()}.${mimeType.split('/')[1] || 'mp4'}`;
+  const filename = `${slug ? slug + '-' : ''}ugc-${Date.now()}.mp4`;
+  const prompt = String(body.prompt || '');
+  const aspectRatio = String(body.aspectRatio || '');
   const accessToken = await getGoogleAccessToken();
-  const id = await uploadVideoToDrive({
-    buffer, mimeType, filename, brand, accessToken,
-    prompt: String(body.prompt || ''),
-    aspectRatio: String(body.aspectRatio || ''),
-    duration: String(body.duration || ''),
-  });
+  const id = await uploadVideoToDrive({ buffer, mimeType: 'video/mp4', filename, brand, accessToken, prompt, aspectRatio, duration });
   return {
+    branded,
+    brand_error: brandError || null,
     file: mapVideo({
-      id, name: filename, createdTime: new Date().toISOString(), mimeType,
-      description: String(body.prompt || ''),
-      appProperties: { brand, aspectRatio: String(body.aspectRatio || ''), duration: String(body.duration || '') },
+      id, name: filename, createdTime: new Date().toISOString(), mimeType: 'video/mp4',
+      description: prompt, appProperties: { brand, aspectRatio, duration },
     }, new Set()),
   };
 }
@@ -368,15 +357,38 @@ async function unlike(body: Record<string, unknown>) {
   return { success: true };
 }
 
+// ── Higgsfield sign-in ────────────────────────────────────────────────────
+
+async function oauthCallback(req: VercelRequest, res: VercelResponse) {
+  const code = String(req.query.code || '');
+  const state = String(req.query.state || '');
+  let result = 'connected';
+  try {
+    if (!code) throw new HttpError(400, String(req.query.error_description || req.query.error || 'Sign-in was cancelled'));
+    await finishConnect(code, state);
+  } catch (err) {
+    result = 'error:' + (err instanceof Error ? err.message : 'sign-in failed');
+    console.error('[video:oauth-callback]', err);
+  }
+  // Back to the app's Video tab, which reads ?hf= and shows the outcome.
+  res.setHeader('Location', `/?hf=${encodeURIComponent(result)}`);
+  res.status(302).end();
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = String(req.query.action || '');
   const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
   try {
+    if (req.method === 'GET' && action === 'hf-status') return res.status(200).json(await connectionStatus());
+    if (req.method === 'POST' && action === 'hf-connect') return res.status(200).json({ url: await startConnect(`${siteOrigin(req)}/api/video?action=oauth-callback`) });
+    if (req.method === 'GET' && action === 'oauth-callback') return await oauthCallback(req, res);
+    if (req.method === 'POST' && action === 'hf-disconnect') { await disconnect(); return res.status(200).json({ success: true }); }
+    if (req.method === 'POST' && action === 'cost') return res.status(200).json(await cost(body));
     if (req.method === 'GET' && action === 'status') return res.status(200).json(await status(String(req.query.id || '')));
     if (req.method === 'GET' && action === 'stream') return await stream(req, res);
     if (req.method === 'GET' && action === 'list') return res.status(200).json(await list());
     if (req.method === 'POST' && action === 'submit') return res.status(200).json(await submit(body));
-    if (req.method === 'POST' && action === 'save') return res.status(200).json(await save(body));
+    if (req.method === 'POST' && action === 'save') return res.status(200).json(await save(req, body));
     if (req.method === 'POST' && action === 'like') return res.status(200).json(await like(body));
     if (req.method === 'POST' && action === 'unlike') return res.status(200).json(await unlike(body));
     return res.status(404).json({ error: `Unknown action "${action}" for ${req.method}` });

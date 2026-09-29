@@ -20,7 +20,8 @@
  *   GET  ?action=stream          → &id=<drive id>&owner=…  plays a video (range slices)
  *   POST ?action=like / unlike   → favorites on MY videos (Supabase `liked_videos`)
  *   GET  ?action=usage-mine      → &days=30  my Higgsfield credit usage
- *   GET  ?action=usage-team      → (admins) &days=30[&format=csv]  everyone's usage
+ *   GET  ?action=usage-team      → (admins) &days=30[&format=csv[&kind=images]]  everyone's usage
+ *   (both usage actions include IMAGE costs in US$ from Supabase `image_usage`)
  *
  * "owner=archive" = the old shared team folder (GOOGLE_DRIVE_VIDEO_FOLDER_ID)
  * from before accounts existed — read-only for everyone signed in.
@@ -251,6 +252,55 @@ export function summarize(rows: UsageRow[]) {
   };
 }
 
+// ── Image costs (US$) — written by api/_image-usage.ts ────────────────────
+
+export interface ImageUsageRow {
+  user_id: string | null; user_email: string | null; user_name: string | null;
+  action: 'generate' | 'edit' | 'variation'; provider: 'chatgpt' | 'gemini'; model: string; images: number;
+  brand: string | null; cost_usd: number | string | null; cost_exact: boolean; created_at: string;
+}
+
+const ACTION_LABELS: Record<string, string> = { generate: 'Generate', edit: 'Edit', variation: 'Variations' };
+const PROVIDER_LABELS: Record<string, string> = { chatgpt: 'ChatGPT', gemini: 'Gemini' };
+
+/** Dollar totals for image work: per provider (ChatGPT/Gemini), per action, per brand. */
+export function summarizeImages(rows: ImageUsageRow[]) {
+  const usd = (list: ImageUsageRow[]) => Math.round(list.reduce((t, r) => t + (Number(r.cost_usd) || 0), 0) * 10000) / 10000;
+  const group = (key: (r: ImageUsageRow) => string) => {
+    const out: Record<string, { images: number; usd: number }> = {};
+    for (const r of rows) {
+      const k = key(r) || '—';
+      out[k] = out[k] || { images: 0, usd: 0 };
+      out[k].images += r.images || 0;
+      out[k].usd = Math.round((out[k].usd + (Number(r.cost_usd) || 0)) * 10000) / 10000;
+    }
+    return out;
+  };
+  return {
+    usd: usd(rows),
+    images: rows.reduce((t, r) => t + (r.images || 0), 0),
+    actions: rows.length,
+    /** part of `usd` that is an estimate (OpenAI edits/variations) */
+    estimated_usd: usd(rows.filter(r => !r.cost_exact)),
+    /** actions whose cost couldn't be priced (e.g. Cloud Run backup path) */
+    unpriced: rows.filter(r => r.cost_usd == null).length,
+    by_provider: group(r => PROVIDER_LABELS[r.provider] || r.provider),
+    by_action: group(r => ACTION_LABELS[r.action] || r.action),
+    by_provider_action: group(r => `${PROVIDER_LABELS[r.provider] || r.provider} · ${ACTION_LABELS[r.action] || r.action}`),
+    by_brand: group(r => r.brand || ''),
+  };
+}
+
+async function imageUsageRows(filter: string, since: string): Promise<ImageUsageRow[]> {
+  try {
+    return await sb(`image_usage?select=*&created_at=gte.${encodeURIComponent(since)}${filter}&order=created_at.desc&limit=10000`) as ImageUsageRow[];
+  } catch (err) {
+    // Table not created yet → show videos only rather than failing the whole window.
+    console.warn('[video:usage] image_usage unavailable:', err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
 async function usageRows(filter: string, since: string): Promise<UsageRow[]> {
   return await sb(`video_usage?select=*&created_at=gte.${encodeURIComponent(since)}${filter}&order=created_at.desc&limit=5000`) as UsageRow[];
 }
@@ -258,9 +308,17 @@ async function usageRows(filter: string, since: string): Promise<UsageRow[]> {
 async function usageMine(p: Profile, days: unknown) {
   const period = periodStart(days);
   const rows = await usageRows(`&user_id=eq.${p.id}`, period.since);
+  const imageRows = await imageUsageRows(`&user_id=eq.${p.id}`, period.since);
   return {
     days: period.days,
     ...summarize(rows),
+    image: {
+      ...summarizeImages(imageRows),
+      recent: imageRows.slice(0, 25).map(r => ({
+        created_at: r.created_at, provider: PROVIDER_LABELS[r.provider] || r.provider, action: ACTION_LABELS[r.action] || r.action,
+        model: r.model, images: r.images, brand: r.brand, usd: r.cost_usd == null ? null : Number(r.cost_usd), exact: r.cost_exact,
+      })),
+    },
     recent: rows.slice(0, 25).map(r => ({
       created_at: r.created_at, model: MODEL_LABELS[r.model] || r.model, brand: r.brand, duration: r.duration,
       credits: Number(r.credits) || null, status: r.status,
@@ -272,8 +330,24 @@ async function usageTeam(req: VercelRequest, res: VercelResponse, p: Profile) {
   if (!p.is_admin) throw new HttpError(403, 'Only an admin can see the team usage summary.');
   const period = periodStart(req.query.days);
   const rows = await usageRows('', period.since);
+  const imageRows = await imageUsageRows('', period.since);
   const people = await sb('profiles?select=id,email,name,avatar_url') as Array<{ id: string; email: string; name: string | null; avatar_url: string | null }>;
   const byId = new Map(people.map(u => [u.id, u]));
+
+  if (req.query.format === 'csv' && req.query.kind === 'images') {
+    const esc = (v: unknown) => { const t = v == null ? '' : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+    const lines = [['date', 'name', 'email', 'engine', 'action', 'model', 'images', 'brand', 'cost usd', 'cost is'].join(',')];
+    for (const r of imageRows) {
+      const u = r.user_id ? byId.get(r.user_id) : undefined;
+      lines.push([r.created_at, r.user_name || u?.name, r.user_email || u?.email, PROVIDER_LABELS[r.provider] || r.provider,
+        ACTION_LABELS[r.action] || r.action, r.model, r.images, r.brand, r.cost_usd,
+        r.cost_usd == null ? 'unknown' : r.cost_exact ? 'exact' : 'estimate'].map(esc).join(','));
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="image-costs-last-${period.days}-days.csv"`);
+    res.status(200).send(lines.join('\n'));
+    return;
+  }
 
   if (req.query.format === 'csv') {
     const esc = (v: unknown) => { const t = v == null ? '' : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
@@ -290,25 +364,30 @@ async function usageTeam(req: VercelRequest, res: VercelResponse, p: Profile) {
     return;
   }
 
-  // One entry per person — keyed by account id, or by the saved email if the
-  // app account was deleted since.
-  const keyOf = (r: UsageRow) => r.user_id || `email:${r.user_email || 'unknown'}`;
-  const perUser = [...new Set(rows.map(keyOf))].map(key => {
+  // One entry per person (videos AND images) — keyed by account id, or by
+  // the saved email if the app account was deleted since.
+  const keyOf = (r: { user_id: string | null; user_email?: string | null }) => r.user_id || `email:${r.user_email || 'unknown'}`;
+  const keys = [...new Set([...rows.map(keyOf), ...imageRows.map(keyOf)])];
+  const perUser = keys.map(key => {
     const mine = rows.filter(r => keyOf(r) === key);
-    const u = mine[0].user_id ? byId.get(mine[0].user_id) : undefined;
+    const myImages = imageRows.filter(r => keyOf(r) === key);
+    const first = mine[0] || myImages[0];
+    const u = first.user_id ? byId.get(first.user_id) : undefined;
+    const last = [mine[0]?.created_at, myImages[0]?.created_at].filter(Boolean).sort().pop() || null;
     return {
       user: {
         id: key,
-        email: u?.email || mine[0].user_email || '(unknown)',
-        name: u?.name || mine[0].user_name || null,
+        email: u?.email || first.user_email || '(unknown)',
+        name: u?.name || first.user_name || null,
         avatar_url: u?.avatar_url || null,
         deleted: !u,
       },
       ...summarize(mine),
-      last_at: mine[0]?.created_at || null,
+      image: summarizeImages(myImages),
+      last_at: last,
     };
-  }).sort((a, b) => b.credits - a.credits);
-  res.status(200).json({ days: period.days, ...summarize(rows), people: perUser });
+  }).sort((a, b) => (b.credits - a.credits) || (b.image.usd - a.image.usd));
+  res.status(200).json({ days: period.days, ...summarize(rows), image: summarizeImages(imageRows), people: perUser });
 }
 
 // Only download finished videos from Higgsfield's own storage — `save` must

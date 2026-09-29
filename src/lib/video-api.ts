@@ -72,10 +72,11 @@ export const videoApi = {
   unlike: (id: string) => call('unlike', { body: { file_id: id } }),
 
   // Higgsfield credit usage
-  usageMine: (days: number) => call<UsageSummary & { days: number; recent: UsageRecent[] }>('usage-mine', { query: { days: String(days) } }),
-  usageTeam: (days: number) => call<UsageSummary & { days: number; people: UsagePerson[] }>('usage-team', { query: { days: String(days) } }),
-  /** CSV download link (admins). */
-  usageCsvUrl: (days: number) => `/api/video?action=usage-team&days=${days}&format=csv`,
+  usageMine: (days: number) => call<UsageSummary & { days: number; recent: UsageRecent[]; image: ImageUsageSummary & { recent: ImageUsageRecent[] } }>('usage-mine', { query: { days: String(days) } }),
+  usageTeam: (days: number) => call<UsageSummary & { days: number; people: UsagePerson[]; image: ImageUsageSummary }>('usage-team', { query: { days: String(days) } }),
+  /** CSV download links (admins): videos (Higgsfield credits) or images (US$). */
+  usageCsvUrl: (days: number, kind: 'videos' | 'images' = 'videos') =>
+    `/api/video?action=usage-team&days=${days}&format=csv${kind === 'images' ? '&kind=images' : ''}`,
 };
 
 export interface UsageGroup { videos: number; credits: number }
@@ -92,7 +93,26 @@ export interface UsageSummary {
 export interface UsageRecent {
   created_at: string; model: string; brand: string | null; duration: number | null; credits: number | null; status: string;
 }
+/** Image costs in US$ (OpenAI / Google), per provider and action. */
+export interface ImageUsageGroup { images: number; usd: number }
+export interface ImageUsageSummary {
+  usd: number;
+  images: number;
+  actions: number;
+  /** part of `usd` that is estimated (OpenAI edits/variations) */
+  estimated_usd: number;
+  /** actions whose cost couldn't be priced */
+  unpriced: number;
+  by_provider: Record<string, ImageUsageGroup>;
+  by_action: Record<string, ImageUsageGroup>;
+  by_provider_action: Record<string, ImageUsageGroup>;
+  by_brand: Record<string, ImageUsageGroup>;
+}
+export interface ImageUsageRecent {
+  created_at: string; provider: string; action: string; model: string; images: number; brand: string | null; usd: number | null; exact: boolean;
+}
 export interface UsagePerson extends UsageSummary {
+  image: ImageUsageSummary;
   user: { id: string; email: string; name: string | null; avatar_url: string | null; deleted?: boolean };
   last_at: string | null;
 }

@@ -121,7 +121,8 @@ function mapVideo(f: UserDriveFile, owner: string, liked: Set<string>) {
     // goes through our `stream` action (which also checks who may watch).
     video_url: `/api/video?action=stream&id=${f.id}&owner=${owner}`,
     download_url: `/api/video?action=stream&id=${f.id}&owner=${owner}&download=1`,
-    thumbnail_url: f.thumbnailLink || '',
+    // Drive's thumbnail is tiny (=s220) and looks blurry stretched over a card — ask for a sharp one.
+    thumbnail_url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+$/, '=s1080') : '',
     liked: liked.has(f.id),
   };
 }

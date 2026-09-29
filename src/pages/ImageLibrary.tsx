@@ -767,7 +767,7 @@ function Lightbox({
   return (
     <>
       {/* Lightbox — flex-col on small, flex-row on lg+ */}
-      <div className="fixed inset-0 z-50 flex flex-col lg:flex-row bg-black/92 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex flex-col lg:flex-row bg-black/90 backdrop-blur-md">
 
         {/* Close button */}
         <button
@@ -1766,8 +1766,9 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
 
       {/* Top bar */}
       <div className={`${embedded ? 'sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border' : 'sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border'}`}>
-        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center gap-6">
-          <div className="flex items-center gap-3 shrink-0">
+        {/* Phones/tablets: title + picker + refresh on row 1, filter tabs full-width on row 2 */}
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-2 lg:py-0 lg:h-16 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2 lg:gap-6">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 lg:flex-none">
             {embedded ? (
               <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground -ml-2" onClick={onBack}>
                 <ArrowLeft className="w-4 h-4" />
@@ -1797,8 +1798,8 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
           </div>
 
           {/* Filter tabs */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex items-center gap-0.5 bg-muted/60 rounded-xl p-1">
+          <div className="order-last lg:order-none w-full lg:w-auto lg:flex-1 flex items-center justify-center">
+            <div className="flex items-center gap-0.5 bg-muted/60 rounded-xl p-1 w-full sm:w-auto">
               {FILTERS.map(f => {
                 const Icon   = f.icon;
                 const active = filter === f.value;
@@ -1806,7 +1807,8 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
                   <button
                     key={f.value}
                     onClick={() => handleFilter(f.value)}
-                    className={`flex items-center gap-1.5 px-3 xl:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                    title={f.label} aria-label={f.label}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 xl:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                       active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >

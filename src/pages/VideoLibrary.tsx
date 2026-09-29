@@ -30,6 +30,10 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const isMine = source.kind === 'mine';
   // The video whose "Share" window is open (null = closed)
   const [sharing, setSharing] = useState<LibraryVideo | null>(null);
+  // Big libraries: render 30 cards at a time ("Show more" adds the next 30)
+  const PAGE = 30;
+  const [visible, setVisible] = useState(PAGE);
+  useEffect(() => { setVisible(PAGE); }, [source, brand, model, favoritesOnly]);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -76,22 +80,22 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
         </div>
         <LibrarySourcePicker value={source} onChange={s => { setSource(s); setBrand('All'); setModel('All'); setFavoritesOnly(false); }} />
         <div className="ml-auto flex gap-2">
-          {isMine && <Button variant={favoritesOnly ? 'default' : 'outline'} size="sm" onClick={() => setFavoritesOnly(f => !f)}>
-            <Heart className={`w-4 h-4 mr-1 ${favoritesOnly ? 'fill-current' : ''}`} />Favorites
+          {isMine && <Button variant={favoritesOnly ? 'default' : 'outline'} size="sm" onClick={() => setFavoritesOnly(f => !f)} aria-label="Favorites" title="Favorites">
+            <Heart className={`w-4 h-4 sm:mr-1 ${favoritesOnly ? 'fill-current' : ''}`} /><span className="hidden sm:inline">Favorites</span>
           </Button>}
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />Refresh
+          <Button variant="outline" size="sm" onClick={load} disabled={loading} aria-label="Refresh" title="Refresh">
+            <RefreshCw className={`w-4 h-4 sm:mr-1 ${loading ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </div>
 
       {/* Model filter */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground mr-1">Model:</span>
+      <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1 sm:pb-0 [scrollbar-width:none]">
+        <span className="shrink-0 text-xs font-medium text-muted-foreground mr-1">Model:</span>
         {[{ id: 'All', label: 'All models' }, ...VIDEO_MODELS, ...(hasUnknownModel ? [{ id: '', label: 'Not recorded' }] : [])].map(m => (
           <button key={m.id || 'unknown'} type="button" onClick={() => setModel(m.id)}
             className={[
-              'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+              'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
               model === m.id ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground',
             ].join(' ')}>
             {m.label} <span className="opacity-70">({countModel(m.id)})</span>
@@ -100,12 +104,12 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
       </div>
 
       {/* Brand filter */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground mr-1">Brand:</span>
+      <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1 sm:pb-0 [scrollbar-width:none]">
+        <span className="shrink-0 text-xs font-medium text-muted-foreground mr-1">Brand:</span>
         {brandChips.map(b => (
           <button key={b} type="button" onClick={() => setBrand(b)}
             className={[
-              'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
+              'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
               brand === b ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground',
             ].join(' ')}>
             {b} <span className="opacity-70">({countFor(b)})</span>
@@ -138,9 +142,9 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
 
       {/* Grid */}
       {!loading && !error && shown.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {shown.map(v => (
-            <div key={v.id} className="group rounded-xl border border-border bg-card overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3">
+          {shown.slice(0, visible).map(v => (
+            <div key={v.id} className="group rounded-xl border border-border bg-card overflow-hidden flex flex-col">
               <div className="relative bg-black aspect-[9/16]">
                 <video src={v.video_url} poster={v.thumbnail_url || undefined} controls preload="metadata" playsInline
                   className="absolute inset-0 w-full h-full object-contain" />
@@ -151,29 +155,39 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
                   </button>
                 )}
               </div>
-              <div className="p-2.5 space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-foreground truncate">{v.brand || 'No brand'}</span>
-                  <span className="flex items-center gap-2 shrink-0">
-                    {isMine && (
-                      <button type="button" onClick={() => setSharing(v)} className="text-muted-foreground hover:text-foreground"
-                        aria-label="Share this video" title="Share this video with someone">
-                        <Share2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    <a href={v.download_url} download={v.name} className="text-muted-foreground hover:text-foreground" aria-label="Download">
-                      <Download className="w-4 h-4" />
-                    </a>
-                  </span>
-                </div>
+              <div className="p-2.5 flex flex-col gap-1 flex-1">
+                <span className="text-xs font-semibold text-foreground truncate">{v.brand || 'No brand'}</span>
                 {v.shared_by && <p className="text-[11px] text-primary truncate">Shared by {v.shared_by}</p>}
                 <p className="text-[11px] text-muted-foreground">
                   {[modelLabel(v.model), v.aspect_ratio, v.duration && `${v.duration}s`, new Date(v.created_at).toLocaleDateString()].filter(Boolean).join(' · ')}
                 </p>
-                {v.prompt && <p className="text-[11px] text-muted-foreground line-clamp-2" title={v.prompt}>{v.prompt}</p>}
+                {v.prompt && (
+                  <div className="hidden sm:block">
+                    <p className="text-[11px] text-muted-foreground line-clamp-2" title={v.prompt}>{v.prompt}</p>
+                  </div>
+                )}
+                {/* Actions — clear labelled buttons, pinned to the bottom so every card lines up */}
+                <div className="flex items-center gap-1.5 pt-1.5 mt-auto">
+                  {isMine && (
+                    <button type="button" onClick={() => setSharing(v)} title="Share this video with someone"
+                      className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 h-10 px-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 active:scale-[0.98] transition">
+                      <Share2 className="w-4 h-4 shrink-0" /><span className="truncate">Share</span>
+                    </button>
+                  )}
+                  <a href={v.download_url} download={v.name} aria-label="Download" title="Download"
+                    className={`inline-flex items-center justify-center gap-1.5 h-10 rounded-lg border border-border text-foreground text-xs font-medium hover:bg-muted transition-colors ${isMine ? 'w-10 shrink-0' : 'flex-1 px-2'}`}>
+                    <Download className="w-4 h-4 shrink-0" />{!isMine && <span>Download</span>}
+                  </a>
+                </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {!loading && !error && shown.length > visible && (
+        <div className="flex flex-col items-center gap-1 pt-6">
+          <Button variant="outline" onClick={() => setVisible(n => n + PAGE)}>Show more</Button>
+          <span className="text-xs text-muted-foreground">Showing {visible} of {shown.length}</span>
         </div>
       )}
       {sharing && (

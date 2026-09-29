@@ -21,6 +21,8 @@ export interface LibraryVideo {
   liked: boolean;
   /** Whose library it's in: a profile id, or 'archive' (before accounts). */
   owner: string;
+  /** Only in "Individual items": who shared this one video with me. */
+  shared_by?: string;
 }
 
 /** The generation settings the server needs (for both `cost` and `submit`). */

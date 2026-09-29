@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Download, FileCode, Mail, Images, RefreshCw, Trash2, X,
+  ArrowLeft, Download, FileCode, Mail, Images, RefreshCw, Share2, Trash2, X,
   ChevronLeft, ChevronRight, ChevronDown, Sparkles, Wand2, Bot, Cpu, Loader2, Plus, Save, Heart, Shuffle, Expand,
   AlertTriangle, Check,
 } from 'lucide-react';
@@ -32,11 +32,14 @@ interface GeneratedImage {
   brand?: string;
   brand_name?: string;
   record_id?: string;
+  /** Set on "Individual items" — who shared it with me */
+  shared_by?: string;
   _isFavorite?: boolean;
 }
 
 import { BRANDS } from '@/types/prompt';
-import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, storeImage, setImageLibraryView } from '@/lib/imageStore';
+import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, storeImage, setImageLibraryView, pruneStoredImages } from '@/lib/imageStore';
+import { ItemShareDialog } from '@/components/auth/ItemShareDialog';
 import { LibrarySourcePicker, ownerParam, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
 import { useAuth } from '@/hooks/useAuth';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
@@ -97,19 +100,23 @@ async function syncFromDrive(owner = ''): Promise<number> {
     const data = await res.json() as {
       files: Array<{
         id: string; public_url: string; provider: string;
-        aspect_ratio: string; resolution: string; filename: string; created_at: string; brand?: string;
+        aspect_ratio: string; resolution: string; filename: string; created_at: string; brand?: string; shared_by?: string;
       }>;
     };
 
     const files = data.files;
-    if (!Array.isArray(files) || files.length === 0) return 0;
+    if (!Array.isArray(files)) return 0;
+    // "Individual items": the server list is the whole truth — anything the
+    // owner stopped sharing disappears from the cache too.
+    const removed = owner === 'items' ? pruneStoredImages(new Set(files.map(f => f.public_url))) : 0;
+    if (files.length === 0) return removed;
 
     // Only add images not already in localStorage (deduplicate by public_url)
     const existingUrls = new Set(getAllStoredImages().map(i => i.public_url));
     const newFiles = files.filter(
       f => f.public_url && !existingUrls.has(f.public_url)
     );
-    if (newFiles.length === 0) return 0;
+    if (newFiles.length === 0) return removed;
 
     // Single batch write — much faster than writing one at a time
     console.log(`[syncFromDrive] synced ${newFiles.length} new images from Drive`);
@@ -120,17 +127,25 @@ async function syncFromDrive(owner = ''): Promise<number> {
       resolution:   f.resolution   || '1K',
       filename:     f.filename     || `image-${f.id}.png`,
       brand:        f.brand || undefined,
-    })));
+      shared_by:    f.shared_by || undefined,
+    }))) + removed;
   } catch (err) {
     console.error('[syncFromDrive] failed:', err);
     return 0;
   }
 }
 
+/** The Google Drive file id inside an image URL (lh3…/d/<id>, …/file/d/<id>, ?id=<id>), or null. */
+function driveFileId(url: string | undefined): string | null {
+  const m = (url || '').match(/\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/);
+  return m ? (m[1] || m[2]) : null;
+}
+
 // Favorites for the library being viewed: mine (+ old team favorites from
 // before accounts), a colleague's, or only the old team ones for the archive.
 function favoritesOwnerFilter(source: LibrarySource, myId: string | undefined): string {
   if (source.kind === 'shared') return `&owner_id=eq.${source.ownerId}`;
+  if (source.kind === 'items') return '&id=is.null'; // single shared items have no favorites tab — match nothing
   if (source.kind === 'archive' || !myId) return '&owner_id=is.null';
   return `&or=(owner_id.eq.${myId},owner_id.is.null)`;
 }
@@ -363,7 +378,7 @@ function SaveEditedModal({
 // ── Lightbox ───────────────────────────────────────────────────────────────────
 
 function Lightbox({
-  image, all, onClose, onPrev, onNext, onDeleted, onImageUpdated, onNewImageAdded, activeBrand,
+  image, all, onClose, onPrev, onNext, onDeleted, onImageUpdated, onNewImageAdded, activeBrand, canShare = false,
 }: {
   image: GeneratedImage;
   all: GeneratedImage[];
@@ -375,6 +390,8 @@ function Lightbox({
   onNewImageAdded: (img: GeneratedImage) => void;
   /** Fallback brand when image.brand_name is not set (e.g. Drive images) */
   activeBrand?: string;
+  /** True in "My library" — shows the "Share this image" button */
+  canShare?: boolean;
 }) {
   const idx     = all.findIndex(i => i.id === image.id);
   const hasPrev = idx > 0;
@@ -388,6 +405,8 @@ function Lightbox({
   const [showHtmlModal,  setShowHtmlModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [confirmDelete,  setConfirmDelete] = useState(false);
+  const [showShare,      setShowShare]     = useState(false);
+  const shareId = canShare ? driveFileId(image.public_url) : null;
   const [isDeleting,     setIsDeleting]    = useState(false);
 
   // Edit state
@@ -1106,6 +1125,24 @@ function Lightbox({
               <Mail className="w-4 h-4" />
               Convert to Email
             </button>
+
+            {/* Share just this one image with chosen colleagues */}
+            {shareId && (
+              <button
+                onClick={() => setShowShare(true)}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
+              >
+                <Share2 className="w-4 h-4" />
+                Share this image
+              </button>
+            )}
+            {image.shared_by && (
+              <p className="text-center text-xs text-white/60">Shared with you by {image.shared_by}</p>
+            )}
+            {shareId && (
+              <ItemShareDialog open={showShare} onOpenChange={setShowShare} kind="image" fileId={shareId}
+                previewUrl={image.public_url} title={image.filename} />
+            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1844,6 +1881,8 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
             </h2>
             <p className="text-muted-foreground mb-8">
               {filter !== 'all' ? 'Try a different filter.'
+                : source.kind === 'items'
+                  ? "Nothing shared with you one by one yet. When a colleague opens one of their images and clicks \"Share this image\", it shows up here."
                 : source.kind === 'mine'
                   ? "Images you generate are saved to your own Google Drive and appear here. Looking for images made before accounts? They're in the Team archive."
                   : "Generate some images and they'll appear here."}
@@ -1923,6 +1962,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
           onImageUpdated={handleImageUpdated}
           onNewImageAdded={handleNewImageAdded}
           activeBrand={brandFilter !== 'all' ? brandFilter : undefined}
+          canShare={source.kind === 'mine' && filter !== 'favorites'}
         />
       )}
     </div>

@@ -53,6 +53,8 @@ export interface StoredImage {
   // overlay when rounded-corner downloads are requested. Optional because
   // images saved before this field was added won't have it.
   brand?:       string;
+  // Who shared it with me (only on the "Individual items" shelf).
+  shared_by?:   string;
 }
 
 function loadAll(key = viewKey): StoredImage[] {
@@ -137,6 +139,14 @@ export function batchStoreImages(newImages: Omit<StoredImage, 'id' | 'created_at
   const merged = [...toAdd, ...loadAll()].slice(0, MAX_IMAGES);
   saveAll(merged);
   return toAdd.length;
+}
+
+/** Drop cached images whose URL is not in `keep` (e.g. no longer shared). Returns how many were removed. */
+export function pruneStoredImages(keep: Set<string>): number {
+  const all = loadAll();
+  const left = all.filter(i => keep.has(i.public_url));
+  if (left.length !== all.length) saveAll(left);
+  return all.length - left.length;
 }
 
 /** Permanently remove an image by id. */

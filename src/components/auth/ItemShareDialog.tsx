@@ -32,14 +32,15 @@ export function ItemShareDialog({ open, onOpenChange, kind, fileId, previewUrl, 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   // Load everyone + who already has this item, each time the dialog opens.
   useEffect(() => {
     if (!open || !fileId) return;
-    setLoading(true);
+    setLoading(true); setLoadError('');
     Promise.all([authApi.users(), authApi.itemViewers(kind, fileId)])
       .then(([u, v]) => { setPeople(u.users); setSharing(new Set(v.viewers.map(p => p.id))); })
-      .catch(e => toast.error(e instanceof Error ? e.message : 'Could not load people'))
+      .catch(e => setLoadError(e instanceof Error ? e.message : 'Could not load people'))
       .finally(() => setLoading(false));
   }, [open, kind, fileId]);
 

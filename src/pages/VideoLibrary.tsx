@@ -7,7 +7,7 @@
  * the heart only appears on my own videos.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Clapperboard, Download, Heart, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Clapperboard, Download, Heart, Loader2, RefreshCw, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { BRANDS } from '@/types/prompt';
@@ -17,6 +17,7 @@ import { VIDEO_MODELS } from '@/lib/ugc-video';
 /** 'seedance_2_5' → 'Seedance 2.5'; '' → '' (older videos didn't record a model). */
 const modelLabel = (id: string) => VIDEO_MODELS.find(m => m.id === id)?.label || id;
 import { LibrarySourcePicker, ownerParam, sourceLabel, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
+import { ItemShareDialog } from '@/components/auth/ItemShareDialog';
 
 export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const [videos, setVideos] = useState<LibraryVideo[]>([]);
@@ -27,6 +28,8 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [source, setSource] = useState<LibrarySource>({ kind: 'mine' });
   const isMine = source.kind === 'mine';
+  // The video whose "Share" window is open (null = closed)
+  const [sharing, setSharing] = useState<LibraryVideo | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -126,7 +129,9 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
         <div className="text-center py-16 text-muted-foreground">
           <Clapperboard className="w-10 h-10 mx-auto mb-3 opacity-40" />
           {videos.length === 0
-            ? (isMine ? 'No videos yet — generate one in the Video tab.' : `No videos in ${sourceLabel(source)} yet.`)
+            ? (isMine ? 'No videos yet — generate one in the Video tab.'
+              : source.kind === 'items' ? 'Nothing shared with you one by one yet. When a colleague clicks Share on one of their videos, it shows up here.'
+              : `No videos in ${sourceLabel(source)} yet.`)
             : 'No videos match these filters.'}
         </div>
       )}
@@ -149,10 +154,19 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
               <div className="p-2.5 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-foreground truncate">{v.brand || 'No brand'}</span>
-                  <a href={v.download_url} download={v.name} className="text-muted-foreground hover:text-foreground" aria-label="Download">
-                    <Download className="w-4 h-4" />
-                  </a>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {isMine && (
+                      <button type="button" onClick={() => setSharing(v)} className="text-muted-foreground hover:text-foreground"
+                        aria-label="Share this video" title="Share this video with someone">
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <a href={v.download_url} download={v.name} className="text-muted-foreground hover:text-foreground" aria-label="Download">
+                      <Download className="w-4 h-4" />
+                    </a>
+                  </span>
                 </div>
+                {v.shared_by && <p className="text-[11px] text-primary truncate">Shared by {v.shared_by}</p>}
                 <p className="text-[11px] text-muted-foreground">
                   {[modelLabel(v.model), v.aspect_ratio, v.duration && `${v.duration}s`, new Date(v.created_at).toLocaleDateString()].filter(Boolean).join(' · ')}
                 </p>
@@ -161,6 +175,10 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
             </div>
           ))}
         </div>
+      )}
+      {sharing && (
+        <ItemShareDialog open onOpenChange={o => { if (!o) setSharing(null); }} kind="video" fileId={sharing.id}
+          previewUrl={sharing.video_url} title={sharing.brand || sharing.name} />
       )}
     </div>
   );

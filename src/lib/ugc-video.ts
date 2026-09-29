@@ -140,7 +140,7 @@ export interface CustomBusiness {
   research: BusinessResearchNotes | null;
 }
 
-export interface BusinessPreset extends UgcStyle { line: string; endCard: string }
+export interface BusinessPreset extends UgcStyle { line: string; endCard: string; hook?: string }
 
 export interface BusinessResearchNotes {
   full_name: string; summary: string; location: string; services: string[]; selling_points: string[];

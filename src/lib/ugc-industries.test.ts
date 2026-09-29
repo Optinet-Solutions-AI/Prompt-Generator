@@ -43,3 +43,41 @@ describe('custom business prompt', () => {
     }
   });
 });
+
+import { speechFit } from './ugc-video';
+import { maxWordsFor } from '../../api/_script-writer';
+
+describe('making the ad work (after the first Demajo test)', () => {
+  it('flags a line that is too long for 5 seconds', () => {
+    // The line that got cut off in the first real test.
+    expect(speechFit('Their own lab made my new smile so fast.', 5)).toMatchObject({ words: 9, maxWords: 8, fits: false });
+    expect(speechFit('Okay… I actually love my smile now.', 5).fits).toBe(true);
+    expect(speechFit('Their own lab made my new smile so fast.', 10).fits).toBe(true);
+  });
+
+  it('the script writer uses the same word budget as the meter', () => {
+    expect(maxWordsFor(5)).toBe(speechFit('', 5).maxWords);
+    expect(maxWordsFor(10)).toBe(speechFit('', 10).maxWords);
+  });
+
+  it('always adds visual cues so viewers see it is a dental clinic', () => {
+    const p = buildUgcPrompt(form);
+    expect(p).toContain('dental treatment chair');
+    expect(p).toContain('start speaking within the first second');
+  });
+
+  it('every industry has cues and every format a short, emoji-free hook', () => {
+    for (const ind of INDUSTRIES) {
+      expect(ind.cues.length, ind.id).toBeGreaterThan(20);
+      for (const st of ind.styles) {
+        expect(st.hook, st.id).toBeTruthy();
+        expect(st.hook!.split(/\s+/).length, st.id).toBeLessThanOrEqual(8);
+        expect(st.hook, st.id).not.toMatch(/\p{Extended_Pictographic}/u);
+      }
+    }
+  });
+
+  it('every built-in spoken line fits a 5-second clip', () => {
+    for (const ind of INDUSTRIES) for (const st of ind.styles) expect(speechFit(st.line, 5).fits, `${st.id}: ${st.line}`).toBe(true);
+  });
+});

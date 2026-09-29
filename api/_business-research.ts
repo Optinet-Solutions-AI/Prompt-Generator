@@ -19,7 +19,16 @@ const RESEARCH_MODEL = 'gemini-3.5-flash';
 
 export interface ResearchPreset {
   id: string; label: string; emoji: string; creator: string; setting: string; action: string; camera: string;
-  line: string; endCard: string;
+  line: string; endCard: string; hook: string;
+}
+
+const EMOJI = /\p{Extended_Pictographic}/gu;
+
+/** Keep a spoken line within a word budget (5 s clip ≈ 8 words), ending cleanly. */
+export function fitWords(line: string, max: number): string {
+  const w = line.trim().split(/\s+/).filter(Boolean);
+  if (w.length <= max) return line.trim();
+  return w.slice(0, max).join(' ').replace(/[,;:–-]+$/, '') + '.';
 }
 
 export interface BusinessResearch {
@@ -183,26 +192,33 @@ Return ONLY valid JSON (no markdown) with exactly these keys:
   "tagline": "end-card call to action, max 55 chars, may include their domain (e.g. 'Book your consultation · example.com')",
   "compliance": "one line of ad-rule cautions for this industry (e.g. healthcare: no guaranteed results, AI actors are not real patients)",
   "presets": [ exactly 3 video formats written for THIS business, each:
-    {"label": "2-4 words", "emoji": "one emoji", "creator": "who is on camera (no real names)", "setting": "where", "action": "what happens in 5-10 s, one clear beat", "camera": "phone-shot style", "line": "natural spoken line, under 12 words", "endCard": "end-card line, max 45 chars"} ]
+    {"label": "2-4 words", "emoji": "one emoji", "creator": "who is on camera (no real names)", "setting": "where", "action": "what happens in 5-10 s, one clear beat", "camera": "phone-shot style", "line": "natural spoken line, MAX 8 words (it must fit a 5-second clip)", "hook": "on-screen caption for the first 3 seconds, max 8 words, names the kind of business, no emoji, no business name", "endCard": "end-card line, max 45 chars"} ]
 }
 Rules: no real person names in presets; nothing with readable text in the scene (no brochures, signs, screens, menus, posters, logos); no gore, needles or graphic procedures; no claims like "pain-free", "painless", "stress-free", "best", or guaranteed results; keep it realistic and phone-shot.`;
 
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${RESEARCH_MODEL}:generateContent?key=${key}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{ google_search: {} }],
-      generationConfig: { maxOutputTokens: 4000, temperature: 0.4 },
-    }),
-  });
-  if (!r.ok) throw new Error(`Research AI failed (${r.status}): ${(await r.text()).slice(0, 200)}`);
-  const j = await r.json() as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; groundingMetadata?: { groundingChunks?: Array<{ web?: { uri?: string; title?: string } }> } }>;
-  };
-  const cand = j.candidates?.[0];
-  const text = (cand?.content?.parts || []).map(p => p.text || '').join('');
-  const sources = (cand?.groundingMetadata?.groundingChunks || []).map(c => c.web?.title || c.web?.uri || '').filter(Boolean).slice(0, 8);
-  return { data: extractJson(text), sources };
+  // Google Search answers are occasionally cut short or come back as prose —
+  // try twice before giving up, so the user rarely sees an error.
+  let lastErr = '';
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${RESEARCH_MODEL}:generateContent?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: { maxOutputTokens: 8000, temperature: 0.4 },
+      }),
+    });
+    if (!r.ok) { lastErr = `Research AI failed (${r.status}): ${(await r.text()).slice(0, 200)}`; continue; }
+    const j = await r.json() as {
+      candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> }; groundingMetadata?: { groundingChunks?: Array<{ web?: { uri?: string; title?: string } }> } }>;
+    };
+    const cand = j.candidates?.[0];
+    const text = (cand?.content?.parts || []).map(p => p.text || '').join('');
+    const sources = (cand?.groundingMetadata?.groundingChunks || []).map(c => c.web?.title || c.web?.uri || '').filter(Boolean).slice(0, 8);
+    try { return { data: extractJson(text), sources }; }
+    catch { lastErr = `The research answer was incomplete (${cand?.finishReason || 'no reason given'}).`; }
+  }
+  throw new Error(`${lastErr} Please try again.`);
 }
 
 // ── Put it together ───────────────────────────────────────────────────────
@@ -267,7 +283,8 @@ export async function researchBusiness(rawUrl: string): Promise<BusinessResearch
     id: `biz-${i}-${str(p.label, 30).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     label: str(p.label, 40) || `Format ${i + 1}`, emoji: str(p.emoji, 8) || '🎬',
     creator: str(p.creator, 200), setting: str(p.setting, 200), action: softenClaims(str(p.action, 300)), camera: str(p.camera, 150),
-    line: softenClaims(str(p.line, 90)), endCard: softenClaims(str(p.endCard, 60)),
+    line: fitWords(softenClaims(str(p.line, 90)), 8), endCard: softenClaims(str(p.endCard, 60)),
+    hook: softenClaims(str(p.hook, 70)).replace(EMOJI, '').trim(),
   })).filter(p => p.creator && p.action);
 
   const hex = (v: string | null) => (v && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null);

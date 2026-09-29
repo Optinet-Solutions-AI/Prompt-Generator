@@ -88,7 +88,7 @@ export const INDUSTRIES: Industry[] = [
     styles: [
       s({ id: 'med-myth', label: 'Doctor: myth vs fact', emoji: '👨‍⚕️', creator: 'A calm doctor in their 40s in a white coat',
         setting: 'Bright consultation room', action: 'Raises an eyebrow, shakes head, then smiles reassuringly at the camera',
-        camera: 'Phone on a tripod, chest-up', line: 'No, you don’t need to wait until it’s serious.', hook: 'Doctor myth: busted', endCard: 'Book an appointment' }),
+        camera: 'Phone on a tripod, chest-up', line: 'Don’t wait until it’s serious. Come in early.', hook: 'Doctor myth: busted', endCard: 'Book an appointment' }),
       s({ id: 'med-first-visit', label: 'What to expect', emoji: '📋', creator: 'A patient in their 30s',
         setting: 'Modern clinic reception, then a consultation room', action: 'Checks in with a smile, then sits relaxed chatting with the doctor',
         camera: 'Handheld, filmed by a friend', line: 'Way quicker and friendlier than I expected.', hook: 'What a GP visit here is really like', endCard: 'Same-week appointments' }),
@@ -108,7 +108,7 @@ export const INDUSTRIES: Industry[] = [
         camera: 'Selfie vlog style', line: 'Treating myself today, come with me.', hook: 'Come with me to my treatment', endCard: 'Your glow starts here' }),
       s({ id: 'aes-qa', label: 'Consultation Q&A', emoji: '💬', creator: 'A friendly practitioner in their 30s',
         setting: 'Minimal consultation room', action: 'Nods thoughtfully, gestures while explaining, smiles at the camera',
-        camera: 'Phone on a tripod, chest-up', line: 'Great question — let’s talk about what suits you.', hook: 'You asked, the expert answers', endCard: 'Free consultation' }),
+        camera: 'Phone on a tripod, chest-up', line: 'Great question. Let’s find what suits you.', hook: 'You asked, the expert answers', endCard: 'Free consultation' }),
     ],
   },
   {

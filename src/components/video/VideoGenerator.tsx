@@ -6,16 +6,17 @@
  *  - aspect ratio defaults to vertical 9:16 (UGC is watched on phones)
  *  - duration, audio on/off, and an optional starting image
  */
-import { useRef } from 'react';
-import { BadgeCheck, Clapperboard, Coins, Heart, ImagePlus, Link2, Loader2, LogOut, Pencil, RotateCcw, Sparkles, Trash2, Video, X } from 'lucide-react';
+import { useRef, type ReactNode } from 'react';
+import { BadgeCheck, CheckCircle2, Circle, Clapperboard, Coins, Heart, ImagePlus, Link2, Loader2, LogOut, Pencil, RotateCcw, Sparkles, Trash2, Video, Wand2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/FormField';
 import { BRANDS } from '@/types/prompt';
-import { UGC_STYLES, VIDEO_ASPECT_RATIOS, VIDEO_DURATIONS, VIDEO_MODELS } from '@/lib/ugc-video';
+import { UGC_STYLES, VIDEO_ASPECT_RATIOS, VIDEO_DURATIONS, VIDEO_MODELS, speechFit } from '@/lib/ugc-video';
 import { findIndustry } from '@/lib/ugc-industries';
 import { CustomBusinessPanel } from './CustomBusinessPanel';
 import { videoApi } from '@/lib/video-api';
@@ -45,6 +46,20 @@ function Pills<T extends string | number>({ options, value, onChange }: {
           {o.hint && <div className="text-[11px] text-muted-foreground">{o.hint}</div>}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** Numbered section heading — guides the user through the form top to bottom. */
+function Step({ n, title, hint, right }: { n: number; title: string; hint?: string; right?: ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 pt-2">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">{n}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-foreground leading-6">{title}</p>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+      {right}
     </div>
   );
 }
@@ -102,7 +117,7 @@ function ConnectionCard({ state }: { state: VideoState }) {
 }
 
 export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; onOpenLibrary: () => void }) {
-  const { form, setField, applyStyle, setMode, applyIndustryStyle, prompt, promptEdited, editPrompt, rebuildPrompt, connection, cost,
+  const { form, setField, applyStyle, setMode, applyIndustryStyle, writeScript, writing, prompt, promptEdited, editPrompt, rebuildPrompt, connection, cost,
     appState, statusText, elapsed, error, result, generate, cancel, backToEdit, clear, markLiked } = state;
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -192,8 +207,8 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
       )}
 
       {/* Mode: one of our brands, or any business (e.g. a dental clinic) */}
+      <Step n={1} title="Who is this video for?" hint="One of our brands, or any business — e.g. a dental clinic." />
       <div className="space-y-1.5">
-        <Label>Who is this video for?</Label>
         <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-muted/60 border border-border">
           {([['brand', 'Our brands', 'Roosterbet, SpinJo, …'], ['custom', 'Custom business', 'Any company or niche']] as const).map(([m, label, hint]) => (
             <button key={m} type="button" onClick={() => form.mode !== m && setMode(m)}
@@ -242,6 +257,14 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
       )}
 
       {/* Structured prompt fields — pre-filled by the style, all editable */}
+      <Step n={2} title="The scene"
+        hint={form.mode === 'custom' ? 'Your format filled this in — edit anything, or let the AI write it for this business.' : 'Your UGC style filled this in — edit anything.'}
+        right={form.mode === 'custom' ? (
+          <Button type="button" variant="outline" size="sm" onClick={writeScript} disabled={writing || !form.custom.name.trim()}>
+            {writing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
+            {writing ? 'Writing…' : 'Write it for me'}
+          </Button>
+        ) : undefined} />
       <div className="grid sm:grid-cols-2 gap-4">
         <FormField type="textarea" label="Creator" rows={2} value={form.creator}
           onChange={v => setField('creator', v)} placeholder="Who is on camera?" />
@@ -252,6 +275,48 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
         <FormField type="textarea" label="Camera" rows={2} value={form.camera}
           onChange={v => setField('camera', v)} placeholder="How is it filmed?" />
       </div>
+
+      {/* Step 3 — the words: spoken line (timed) + on-screen hook */}
+      <Step n={3} title="What they say & the on-screen hook" hint="Short beats long: a 5-second clip fits about 8 spoken words." />
+      {form.audio ? (() => {
+        const fit = speechFit(form.dialogue, form.duration);
+        return (
+          <div className="space-y-1.5">
+            <FormField type="text" label="What they say (optional)" value={form.dialogue} maxLength={200}
+              onChange={v => setField('dialogue', v)} placeholder='e.g. "No way… I actually won!"' />
+            {fit.words > 0 && (
+              fit.fits ? (
+                <p className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5" />~{fit.seconds}s of speech ({fit.words} words) — fits in {form.duration} seconds
+                </p>
+              ) : (
+                <p className="flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
+                  <span>⚠ {fit.words} words (~{fit.seconds}s) is too long for {form.duration} seconds — it may get cut off. Keep it to {fit.maxWords} words</span>
+                  {form.duration < 10 && (
+                    <button type="button" className="rounded-md border border-amber-400 px-2 py-0.5 font-medium hover:bg-amber-50 dark:hover:bg-amber-950"
+                      onClick={() => setField('duration', 10)}>Use 10 seconds</button>
+                  )}
+                </p>
+              )
+            )}
+          </div>
+        );
+      })() : (
+        <p className="text-xs text-muted-foreground">Audio is off (step 4), so nobody speaks.</p>
+      )}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="video-hook">On-screen hook <span className="text-muted-foreground font-normal">(first 3 seconds)</span></Label>
+          <span className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Switch checked={form.hookOn} onCheckedChange={v => setField('hookOn', v)} aria-label="Show on-screen hook" />{form.hookOn ? 'On' : 'Off'}
+          </span>
+        </div>
+        <Input id="video-hook" value={form.hook} maxLength={70} disabled={!form.hookOn} onChange={e => setField('hook', e.target.value)}
+          placeholder={form.mode === 'custom' ? "e.g. POV: Malta's dental clinic with its own lab" : 'e.g. POV: you finally hit the jackpot'} />
+        <p className="text-[11px] text-muted-foreground">Big caption at the top, stamped in a clean font — tells viewers instantly what this is about. No emoji.</p>
+      </div>
+
+      <Step n={4} title="Look & length" hint="Model, shape, length, sound and branding." />
 
       <div className="space-y-2">
         <Label>Video Model</Label>
@@ -283,11 +348,6 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
           </div>
         </div>
       </div>
-
-      {form.audio && (
-        <FormField type="text" label="What they say (optional)" value={form.dialogue} maxLength={200}
-          onChange={v => setField('dialogue', v)} placeholder='e.g. "No way… I actually won!"' />
-      )}
 
       {/* Optional starting frame → image-to-video */}
       <div className="space-y-2">
@@ -346,6 +406,31 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
         <Textarea rows={5} value={prompt} onChange={e => editPrompt(e.target.value)}
           placeholder="Pick a UGC style above — the prompt builds itself." />
       </div>
+
+      {/* Ready-check — what's done, what's missing */}
+      {(() => {
+        const who = form.mode === 'custom' ? !!form.custom.name.trim() : !!form.brand;
+        const scene = !!(form.creator.trim() && form.action.trim());
+        const fit = speechFit(form.dialogue, form.duration);
+        const words = !form.audio || !form.dialogue.trim() || fit.fits;
+        const obvious = !form.hookOn || !!form.hook.trim();
+        const items: Array<[boolean, string]> = [
+          [who, form.mode === 'custom' ? 'Business chosen' : 'Brand chosen'],
+          [scene, 'Scene filled in'],
+          [words, form.audio && form.dialogue.trim() ? `Spoken line fits ${form.duration}s` : 'No spoken line (optional)'],
+          [obvious, form.hookOn ? 'On-screen hook written' : 'Hook switched off'],
+          [connection.connected, 'Higgsfield connected'],
+        ];
+        return (
+          <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+            {items.map(([ok, text]) => (
+              <span key={text} className={`inline-flex items-center gap-1 ${ok ? 'text-foreground' : 'text-amber-700 dark:text-amber-400'}`}>
+                {ok ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Circle className="w-3.5 h-3.5" />}{text}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
 
       <div className="flex flex-wrap items-center gap-2 pt-2">
         <Button onClick={generate} disabled={!(form.mode === 'custom' ? form.custom.name.trim() : form.brand) || !connection.connected} className="gradient-primary">

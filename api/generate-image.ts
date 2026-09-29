@@ -4,6 +4,7 @@ import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 import { checkSpendCap } from './_spend-cap.js';
 import { requireUser, AuthError, type Profile } from './_session.js';
 import { uploadToUserDrive, makeUserFilePublic, ensureFolder } from './_user-drive.js';
+import { recordImageUsage, openAiTokens, geminiTokens } from './_image-usage.js';
 
 // Image generation is the slowest operation in the app — gpt-image-2 measured
 // 79s for a 2048×1024 "high" quality render on 2026-08-22. Without this, the
@@ -635,6 +636,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ error: 'No image returned from OpenAI' });
       }
 
+      // Cost record (who / ChatGPT / tokens) — recorded as soon as OpenAI has
+      // billed us, whether or not the Drive save below succeeds.
+      await recordImageUsage(req, { action: 'generate', provider: 'chatgpt', model: OPENAI_IMAGE_MODEL, images: 1, tokens: openAiTokens(data.usage), brand });
+
       // ── Save ChatGPT image to Google Drive ─────────────────────────────
       // This makes it persistent and visible in the Image Library across
       // any domain/deployment — not just in the current browser's localStorage.
@@ -765,6 +770,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       console.log(`[generate-image] ${geminiSpec.id} returned ${gen.bytes.length} bytes ${gen.mime}${returnedDims}, ` +
         `${gen.usage.image_output_tokens} image tokens (requested ratio ${reqRatio.toFixed(3)})`);
+
+      // Cost record (who / Gemini / tokens) — Gemini has already billed this image.
+      await recordImageUsage(req, { action: 'generate', provider: 'gemini', model: geminiSpec.id, images: 1, tokens: geminiTokens(gen.usage), brand });
 
       const exact  = await resizeToExact(gen.bytes, bannerDimensions, aspectRatio);
       const imgBuf = exact.buffer;
@@ -918,6 +926,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const data = await response.json();
           console.log('Cloud Run response:', JSON.stringify(data));
           const result = Array.isArray(data) ? data[0] : data;
+          // Cloud Run doesn't report tokens → recorded with an unknown cost.
+          await recordImageUsage(req, { action: 'generate', provider: 'gemini', model: geminiSpec.id, images: 1, tokens: null, brand });
 
           // ── Save Gemini image to our Drive folder ───────────────────────
           // Cloud Run may save to its own folder. We re-save to our designated

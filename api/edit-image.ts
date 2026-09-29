@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 import { guard } from './_session.js';
+import { recordImageUsage, openAiTokens, geminiTokens, type ImageTokens } from './_image-usage.js';
 
 // ── Edit Image ─────────────────────────────────────────────────────────────────
 //
@@ -169,7 +170,7 @@ async function editViaGemini(
   editInstructions: string,
   req: VercelRequest,
   modelId?: string,
-): Promise<{ imageUrl: string }> {
+): Promise<{ imageUrl: string; model: string; tokens: ImageTokens | null }> {
   const prompt = buildGeminiEditPrompt(editInstructions);   // UNCHANGED
   const spec   = resolveGeminiModel(modelId);
 
@@ -186,7 +187,7 @@ async function editViaGemini(
       // Low temperature enforces strict preservation — minimises creative drift.
       temperature: 0.1,
     });
-    return { imageUrl: `data:${out.mime};base64,${out.bytes.toString('base64')}` };
+    return { imageUrl: `data:${out.mime};base64,${out.bytes.toString('base64')}`, model: spec.id, tokens: geminiTokens(out.usage) };
   }
 
   // ── existing Vertex path below, unchanged ──
@@ -236,13 +237,19 @@ async function editViaGemini(
     candidates?: Array<{
       content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> };
     }>;
+    usageMetadata?: Record<string, unknown>;
   };
+  const { parseUsage } = await import('./_gemini-image.js');
 
   const parts = data.candidates?.[0]?.content?.parts || [];
   for (const part of parts) {
     if (part.inlineData?.data) {
       const outMime = part.inlineData.mimeType || 'image/png';
-      return { imageUrl: `data:${outMime};base64,${part.inlineData.data}` };
+      return {
+        imageUrl: `data:${outMime};base64,${part.inlineData.data}`,
+        model: 'gemini-2.5-flash-image',
+        tokens: data.usageMetadata ? geminiTokens(parseUsage(data.usageMetadata)) : null,
+      };
     }
   }
 
@@ -273,7 +280,7 @@ async function editViaOpenAI(
   mimeType: string,
   editInstructions: string,
   resolution: string = '',
-): Promise<{ imageUrl: string }> {
+): Promise<{ imageUrl: string; tokens: ImageTokens | null }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
 
@@ -309,10 +316,11 @@ async function editViaOpenAI(
     throw new Error(`OpenAI edit failed (${resp.status}): ${errText}`);
   }
 
-  const data = await resp.json() as { data?: Array<{ b64_json?: string; url?: string }> };
+  const data = await resp.json() as { data?: Array<{ b64_json?: string; url?: string }>; usage?: unknown };
   const item = data.data?.[0];
-  if (item?.url) return { imageUrl: item.url };
-  if (item?.b64_json) return { imageUrl: `data:image/png;base64,${item.b64_json}` };
+  const tokens = openAiTokens(data.usage);
+  if (item?.url) return { imageUrl: item.url, tokens };
+  if (item?.b64_json) return { imageUrl: `data:image/png;base64,${item.b64_json}`, tokens };
   throw new Error('No image in OpenAI response');
 }
 
@@ -438,6 +446,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── Gemini path — used for all Gemini-generated images ────────────
     if (useGemini) {
       const result = await editViaGemini(imgArrayBuffer, mimeType, editInstructions, req, geminiModel);
+      await recordImageUsage(req, { action: 'edit', provider: 'gemini', model: result.model, images: 1, tokens: result.tokens, brand: req.body?.brand });
       return res.status(200).json({
         success: true,
         imageUrl: result.imageUrl,
@@ -449,6 +458,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (process.env.OPENAI_API_KEY) {
       console.log('[edit-image] Using OpenAI direct edit');
       const result = await editViaOpenAI(imgArrayBuffer, mimeType, editInstructions, resolution);
+      await recordImageUsage(req, { action: 'edit', provider: 'chatgpt', model: OPENAI_IMAGE_MODEL, images: 1, tokens: result.tokens, brand: req.body?.brand });
       return res.status(200).json({
         success: true,
         imageUrl: result.imageUrl,

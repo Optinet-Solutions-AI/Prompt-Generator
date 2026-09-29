@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { resolveGeminiModel } from './_image-models.js';
 import { guard } from './_session.js';
+import { recordImageUsage, geminiTokens, sumTokens, type ImageTokens } from './_image-usage.js';
 
 // ── Generate Image Variations via Gemini Native Image Generation ─────────────
 //
@@ -355,6 +356,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const variations: { imageUrl: string }[] = [];
       const apiErrors: string[] = [];
+      const apiTokens: Array<ImageTokens | null> = [];
 
       for (const result of results) {
         if (result.status === 'rejected') {
@@ -365,6 +367,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const out = result.value;
         variations.push({ imageUrl: `data:${out.mime};base64,${out.bytes.toString('base64')}` });
+        apiTokens.push(geminiTokens(out.usage));
       }
 
       // Same response shape as the Vertex path below: 500 only if every
@@ -377,6 +380,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
+      await recordImageUsage(req, {
+        action: 'variation', provider: 'gemini', model: spec.id, images: variations.length,
+        tokens: sumTokens(apiTokens), brand: req.body?.brand || req.body?.usage_brand,
+      });
       return res.status(200).json({ variations, engine: 'imagen' });
     }
 
@@ -434,6 +441,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const variations: { imageUrl: string }[] = [];
     const apiErrors: string[] = [];
+    const vertexTokens: Array<ImageTokens | null> = [];
+    const { parseUsage } = await import('./_gemini-image.js');
 
     for (const result of results) {
       if (result.status === 'rejected') {
@@ -460,6 +469,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }>;
           };
         }>;
+        usageMetadata?: Record<string, unknown>;
       };
 
       const parts = data.candidates?.[0]?.content?.parts || [];
@@ -468,6 +478,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (part.inlineData?.data) {
           const outMime = part.inlineData.mimeType || 'image/png';
           variations.push({ imageUrl: `data:${outMime};base64,${part.inlineData.data}` });
+          vertexTokens.push(data.usageMetadata ? geminiTokens(parseUsage(data.usageMetadata)) : null);
           foundImage = true;
           break;
         }
@@ -487,6 +498,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    await recordImageUsage(req, {
+      action: 'variation', provider: 'gemini', model: 'gemini-2.5-flash-image', images: variations.length,
+      tokens: sumTokens(vertexTokens), brand: req.body?.brand || req.body?.usage_brand,
+    });
     return res.status(200).json({ variations, engine: 'imagen' });
 
   } catch (error) {

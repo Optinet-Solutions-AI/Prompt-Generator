@@ -318,6 +318,7 @@ export function ImageModal({
           // Generate, Edit, and Variations, so there's nothing to thread down
           // as a prop here; this always reflects the user's current selection.
           geminiModel: loadSavedGeminiModel(),
+          brand: brand || undefined, // for the usage/cost record
         }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed'); }

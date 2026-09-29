@@ -177,6 +177,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
           editInstructions: editInstructions.trim(),
           resolution: '2K',
           geminiModel: loadSavedGeminiModel(),
+          brand: activeRecord?.brand_name || brand || undefined, // for the usage/cost record
         }),
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'Failed'); }

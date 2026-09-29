@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { OPENAI_IMAGE_MODEL } from './_image-models.js';
 import { guard } from './_session.js';
+import { recordImageUsage, openAiTokens, sumTokens, type ImageTokens } from './_image-usage.js';
 
 // ── Generate Image Variations via OpenAI gpt-image-2 ──────────────────────────
 //
@@ -408,6 +409,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const results = await Promise.allSettled(requests);
 
     const variations: { imageUrl: string }[] = [];
+    const tokenList: Array<ImageTokens | null> = [];
 
     for (const result of results) {
       if (result.status === 'rejected') {
@@ -420,8 +422,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error(`OpenAI image edit failed (${resp.status}):`, errText);
         continue;
       }
-      const data = await resp.json() as { data?: Array<{ b64_json?: string; url?: string }> };
+      const data = await resp.json() as { data?: Array<{ b64_json?: string; url?: string }>; usage?: unknown };
       const item = data.data?.[0];
+      if (item?.url || item?.b64_json) tokenList.push(openAiTokens(data.usage));
       if (item?.url) {
         variations.push({ imageUrl: item.url });
       } else if (item?.b64_json) {
@@ -432,6 +435,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (variations.length === 0) {
       return res.status(500).json({ error: 'Failed to generate any variations. Please try again.' });
     }
+
+    // One cost record for this click (all successful variations together).
+    await recordImageUsage(req, {
+      action: 'variation', provider: 'chatgpt', model: OPENAI_IMAGE_MODEL, images: variations.length,
+      tokens: sumTokens(tokenList), brand: req.body?.brand || req.body?.usage_brand,
+    });
 
     return res.status(200).json({ variations });
 

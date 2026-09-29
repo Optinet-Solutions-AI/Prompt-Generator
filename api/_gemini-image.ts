@@ -39,7 +39,7 @@ function ratioFromString(s: string | undefined): number | null {
 }
 
 /** Pull the image token count out of Gemini's usageMetadata. */
-function parseUsage(meta: Record<string, unknown> | undefined): ImageUsage {
+export function parseUsage(meta: Record<string, unknown> | undefined): ImageUsage {
   const details = (meta?.candidatesTokensDetails as Array<{ modality?: string; tokenCount?: number }>) ?? [];
   const image = details.find(d => d.modality === 'IMAGE');
   return {

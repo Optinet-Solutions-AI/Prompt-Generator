@@ -44,7 +44,14 @@ const BRAND_KIT: Record<string, { panel: string; accent: string; logo: string }>
 
 export const END_CARD_SECONDS = 1.5;
 
-export interface BrandOptions { logo: boolean; endCard: boolean }
+export interface BrandOptions {
+  logo: boolean;
+  endCard: boolean;
+  /** On-screen hook caption for the first HOOK_SECONDS (TikTok-style text). */
+  hook?: string;
+}
+
+export const HOOK_SECONDS = 3;
 
 /** Everything needed to brand one video. */
 export interface VideoKit {
@@ -171,7 +178,9 @@ async function markPng(kit: VideoKit, boxW: number, boxH: number): Promise<Buffe
  * unchanged when branding is off / there's no kit.
  */
 export async function brandVideoWithKit(input: Buffer, kit: VideoKit | null, opts: BrandOptions): Promise<{ buffer: Buffer; branded: boolean }> {
-  if (!kit || (!opts.logo && !opts.endCard)) return { buffer: input, branded: false };
+  // Emoji aren't in the bundled font — strip them so they don't render as boxes.
+  const hookText = String(opts.hook || '').replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '').replace(/\s+/g, ' ').trim().slice(0, 90);
+  if (!kit || (!opts.logo && !opts.endCard && !hookText)) return { buffer: input, branded: false };
 
   const sharp = (await import('sharp')).default;
   const ff = await ffmpegPath();
@@ -210,6 +219,24 @@ export async function brandVideoWithKit(input: Buffer, kit: VideoKit | null, opt
       filters.push(`[0:v][${nextInput}:v]overlay=${x}:${y}[withlogo]`);
       mainV = 'withlogo';
       nextInput++;
+    }
+
+    // ── Hook caption: big clear line near the top for the first seconds ──
+    if (hookText) {
+      const txt = await textPng(hookText, 'Bold', Math.round(v.width * 0.058), '#FFFFFF', Math.round(v.width * 0.8));
+      const tm = await sharp(txt).metadata();
+      const padX = Math.round(v.width * 0.04); const padY = Math.round(v.width * 0.025);
+      const bw = (tm.width || 0) + padX * 2; const bh = (tm.height || 0) + padY * 2;
+      const box = Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}"><rect width="${bw}" height="${bh}" rx="${Math.round(v.width * 0.03)}" fill="#000" fill-opacity="0.62"/></svg>`,
+      );
+      const hookPng = path.join(dir, 'hook.png');
+      await sharp(box).composite([{ input: txt, left: padX, top: padY }]).png().toFile(hookPng);
+      const hookIn = nextInput++;
+      args.push('-loop', '1', '-framerate', String(v.fps), '-t', String(HOOK_SECONDS), '-i', hookPng);
+      filters.push(`[${hookIn}:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1,fade=t=out:st=${HOOK_SECONDS - 0.4}:d=0.4:alpha=1[hk]`);
+      filters.push(`[${mainV}][hk]overlay=(W-w)/2:${Math.round(v.height * 0.19)}:eof_action=pass[withhook]`);
+      mainV = 'withhook';
     }
 
     if (!opts.endCard) {

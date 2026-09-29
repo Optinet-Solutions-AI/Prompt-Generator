@@ -176,6 +176,26 @@ export interface VideoFormData {
   brandLogo: boolean;
   /** Add a 1.5s closing brand card to the saved video. */
   brandEndCard: boolean;
+  /** On-screen hook caption for the first seconds (stamped on, like TikTok text). */
+  hook: string;
+  hookOn: boolean;
+}
+
+// ── Speech timing ─────────────────────────────────────────────────────────
+// A first Dr Demajo test cut the actor off mid-sentence: 9 words don't fit a
+// 5 s clip once the actor takes a beat to start. Natural UGC speech is ~2.5
+// words/second, plus ~1 s lead-in and a little breathing room at the end.
+
+export const WORDS_PER_SECOND = 2.5;
+const LEAD_IN_SECONDS = 1;
+const TAIL_SECONDS = 0.5;
+
+/** How long a spoken line takes, and whether it fits the clip. */
+export function speechFit(line: string, duration: number) {
+  const words = line.trim() ? line.trim().split(/\s+/).length : 0;
+  const seconds = Math.round((words / WORDS_PER_SECOND) * 10) / 10;
+  const maxWords = Math.floor((duration - LEAD_IN_SECONDS - TAIL_SECONDS) * WORDS_PER_SECOND);
+  return { words, seconds, maxWords, fits: words <= maxWords };
 }
 
 export const EMPTY_VIDEO_FORM: VideoFormData = {
@@ -190,6 +210,8 @@ export const EMPTY_VIDEO_FORM: VideoFormData = {
   dialogue: '',
   aspectRatio: '9:16',
   duration: 5,
+  hook: '',
+  hookOn: true,
   audio: true,
   startImage: '',
   model: 'seedance_2_5',
@@ -219,13 +241,15 @@ export function buildUgcPrompt(data: VideoFormData): string {
 
   if (data.audio && clean(data.dialogue)) {
     parts.push(`They say: "${clean(data.dialogue)}"`);
+    // Timing: start straight away and finish — otherwise the line gets cut off.
+    parts.push('They start speaking within the first second, at a natural pace, and finish the whole sentence well before the clip ends.');
   }
 
   // ── Custom business: describe the KIND of business, never its name (models
   // turn names into garbled lettering — the real name/logo is stamped on after).
   if (data.mode === 'custom') {
     const ind = findIndustry(data.custom.industry);
-    if (ind) parts.push(`This is a short social media ad for ${ind.describe}.`);
+    if (ind) parts.push(`This is a short social media ad for ${ind.describe}. ${ind.cues}.`);
     if (clean(data.custom.promote)) parts.push(`The clip is about: ${clean(data.custom.promote)}.`);
     const c1 = colourName(data.custom.color); const c2 = colourName(data.custom.accent);
     if (c1 || c2) parts.push(`Subtle ${[c1, c2].filter(Boolean).join(' and ')} accents in the scene (clothing, decor, props).`);

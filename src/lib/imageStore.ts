@@ -26,12 +26,13 @@ export function setImageStoreOwner(userId: string | null): void {
   viewKey = ownKey;
 }
 
-export type LibraryView = { kind: 'mine' } | { kind: 'archive' } | { kind: 'shared'; ownerId: string };
+export type LibraryView = { kind: 'mine' } | { kind: 'archive' } | { kind: 'items' } | { kind: 'shared'; ownerId: string };
 
 /** Point the Image Library's reads at another shelf. */
 export function setImageLibraryView(view: LibraryView): void {
   viewKey = view.kind === 'mine' ? ownKey
     : view.kind === 'archive' ? STORAGE_KEY
+    : view.kind === 'items' ? `${ownKey}:items`
     : `${STORAGE_KEY}:shared:${view.ownerId}`;
 }
 

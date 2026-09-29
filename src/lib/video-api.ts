@@ -62,7 +62,14 @@ export const videoApi = {
   save: (body: {
     video_url: string; brand: string; prompt: string; aspectRatio: string; duration: number;
     model: string; brandLogo: boolean; brandEndCard: boolean;
+    mode?: 'custom';
+    custom?: { industry: string; color: string; accent: string; tagline: string; logo: string };
   }) => call<{ file: LibraryVideo; branded: boolean; brand_error: string | null }>('save', { body }),
+
+  // Saved custom businesses (team-wide)
+  businesses: () => call<{ businesses: SavedBusiness[] }>('businesses'),
+  saveBusiness: (b: Omit<SavedBusiness, 'created_by' | 'created_by_email' | 'updated_at'>) => call<{ business: SavedBusiness }>('business-save', { body: b }),
+  deleteBusiness: (id: string) => call('business-delete', { body: { id } }),
 
   // Library
   /** owner: '' = mine, a profile id = a shared library, 'archive' = team archive */
@@ -78,6 +85,11 @@ export const videoApi = {
   usageCsvUrl: (days: number, kind: 'videos' | 'images' = 'videos') =>
     `/api/video?action=usage-team&days=${days}&format=csv${kind === 'images' ? '&kind=images' : ''}`,
 };
+
+export interface SavedBusiness {
+  id: string; name: string; industry: string | null; promote: string | null; color: string | null; accent: string | null;
+  tagline: string | null; logo: string | null; created_by: string | null; created_by_email: string | null; updated_at: string;
+}
 
 export interface UsageGroup { videos: number; credits: number }
 export interface UsageSummary {

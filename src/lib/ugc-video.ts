@@ -18,6 +18,7 @@
  */
 
 import { BRAND_PALETTES } from './brand-colors';
+import { findIndustry, colourName, HEALTHCARE_SAFETY } from './ugc-industries';
 
 // ── Settings options ──────────────────────────────────────────────────────
 
@@ -121,7 +122,29 @@ export const BRAND_SCREEN_HINTS: Record<string, string> = {
 
 // ── Form data ─────────────────────────────────────────────────────────────
 
+/** "Custom business" mode — advertise any business (e.g. Dr Demajo, a dental clinic). */
+export interface CustomBusiness {
+  /** Saved business id (Supabase custom_businesses), '' if not saved yet. */
+  id: string;
+  name: string;
+  industry: string;     // id from INDUSTRIES
+  promote: string;      // what the clip is about, e.g. "Teeth whitening — 20% off"
+  color: string;        // #RRGGBB main brand colour
+  accent: string;       // #RRGGBB accent
+  tagline: string;      // end-card line
+  logo: string;         // data URL, optional
+}
+
+export const EMPTY_CUSTOM_BUSINESS: CustomBusiness = {
+  id: '', name: '', industry: 'dental', promote: '', color: '#0F4C81', accent: '#38BDF8', tagline: '', logo: '',
+};
+
+export type VideoMode = 'brand' | 'custom';
+
 export interface VideoFormData {
+  /** 'brand' = one of our brands · 'custom' = any business (CustomBusiness). */
+  mode: VideoMode;
+  custom: CustomBusiness;
   brand: string;
   styleId: string;
   creator: string;
@@ -143,6 +166,8 @@ export interface VideoFormData {
 }
 
 export const EMPTY_VIDEO_FORM: VideoFormData = {
+  mode: 'brand',
+  custom: EMPTY_CUSTOM_BUSINESS,
   brand: '',
   styleId: '',
   creator: '',
@@ -180,6 +205,19 @@ export function buildUgcPrompt(data: VideoFormData): string {
 
   if (data.audio && clean(data.dialogue)) {
     parts.push(`They say: "${clean(data.dialogue)}"`);
+  }
+
+  // ── Custom business: describe the KIND of business, never its name (models
+  // turn names into garbled lettering — the real name/logo is stamped on after).
+  if (data.mode === 'custom') {
+    const ind = findIndustry(data.custom.industry);
+    if (ind) parts.push(`This is a short social media ad for ${ind.describe}.`);
+    if (clean(data.custom.promote)) parts.push(`The clip is about: ${clean(data.custom.promote)}.`);
+    const c1 = colourName(data.custom.color); const c2 = colourName(data.custom.accent);
+    if (c1 || c2) parts.push(`Subtle ${[c1, c2].filter(Boolean).join(' and ')} accents in the scene (clothing, decor, props).`);
+    if (ind?.healthcare) parts.push(HEALTHCARE_SAFETY);
+    parts.push(UGC_REALISM);
+    return parts.join(' ');
   }
 
   // The brand's mascot on the phone screen — a hint viewers can spot mid-clip.

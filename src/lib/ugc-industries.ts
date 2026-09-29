@@ -170,7 +170,7 @@ export const INDUSTRIES: Industry[] = [
         camera: 'Phone on a tripod', line: 'Try this at your desk right now.', endCard: 'Book a session' }),
       s({ id: 'physio-story', label: 'Patient story', emoji: '🗣️', creator: 'A woman in her 50s',
         setting: 'Sunny park path', action: 'Walks confidently, turns to camera and smiles',
-        camera: 'Selfie walk-and-talk', line: 'Walking pain-free again feels amazing.', endCard: 'Get moving again' }),
+        camera: 'Selfie walk-and-talk', line: 'Walking comfortably again feels amazing.', endCard: 'Get moving again' }),
     ],
   },
   {

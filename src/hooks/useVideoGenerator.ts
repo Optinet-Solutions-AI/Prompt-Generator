@@ -10,7 +10,8 @@
  * so it shows up in the Video Library without an extra click.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { buildUgcPrompt, EMPTY_VIDEO_FORM, UGC_STYLES, type VideoFormData } from '@/lib/ugc-video';
+import { buildUgcPrompt, EMPTY_VIDEO_FORM, UGC_STYLES, type CustomBusiness, type VideoFormData, type VideoMode } from '@/lib/ugc-video';
+import { findIndustry } from '@/lib/ugc-industries';
 import { videoApi, type LibraryVideo } from '@/lib/video-api';
 
 export type VideoAppState = 'FORM' | 'RENDERING' | 'RESULT';
@@ -107,6 +108,33 @@ export function useVideoGenerator() {
     setForm(f => ({ ...f, styleId, creator: s.creator, setting: s.setting, action: s.action, camera: s.camera }));
   }, []);
 
+  // ── "Custom business" mode ──
+  const setMode = useCallback((mode: VideoMode) => {
+    // Switching mode clears the style fields so a brand preset never leaks into a clinic ad.
+    setForm(f => ({ ...f, mode, styleId: '', creator: '', setting: '', action: '', camera: '', dialogue: '' }));
+  }, []);
+
+  const setCustom = useCallback(<K extends keyof CustomBusiness>(key: K, value: CustomBusiness[K]) => {
+    setForm(f => ({ ...f, custom: { ...f.custom, [key]: value } }));
+  }, []);
+
+  /** Load a saved business (or a blank one) into the form. */
+  const loadBusiness = useCallback((b: CustomBusiness) => {
+    setForm(f => ({ ...f, custom: b, styleId: '', creator: '', setting: '', action: '', camera: '', dialogue: '' }));
+  }, []);
+
+  /** Industry preset → fields + its suggested spoken line + end-card line (if still empty). */
+  const applyIndustryStyle = useCallback((styleId: string) => {
+    setForm(f => {
+      const st = findIndustry(f.custom.industry)?.styles.find(x => x.id === styleId);
+      if (!st) return f;
+      return {
+        ...f, styleId, creator: st.creator, setting: st.setting, action: st.action, camera: st.camera, dialogue: st.line,
+        custom: { ...f.custom, tagline: f.custom.tagline || st.endCard },
+      };
+    });
+  }, []);
+
   const editPrompt = useCallback((text: string) => { setPrompt(text); setPromptEdited(true); }, []);
   const rebuildPrompt = useCallback(() => setPromptEdited(false), []);
 
@@ -125,7 +153,8 @@ export function useVideoGenerator() {
 
   const generate = useCallback(async () => {
     if (!connection.connected) { setError('Connect your Higgsfield account first (top of this tab).'); return; }
-    if (!form.brand) { setError('Select a brand first.'); return; }
+    const brandName = form.mode === 'custom' ? form.custom.name.trim() : form.brand;
+    if (!brandName) { setError(form.mode === 'custom' ? 'Enter the business name first.' : 'Select a brand first.'); return; }
     if (!prompt.trim()) { setError('The prompt is empty — pick a UGC style or fill the fields.'); return; }
 
     cancelled.current = false;
@@ -136,7 +165,7 @@ export function useVideoGenerator() {
 
     try {
       const { request_id } = await videoApi.submit({
-        prompt, brand: form.brand, model: form.model, aspectRatio: form.aspectRatio, duration: form.duration, audio: form.audio,
+        prompt, brand: brandName, model: form.model, aspectRatio: form.aspectRatio, duration: form.duration, audio: form.audio,
         startImage: form.startImage || undefined,
       });
 
@@ -163,8 +192,12 @@ export function useVideoGenerator() {
       setAppState('RESULT');
       try {
         const out = await videoApi.save({
-          video_url: videoUrl, brand: form.brand, prompt, aspectRatio: form.aspectRatio, duration: form.duration,
+          video_url: videoUrl, brand: brandName, prompt, aspectRatio: form.aspectRatio, duration: form.duration,
           model: form.model, brandLogo: form.brandLogo, brandEndCard: form.brandEndCard,
+          ...(form.mode === 'custom' ? {
+            mode: 'custom' as const,
+            custom: { industry: form.custom.industry, color: form.custom.color, accent: form.custom.accent, tagline: form.custom.tagline, logo: form.custom.logo },
+          } : {}),
         });
         // Switch the player to the saved (branded) copy.
         setResult(r => r && { ...r, saved: out.file, saving: false, previewUrl: out.file.video_url, brandError: out.brand_error || '' });
@@ -190,7 +223,7 @@ export function useVideoGenerator() {
   }, []);
 
   return {
-    form, setField, applyStyle,
+    form, setField, applyStyle, setMode, setCustom, loadBusiness, applyIndustryStyle,
     prompt, promptEdited, editPrompt, rebuildPrompt,
     appState, statusText, elapsed, error, result,
     connection, connect, disconnectHf, refreshConnection, cost,

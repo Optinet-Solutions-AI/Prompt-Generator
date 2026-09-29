@@ -176,6 +176,24 @@ export async function libraryOwner(viewer: Profile, ownerId: string | undefined 
   return owner;
 }
 
+/**
+ * The owner whose ONE file `viewer` wants: allowed if it's the viewer's own,
+ * the owner shared their whole library, or shared this specific item
+ * (item_shares). Throws 403 otherwise.
+ */
+export async function itemOwner(viewer: Profile, ownerId: string | undefined | null, kind: 'image' | 'video', fileId: string): Promise<Profile> {
+  if (!ownerId || ownerId === viewer.id) return viewer;
+  if (!/^[0-9a-f-]{36}$/i.test(ownerId)) throw new AuthError(400, 'invalid owner');
+  const lib = (await sb(`library_shares?owner_id=eq.${ownerId}&viewer_id=eq.${viewer.id}&select=owner_id`) as unknown[])[0];
+  const item = lib ? null : (await sb(
+    `item_shares?owner_id=eq.${ownerId}&viewer_id=eq.${viewer.id}&kind=eq.${kind}&file_id=eq.${encodeURIComponent(fileId)}&select=owner_id`,
+  ).catch(() => []) as unknown[])[0];
+  if (!lib && !item) throw new AuthError(403, "That hasn't been shared with you.");
+  const owner = await getProfileById(ownerId);
+  if (!owner || owner.status !== 'approved') throw new AuthError(404, 'That item is no longer available.');
+  return owner;
+}
+
 /** Public-safe view of a profile (never includes tokens). */
 export function publicProfile(p: Profile) {
   return { id: p.id, email: p.email, name: p.name, avatar_url: p.avatar_url, status: p.status, is_admin: p.is_admin };

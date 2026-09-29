@@ -174,6 +174,25 @@ export async function listUserFolder(p: Profile, kind: DriveFolderKind): Promise
   return out;
 }
 
+/**
+ * Full metadata for specific files in this user's Images/Videos folder
+ * (used for items shared one by one). Files that were deleted, trashed or
+ * aren't in that folder are skipped.
+ */
+export async function userFilesInFolder(p: Profile, kind: DriveFolderKind, ids: string[]): Promise<UserDriveFile[]> {
+  const folder = kind === 'images' ? p.drive_images_folder_id : p.drive_videos_folder_id;
+  if (!folder || !p.drive_refresh_token || ids.length === 0) return [];
+  const token = await driveToken(p);
+  const fields = 'id,name,createdTime,mimeType,description,thumbnailLink,appProperties,parents,trashed';
+  const out = await Promise.all(ids.slice(0, 200).map(async id => {
+    const r = await drive(token, `files/${encodeURIComponent(id)}?fields=${fields}`);
+    if (!r.ok) return null;
+    const f = await r.json() as UserDriveFile & { trashed?: boolean };
+    return !f.trashed && f.parents?.includes(folder) ? f : null;
+  }));
+  return out.filter((f): f is UserDriveFile => !!f);
+}
+
 /** File metadata, used to check a file really belongs to this user's folder. */
 export async function userFileMeta(p: Profile, fileId: string): Promise<UserDriveFile | null> {
   const token = await driveToken(p);

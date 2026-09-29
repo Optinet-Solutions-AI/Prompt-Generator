@@ -22,6 +22,7 @@
  *   GET  ?action=businesses      → saved "Custom business" profiles (shared by the team)
  *   POST ?action=business-save   → create/update one  { id?, name, industry, promote, color, accent, tagline, logo }
  *   POST ?action=business-delete → { id } (whoever created it, or an admin)
+ *   POST ?action=business-research → { url } read the website + research it → a filled-in business (not saved)
  *   GET  ?action=usage-mine      → &days=30  my Higgsfield credit usage
  *   GET  ?action=usage-team      → (admins) &days=30[&format=csv[&kind=images]]  everyone's usage
  *   (both usage actions include IMAGE costs in US$ from Supabase `image_usage`)
@@ -38,6 +39,7 @@ import {
   HttpError, startConnect, finishConnect, disconnect, connectionStatus,
   submitVideo, videoCost, videoStatus, uploadImage, TEAM_CONNECTION as HF, type VideoParams,
 } from './_higgsfield-mcp.js';
+import { researchBusiness } from './_business-research.js';
 import { brandVideoWithKit, brandKit, customKit, END_CARD_SECONDS, type CustomKitInput } from './_video-brand.js';
 import { AuthError, requireUser, libraryOwner, sb, type Profile } from './_session.js';
 import { uploadToUserDrive, listUserFolder, userFileMeta, fetchUserFileRange, type UserDriveFile } from './_user-drive.js';
@@ -532,7 +534,7 @@ async function unlike(p: Profile, body: Record<string, unknown>) {
 // Team-wide, so anyone can reuse a business someone set up. Stored in
 // Supabase `custom_businesses`; the logo is a small data URL (≤ ~1 MB).
 
-const BUSINESS_FIELDS = 'id,name,industry,promote,color,accent,tagline,logo,created_by,created_by_email,updated_at';
+const BUSINESS_FIELDS = '*';
 
 async function listBusinesses() {
   try {
@@ -561,14 +563,29 @@ async function saveBusiness(p: Profile, body: Record<string, unknown>) {
     logo,
     updated_at: new Date().toISOString(),
   };
-  const id = String(body.id || '');
-  if (/^[0-9a-f-]{36}$/i.test(id)) {
-    const out = await sb(`custom_businesses?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(row) }) as unknown[];
-    if (out.length === 0) throw new HttpError(404, 'That business no longer exists');
+  // From "Auto-fill from website": the site, tailored video formats, research notes.
+  const extra = {
+    website: String(body.website || '').slice(0, 300) || null,
+    presets: Array.isArray(body.presets) ? body.presets.slice(0, 6) : null,
+    research: body.research && typeof body.research === 'object' ? body.research : null,
+  };
+  const write = async (fields: Record<string, unknown>) => {
+    const id = String(body.id || '');
+    if (/^[0-9a-f-]{36}$/i.test(id)) {
+      const out = await sb(`custom_businesses?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(fields) }) as unknown[];
+      if (out.length === 0) throw new HttpError(404, 'That business no longer exists');
+      return { business: out[0] };
+    }
+    const out = await sb('custom_businesses', { method: 'POST', body: JSON.stringify({ ...fields, created_by: p.id, created_by_email: p.email }) }) as unknown[];
     return { business: out[0] };
+  };
+  try {
+    return await write({ ...row, ...extra });
+  } catch (err) {
+    // Research columns not added yet (older database) → save the basics.
+    if (err instanceof Error && /website|presets|research/.test(err.message)) return await write(row);
+    throw err;
   }
-  const out = await sb('custom_businesses', { method: 'POST', body: JSON.stringify({ ...row, created_by: p.id, created_by_email: p.email }) }) as unknown[];
-  return { business: out[0] };
 }
 
 async function deleteBusiness(p: Profile, body: Record<string, unknown>) {
@@ -619,6 +636,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST' && action === 'unlike') return res.status(200).json(await unlike(p, body));
     if (req.method === 'GET' && action === 'businesses') return res.status(200).json(await listBusinesses());
     if (req.method === 'POST' && action === 'business-save') return res.status(200).json(await saveBusiness(p, body));
+    if (req.method === 'POST' && action === 'business-research') {
+      try { return res.status(200).json(await researchBusiness(String(body.url || ''))); }
+      catch (err) { throw new HttpError(422, `Could not research that website: ${err instanceof Error ? err.message : err}`); }
+    }
     if (req.method === 'POST' && action === 'business-delete') return res.status(200).json(await deleteBusiness(p, body));
     if (req.method === 'GET' && action === 'usage-mine') return res.status(200).json(await usageMine(p, req.query.days));
     if (req.method === 'GET' && action === 'usage-team') return await usageTeam(req, res, p);

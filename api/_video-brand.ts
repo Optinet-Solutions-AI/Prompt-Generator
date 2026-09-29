@@ -130,7 +130,12 @@ export function customKit(c: CustomKitInput): VideoKit | null {
   let logo: Buffer | null = null;
   const m = String(c.logo || '').match(/^data:image\/(png|jpeg|webp|svg\+xml);base64,(.+)$/);
   if (m) logo = Buffer.from(m[2], 'base64');
-  return { name, panel: darken(color, 0.72), accent, logo, tagline: String(c.tagline || '').trim().slice(0, 80) || undefined };
+  // A brand colour that is already dark (e.g. Demajo's forest #191E19) is used
+  // as the end-card panel as-is; lighter colours are darkened so text pops.
+  const n = parseInt(color.slice(1), 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  const panel = lum < 0.2 ? color : darken(color, 0.72);
+  return { name, panel, accent, logo, tagline: String(c.tagline || '').trim().slice(0, 80) || undefined };
 }
 
 /** Read width, height, fps and whether there's an audio track. */

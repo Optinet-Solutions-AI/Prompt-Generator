@@ -185,7 +185,7 @@ Return ONLY valid JSON (no markdown) with exactly these keys:
   "presets": [ exactly 3 video formats written for THIS business, each:
     {"label": "2-4 words", "emoji": "one emoji", "creator": "who is on camera (no real names)", "setting": "where", "action": "what happens in 5-10 s, one clear beat", "camera": "phone-shot style", "line": "natural spoken line, under 12 words", "endCard": "end-card line, max 45 chars"} ]
 }
-Rules: no real person names in presets; no readable text inside the scene; no gore, needles or graphic procedures; no claims like "pain-free" or guaranteed results; keep it realistic and phone-shot.`;
+Rules: no real person names in presets; nothing with readable text in the scene (no brochures, signs, screens, menus, posters, logos); no gore, needles or graphic procedures; no claims like "pain-free", "painless", "stress-free", "best", or guaranteed results; keep it realistic and phone-shot.`;
 
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${RESEARCH_MODEL}:generateContent?key=${key}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -208,6 +208,19 @@ Rules: no real person names in presets; no readable text inside the scene; no go
 // ── Put it together ───────────────────────────────────────────────────────
 
 const str = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
+
+/**
+ * Safety net for ad wording the AI may still produce: claims healthcare ad
+ * rules don't allow, and props that would make the video model draw text.
+ */
+export function softenClaims(s: string): string {
+  return s
+    .replace(/\bpain[- ]?free\b|\bpainless\b/gi, 'comfortable')
+    .replace(/\bstress[- ]?free\b/gi, 'relaxed')
+    .replace(/\bguarantee(d|s)?\b/gi, '')
+    .replace(/\b(holds? up|holding|shows?|showing|points? (at|to)) (a |the )?(clinic |menu |price )?(brochure|leaflet|flyer|sign|poster|menu|screen|card)\b/gi, 'smiles at the camera')
+    .replace(/\s{2,}/g, ' ').trim();
+}
 const list = (v: unknown, n: number) => (Array.isArray(v) ? v.map(x => str(x, 120)).filter(Boolean).slice(0, n) : []);
 
 export async function researchBusiness(rawUrl: string): Promise<BusinessResearch> {
@@ -253,8 +266,8 @@ export async function researchBusiness(rawUrl: string): Promise<BusinessResearch
   const presets: ResearchPreset[] = (Array.isArray(d.presets) ? d.presets : []).slice(0, 3).map((p: Record<string, unknown>, i: number) => ({
     id: `biz-${i}-${str(p.label, 30).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     label: str(p.label, 40) || `Format ${i + 1}`, emoji: str(p.emoji, 8) || '🎬',
-    creator: str(p.creator, 200), setting: str(p.setting, 200), action: str(p.action, 300), camera: str(p.camera, 150),
-    line: str(p.line, 90), endCard: str(p.endCard, 60),
+    creator: str(p.creator, 200), setting: str(p.setting, 200), action: softenClaims(str(p.action, 300)), camera: str(p.camera, 150),
+    line: softenClaims(str(p.line, 90)), endCard: softenClaims(str(p.endCard, 60)),
   })).filter(p => p.creator && p.action);
 
   const hex = (v: string | null) => (v && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null);
@@ -262,10 +275,10 @@ export async function researchBusiness(rawUrl: string): Promise<BusinessResearch
     business: {
       name: str(d.name, 30) || title.split(/[|–-]/)[0].trim().slice(0, 30),
       industry,
-      promote: str(d.promote, 300),
+      promote: softenClaims(str(d.promote, 300)),
       color: hex(colours.main) || hex(themeColour) || '#0f4c81',
       accent: hex(colours.accent) || '#38bdf8',
-      tagline: str(d.tagline, 80),
+      tagline: softenClaims(str(d.tagline, 80)),
       logo: logo?.dataUrl || '',
       website: base,
     },

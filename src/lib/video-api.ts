@@ -70,6 +70,7 @@ export const videoApi = {
   businesses: () => call<{ businesses: SavedBusiness[] }>('businesses'),
   saveBusiness: (b: Omit<SavedBusiness, 'created_by' | 'created_by_email' | 'updated_at'>) => call<{ business: SavedBusiness }>('business-save', { body: b }),
   deleteBusiness: (id: string) => call('business-delete', { body: { id } }),
+  researchBusiness: (url: string) => call<BusinessResearchResult>('business-research', { body: { url } }),
 
   // Library
   /** owner: '' = mine, a profile id = a shared library, 'archive' = team archive */
@@ -86,9 +87,20 @@ export const videoApi = {
     `/api/video?action=usage-team&days=${days}&format=csv${kind === 'images' ? '&kind=images' : ''}`,
 };
 
+import type { BusinessPreset, BusinessResearchNotes } from './ugc-video';
+
 export interface SavedBusiness {
   id: string; name: string; industry: string | null; promote: string | null; color: string | null; accent: string | null;
   tagline: string | null; logo: string | null; created_by: string | null; created_by_email: string | null; updated_at: string;
+  website?: string | null; presets?: BusinessPreset[] | null; research?: BusinessResearchNotes | null;
+}
+
+/** What "Auto-fill from website" returns (nothing is saved until you click Save). */
+export interface BusinessResearchResult {
+  business: { name: string; industry: string; promote: string; color: string; accent: string; tagline: string; logo: string; website: string };
+  presets: BusinessPreset[];
+  research: BusinessResearchNotes;
+  found: { logo_from: string | null; colours: string[]; site_read: boolean };
 }
 
 export interface UsageGroup { videos: number; credits: number }

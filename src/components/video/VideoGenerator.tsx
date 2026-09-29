@@ -224,8 +224,10 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
         <>
           <CustomBusinessPanel state={state} />
           {(() => {
-            const styles = findIndustry(form.custom.industry)?.styles || [];
-            const label = (x: { emoji: string; label: string }) => `${x.emoji} ${x.label}`;
+            // Formats written for THIS business by its website research come first (★).
+            const own = new Set(form.custom.presets.map(p => p.id));
+            const styles = [...form.custom.presets, ...(findIndustry(form.custom.industry)?.styles || [])];
+            const label = (x: { id: string; emoji: string; label: string }) => `${own.has(x.id) ? '★ ' : ''}${x.emoji} ${x.label}`;
             return (
               <FormField
                 type="select" label={`UGC Style — what works for ${findIndustry(form.custom.industry)?.label.toLowerCase() || 'this business'}`}

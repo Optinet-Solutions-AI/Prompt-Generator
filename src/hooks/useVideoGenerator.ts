@@ -126,7 +126,8 @@ export function useVideoGenerator() {
   /** Industry preset → fields + its suggested spoken line + end-card line (if still empty). */
   const applyIndustryStyle = useCallback((styleId: string) => {
     setForm(f => {
-      const st = findIndustry(f.custom.industry)?.styles.find(x => x.id === styleId);
+      // Formats written for this business (from its website research) come first.
+      const st = [...f.custom.presets, ...(findIndustry(f.custom.industry)?.styles || [])].find(x => x.id === styleId);
       if (!st) return f;
       return {
         ...f, styleId, creator: st.creator, setting: st.setting, action: st.action, camera: st.camera, dialogue: st.line,

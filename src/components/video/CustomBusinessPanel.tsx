@@ -8,7 +8,7 @@
  * AI prompt (models turn names into garbled lettering).
  */
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, Loader2, Save, ShieldAlert, Trash2, X } from 'lucide-react';
+import { Globe, ImagePlus, Loader2, Save, ShieldAlert, Sparkles, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,7 @@ const fromSaved = (b: SavedBusiness): CustomBusiness => ({
   id: b.id, name: b.name, industry: b.industry || 'other', promote: b.promote || '',
   color: b.color || EMPTY_CUSTOM_BUSINESS.color, accent: b.accent || EMPTY_CUSTOM_BUSINESS.accent,
   tagline: b.tagline || '', logo: b.logo || '',
+  website: b.website || '', presets: b.presets || [], research: b.research || null,
 });
 
 function ColourField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -49,6 +50,9 @@ export function CustomBusinessPanel({ state }: { state: VideoState }) {
   const [loadingList, setLoadingList] = useState(true);
   const [listError, setListError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [siteUrl, setSiteUrl] = useState('');
+  const [researching, setResearching] = useState(false);
+  const [researchStep, setResearchStep] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const industry = findIndustry(c.industry);
 
@@ -69,6 +73,33 @@ export function CustomBusinessPanel({ state }: { state: VideoState }) {
     r.readAsDataURL(file);
   };
 
+  /**
+   * "Auto-fill from website": the server reads the site (logo, real brand
+   * colours, text), researches the business with Google Search, and returns
+   * a filled-in business + formats written for it. Nothing is saved yet.
+   */
+  const autofill = async () => {
+    const url = siteUrl.trim();
+    if (!url) { toast.error('Paste the business website first.'); return; }
+    setResearching(true);
+    const steps = ['Reading the website…', 'Finding the logo and brand colours…', 'Researching the business on Google…', 'Writing video formats for this business…'];
+    let i = 0; setResearchStep(steps[0]);
+    const timer = setInterval(() => { i = Math.min(i + 1, steps.length - 1); setResearchStep(steps[i]); }, 6000);
+    try {
+      const r = await videoApi.researchBusiness(url);
+      loadBusiness({
+        ...EMPTY_CUSTOM_BUSINESS,
+        id: c.id && c.name.trim().toLowerCase() === r.business.name.trim().toLowerCase() ? c.id : '',
+        ...r.business, presets: r.presets, research: r.research,
+      });
+      toast.success(`Filled in ${r.business.name} — check it, then click “Save business”.`);
+      if (!r.found.site_read) toast.warning('The website could not be read directly — details come from web search only. Please double-check them.');
+      if (!r.business.logo) toast.message('No logo found on the site — upload one, or the name is shown in a clean font.');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not research that website');
+    } finally { clearInterval(timer); setResearching(false); setResearchStep(''); }
+  };
+
   const save = async () => {
     if (!c.name.trim()) { toast.error('Enter the business name first.'); return; }
     setSaving(true);
@@ -76,6 +107,7 @@ export function CustomBusinessPanel({ state }: { state: VideoState }) {
       const { business } = await videoApi.saveBusiness({
         id: c.id, name: c.name.trim(), industry: c.industry, promote: c.promote, color: c.color,
         accent: c.accent, tagline: c.tagline, logo: c.logo || null,
+        website: c.website || null, presets: c.presets, research: c.research,
       });
       setCustom('id', business.id);
       toast.success(c.id ? 'Business updated' : 'Business saved — the whole team can reuse it');
@@ -97,6 +129,24 @@ export function CustomBusinessPanel({ state }: { state: VideoState }) {
 
   return (
     <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
+      {/* Auto-fill: paste a website, we do the research */}
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground"><Sparkles className="w-4 h-4 text-primary" />New business? Auto-fill from its website</p>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Globe className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input value={siteUrl} onChange={e => setSiteUrl(e.target.value)} placeholder="e.g. demajodental.org" className="pl-9"
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); autofill(); } }} disabled={researching} />
+          </div>
+          <Button type="button" onClick={autofill} disabled={researching} className="gradient-primary shrink-0">
+            {researching ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}{researching ? 'Researching…' : 'Auto-fill'}
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          {researching ? `${researchStep} (about 20–40 seconds)` : 'Reads the site for the logo and real brand colours, researches the business, and writes video formats made for it. You review everything before saving.'}
+        </p>
+      </div>
+
       {/* Saved businesses */}
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[200px] flex-1 space-y-1.5">
@@ -172,6 +222,24 @@ export function CustomBusinessPanel({ state }: { state: VideoState }) {
         <Input id="biz-tagline" value={c.tagline} maxLength={80} onChange={e => setCustom('tagline', e.target.value)}
           placeholder="e.g. Book your smile consultation · demajodental.org" />
       </div>
+
+      {c.research && (
+        <details className="rounded-lg border border-border bg-card px-3 py-2 text-xs">
+          <summary className="cursor-pointer font-medium text-foreground">
+            What we found about {c.research.full_name || c.name}{c.website ? ` · ${c.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}` : ''}
+          </summary>
+          <div className="mt-2 space-y-1.5 text-muted-foreground">
+            {c.research.summary && <p>{c.research.summary}</p>}
+            {c.research.location && <p><b className="text-foreground">Location:</b> {c.research.location}</p>}
+            {c.research.services.length > 0 && <p><b className="text-foreground">Services:</b> {c.research.services.join(' · ')}</p>}
+            {c.research.selling_points.length > 0 && <p><b className="text-foreground">What they stress:</b> {c.research.selling_points.join(' · ')}</p>}
+            {c.research.audience && <p><b className="text-foreground">Audience:</b> {c.research.audience}</p>}
+            {c.research.social && <p><b className="text-foreground">Social media:</b> {c.research.social}</p>}
+            {c.research.compliance && <p><b className="text-foreground">Ad cautions:</b> {c.research.compliance}</p>}
+            {c.research.sources.length > 0 && <p className="text-[11px]">Sources: {c.research.sources.join(', ')}</p>}
+          </div>
+        </details>
+      )}
 
       {industry?.healthcare && (
         <div className="flex gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">

@@ -133,10 +133,23 @@ export interface CustomBusiness {
   accent: string;       // #RRGGBB accent
   tagline: string;      // end-card line
   logo: string;         // data URL, optional
+  /** From "Auto-fill from website". */
+  website: string;
+  /** Video formats written for THIS business by the research (shown first). */
+  presets: BusinessPreset[];
+  research: BusinessResearchNotes | null;
+}
+
+export interface BusinessPreset extends UgcStyle { line: string; endCard: string }
+
+export interface BusinessResearchNotes {
+  full_name: string; summary: string; location: string; services: string[]; selling_points: string[];
+  tone: string; audience: string; social: string; compliance: string; sources: string[];
 }
 
 export const EMPTY_CUSTOM_BUSINESS: CustomBusiness = {
   id: '', name: '', industry: 'dental', promote: '', color: '#0F4C81', accent: '#38BDF8', tagline: '', logo: '',
+  website: '', presets: [], research: null,
 };
 
 export type VideoMode = 'brand' | 'custom';
@@ -196,7 +209,8 @@ export const UGC_REALISM =
  */
 export function buildUgcPrompt(data: VideoFormData): string {
   const parts: string[] = [];
-  const clean = (s: string) => s.trim().replace(/\s+/g, ' ');
+  // Collapse spaces and drop trailing full stops (we add our own) — avoids "crown..".
+  const clean = (s: string) => s.trim().replace(/\s+/g, ' ').replace(/[.\s]+$/, '');
 
   if (clean(data.creator)) parts.push(`Subject: ${clean(data.creator)}.`);
   if (clean(data.setting)) parts.push(`Setting: ${clean(data.setting)}.`);

@@ -115,6 +115,9 @@ export async function sb(path: string, init: RequestInit = {}) {
     if (text.includes('video_usage') && text.includes('schema cache')) {
       throw new AuthError(503, 'Usage tracking is not set up yet — run supabase/migrations/2026-09-29-video-usage.sql in Supabase.');
     }
+    if (text.includes("'public.item_shares'") && text.includes('schema cache')) {
+      throw new AuthError(503, 'Sharing single items is not set up yet — run supabase/migrations/2026-09-29-item-shares.sql in Supabase.');
+    }
     if (/profiles|library_shares/.test(text) && text.includes('schema cache')) {
       throw new AuthError(503, 'Run the user-accounts SQL in Supabase first (supabase/migrations/2026-09-29-user-accounts.sql).');
     }

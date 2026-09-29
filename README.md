@@ -1,73 +1,43 @@
-# Welcome to your Lovable project
+# AI Prompt Generator
 
-## Project info
+On-brand banners, images and UGC videos for every brand — built by Optinet Solutions.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Live:** https://prompt-generator-virid-delta.vercel.app
 
-## How can I edit this code?
+## What it does
 
-There are several ways of editing your application.
+- **Custom Prompt / Sports Banner** — pick a brand and a reference, generate an AI image prompt, then render it with ChatGPT or Gemini. Edit and make variations of any image.
+- **Video** — UGC-style videos through Higgsfield (team account), with the brand's real logo and an end card stamped on.
+- **Libraries** — every person's images and videos are saved to **their own Google Drive** (`My Drive / Prompt Generator`). Libraries can be shared with colleagues; work made before accounts lives in the **Team archive**.
+- **Email Content Checker** — build and check branded emails.
+- **Usage** — per-person cost tracking: videos in Higgsfield credits, images in US$ (ChatGPT vs Gemini, generate / edit / variations). Admins see a team summary with CSV export.
 
-**Use Lovable**
+## Access
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Sign in with Google. `@optinetsolutions.com` accounts are approved automatically; anyone else waits until an admin sets their row in Supabase → `profiles` → `status` to `approved` (or they are listed in `AUTO_APPROVE_EMAILS`).
 
-Changes made via Lovable will be committed automatically to this repo.
+## Stack
 
-**Use your preferred IDE**
+- Vite + React + TypeScript + Tailwind + shadcn/ui, hosted on **Vercel**
+- Vercel API routes in `api/` (no separate backend)
+- **Supabase** — reference prompts, accounts, favorites, sharing, usage
+- **Google Drive** — image and video storage (per user)
+- **OpenAI** (gpt-image) and **Google Gemini** — images; **Higgsfield** (MCP) — videos
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Run locally
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+npm run dev        # UI on http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+`npm run dev` serves the UI only; API routes need `vercel dev --listen 3939` (vite forwards `/api` there). Settings live in `.env.local` (never committed).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm test           # unit tests (vitest)
+npm run build      # production build
+```
 
-**Use GitHub Codespaces**
+## Database changes
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+SQL for each feature is in `supabase/migrations/` — run it in Supabase → SQL Editor.

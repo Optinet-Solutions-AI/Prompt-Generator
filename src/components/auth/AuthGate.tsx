@@ -11,7 +11,7 @@
  * in Supabase → profiles → status (see api/auth.ts).
  */
 import { useEffect, type ReactNode } from 'react';
-import { Clock, Loader2, ShieldOff, Sparkles } from 'lucide-react';
+import { Clock, Loader2, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,9 +39,7 @@ function Screen({ children }: { children: ReactNode }) {
 function SignInScreen({ onSignIn, error }: { onSignIn: () => void; error: string }) {
   return (
     <Screen>
-      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-primary shadow-glow mb-5">
-        <Sparkles className="w-7 h-7 text-primary-foreground" />
-      </div>
+      <img src="/logo.svg" alt="AI Prompt Generator" className="mx-auto w-16 h-16 mb-5 drop-shadow-[0_10px_24px_rgba(99,102,241,0.35)]" />
       <h1 className="text-2xl font-bold text-foreground mb-2">AI Prompt Generator</h1>
       <p className="text-muted-foreground mb-6">Sign in with your Google account to start creating.</p>
       <Button onClick={onSignIn} size="lg" variant="outline" className="w-full gap-3 h-12 text-base">

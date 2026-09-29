@@ -177,9 +177,11 @@ const Index = () => {
       <div className={`relative mx-auto px-3 sm:px-4 py-6 sm:py-8 md:py-16 ${isLibraryView ? 'max-w-full' : 'container max-w-3xl'}`}>
         {/* Header */}
         <div className="text-center mb-6 sm:mb-10">
-          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl gradient-primary shadow-glow mb-4 sm:mb-6">
-            <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-primary-foreground" />
-          </div>
+          <img
+            src="/logo.svg"
+            alt="AI Prompt Generator"
+            className="mx-auto w-12 h-12 sm:w-16 sm:h-16 mb-4 sm:mb-6 drop-shadow-[0_10px_24px_rgba(99,102,241,0.35)]"
+          />
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2 sm:mb-3">
             AI Prompt Generator
           </h1>

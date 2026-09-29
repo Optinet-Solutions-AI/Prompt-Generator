@@ -1,7 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 /**
  * Dev-only middleware that proxies /api/image-proxy requests.
@@ -63,7 +62,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
     mode === "development" && imageProxyPlugin(),
   ].filter(Boolean),
   resolve: {

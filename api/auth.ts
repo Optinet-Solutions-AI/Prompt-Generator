@@ -8,6 +8,8 @@
  *   GET  ?action=users            → approved app users (for the "Share with…" picker)
  *   GET  ?action=shares           → { sharing_with, shared_with_me }
  *   POST ?action=share / unshare  → { viewer_id } — let someone see my library / stop
+ *   GET  ?action=item-viewers     → &kind=image|video&file_id=… who can see this one item
+ *   POST ?action=item-share / item-unshare → { kind, file_id, viewer_id } — share ONE item
  *
  * ONE button does everything: the Google screen asks for the user's name/email
  * AND permission to create files in their Drive (only files this app makes).
@@ -29,6 +31,7 @@ import {
   readCookie, publicProfile, updateProfile, type Profile,
 } from './_session.js';
 import { DRIVE_SCOPE, googleClient, ensureFolder } from './_user-drive.js';
+import { itemViewers, shareItem } from './_item-shares.js';
 
 const STATE_COOKIE = 'pg_oauth_state';
 
@@ -213,6 +216,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET' && action === 'shares') return res.status(200).json(await shares(req));
     if (req.method === 'POST' && action === 'share') return res.status(200).json(await share(req, body, true));
     if (req.method === 'POST' && action === 'unshare') return res.status(200).json(await share(req, body, false));
+    if (req.method === 'GET' && action === 'item-viewers') return res.status(200).json(await itemViewers(await requireUser(req), req.query.kind, req.query.file_id));
+    if (req.method === 'POST' && action === 'item-share') return res.status(200).json(await shareItem(await requireUser(req), body, true));
+    if (req.method === 'POST' && action === 'item-unshare') return res.status(200).json(await shareItem(await requireUser(req), body, false));
     return res.status(404).json({ error: `Unknown action "${action}"` });
   } catch (err) {
     const code = err instanceof AuthError ? err.status : 500;

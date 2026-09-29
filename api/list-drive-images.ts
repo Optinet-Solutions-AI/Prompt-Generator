@@ -15,6 +15,7 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { guard, libraryOwner } from './_session.js';
+import { itemsSharedWithMe } from './_item-shares.js';
 import { listUserFolder } from './_user-drive.js';
 
 interface DriveFile {
@@ -135,6 +136,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ── My images, or a colleague's shared library ────────────────────────
   const ownerParam = String(req.query.owner || '');
+
+  // ── Images shared with me one by one ─────────────────────────────────
+  if (ownerParam === 'items') {
+    try {
+      const groups = await itemsSharedWithMe(me, 'image');
+      const files = groups.flatMap(g => g.files.map(f => ({ ...mapFile(f as DriveFile, f.appProperties?.provider || 'chatgpt'), shared_by: g.owner.name || g.owner.email })));
+      return res.status(200).json({ owner: 'items', files });
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  }
+
   if (ownerParam !== 'archive') {
     try {
       const owner = await libraryOwner(me, ownerParam);

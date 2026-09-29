@@ -43,7 +43,8 @@ import {
 import { researchBusiness } from './_business-research.js';
 import { writeScript, type ScriptRequest } from './_script-writer.js';
 import { brandVideoWithKit, brandKit, customKit, END_CARD_SECONDS, type CustomKitInput } from './_video-brand.js';
-import { AuthError, requireUser, libraryOwner, sb, type Profile } from './_session.js';
+import { AuthError, requireUser, libraryOwner, itemOwner, sb, type Profile } from './_session.js';
+import { itemsSharedWithMe } from './_item-shares.js';
 import { uploadToUserDrive, listUserFolder, userFileMeta, fetchUserFileRange, type UserDriveFile } from './_user-drive.js';
 
 // Downloading, branding and re-uploading a video to Drive can take a while.
@@ -459,6 +460,13 @@ async function save(req: VercelRequest, p: Profile, body: Record<string, unknown
 // ── Library ───────────────────────────────────────────────────────────────
 
 async function list(p: Profile, ownerParam: string) {
+  // Videos shared with me one by one (from anyone), newest share first.
+  if (ownerParam === 'items') {
+    const groups = await itemsSharedWithMe(p, 'video');
+    const files = groups.flatMap(g => g.files.map(f => ({ ...mapVideo(f, g.owner.id, new Set()), shared_by: g.owner.name || g.owner.email, shared_at: g.sharedAt[f.id] })))
+      .sort((a, b) => String(b.shared_at).localeCompare(String(a.shared_at)));
+    return { owner: 'items', files };
+  }
   if (ownerParam === 'archive') {
     return { owner: 'archive', files: (await listArchive()).map(f => mapVideo(f, 'archive', new Set())) };
   }
@@ -493,8 +501,8 @@ async function stream(req: VercelRequest, res: VercelResponse, p: Profile) {
     name = m.name || name;
     drive = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, { headers: { Authorization: `Bearer ${token}`, Range: `bytes=${start}-${end}` } });
   } else {
-    // Mine, or someone who shared their library with me — and only files in their Videos folder.
-    const owner = await libraryOwner(p, ownerParam);
+    // Mine, or shared with me (whole library or just this video) — and only files in their Videos folder.
+    const owner = await itemOwner(p, ownerParam, 'video', id);
     const m = await userFileMeta(owner, id);
     if (!m || !owner.drive_videos_folder_id || !m.parents?.includes(owner.drive_videos_folder_id) || !m.mimeType.startsWith('video/')) {
       throw new HttpError(404, 'Video not found');

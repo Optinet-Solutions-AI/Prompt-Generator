@@ -39,6 +39,13 @@ export const authApi = {
   shares: () => call<{ sharing_with: Person[]; shared_with_me: Person[] }>('shares'),
   share: (viewerId: string) => call('share', { viewer_id: viewerId }),
   unshare: (viewerId: string) => call('unshare', { viewer_id: viewerId }),
+  // Share ONE image / video (fileId = its Google Drive file id)
+  itemViewers: (kind: 'image' | 'video', fileId: string) =>
+    call<{ viewers: Person[] }>(`item-viewers&kind=${kind}&file_id=${encodeURIComponent(fileId)}`),
+  itemShare: (kind: 'image' | 'video', fileId: string, viewerId: string) =>
+    call('item-share', { kind, file_id: fileId, viewer_id: viewerId }),
+  itemUnshare: (kind: 'image' | 'video', fileId: string, viewerId: string) =>
+    call('item-unshare', { kind, file_id: fileId, viewer_id: viewerId }),
 };
 
 /** "Maria Santos" → "Maria"; falls back to the email's name part. */

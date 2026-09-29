@@ -7,7 +7,7 @@
  * the heart only appears on my own videos.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Clapperboard, Download, Heart, Loader2, RefreshCw, Share2 } from 'lucide-react';
+import { ArrowLeft, Clapperboard, Download, Film, Heart, Loader2, RefreshCw, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { BRANDS } from '@/types/prompt';
@@ -80,41 +80,66 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
         </div>
         <LibrarySourcePicker value={source} onChange={s => { setSource(s); setBrand('All'); setModel('All'); setFavoritesOnly(false); }} />
         <div className="ml-auto flex gap-2">
-          {isMine && <Button variant={favoritesOnly ? 'default' : 'outline'} size="sm" onClick={() => setFavoritesOnly(f => !f)} aria-label="Favorites" title="Favorites">
-            <Heart className={`w-4 h-4 sm:mr-1 ${favoritesOnly ? 'fill-current' : ''}`} /><span className="hidden sm:inline">Favorites</span>
-          </Button>}
           <Button variant="outline" size="sm" onClick={load} disabled={loading} aria-label="Refresh" title="Refresh">
             <RefreshCw className={`w-4 h-4 sm:mr-1 ${loading ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </div>
 
-      {/* Model filter */}
-      <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1 sm:pb-0 [scrollbar-width:none]">
-        <span className="shrink-0 text-xs font-medium text-muted-foreground mr-1">Model:</span>
-        {[{ id: 'All', label: 'All models' }, ...VIDEO_MODELS, ...(hasUnknownModel ? [{ id: '', label: 'Not recorded' }] : [])].map(m => (
-          <button key={m.id || 'unknown'} type="button" onClick={() => setModel(m.id)}
-            className={[
-              'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-              model === m.id ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground',
-            ].join(' ')}>
-            {m.label} <span className="opacity-70">({countModel(m.id)})</span>
-          </button>
-        ))}
-      </div>
+      {/* Filters — same look as the Image Library: model tabs, then a brand row */}
+      <div className="border-y border-border/60 bg-background/80 backdrop-blur-md -mx-1 px-1">
+        {/* Model (+ Favorites) — segmented tabs */}
+        <div className="flex justify-center py-2.5">
+          <div className="flex items-center gap-0.5 bg-muted/60 rounded-xl p-1 max-w-full overflow-x-auto [scrollbar-width:none]">
+            {[
+              { id: 'All', label: 'All models', icon: Clapperboard },
+              ...VIDEO_MODELS.map(m => ({ id: m.id, label: m.label, icon: Film })),
+              ...(hasUnknownModel ? [{ id: '', label: 'Not recorded', icon: Film }] : []),
+            ].map(m => {
+              const active = !favoritesOnly && model === m.id;
+              const Icon = m.icon;
+              return (
+                <button key={m.id || 'unknown'} type="button" onClick={() => { setModel(m.id); setFavoritesOnly(false); }}
+                  className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 xl:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                    active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  }`}>
+                  <Icon className="w-3.5 h-3.5" />
+                  {m.label}
+                  <span className="text-xs opacity-60">{countModel(m.id)}</span>
+                </button>
+              );
+            })}
+            {isMine && (
+              <button type="button" onClick={() => { setFavoritesOnly(f => !f); setModel('All'); }}
+                className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3 xl:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  favoritesOnly ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}>
+                <Heart className={`w-3.5 h-3.5 ${favoritesOnly ? 'text-rose-500 fill-rose-500' : ''}`} />
+                Favorites
+              </button>
+            )}
+          </div>
+        </div>
 
-      {/* Brand filter */}
-      <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible pb-1 sm:pb-0 [scrollbar-width:none]">
-        <span className="shrink-0 text-xs font-medium text-muted-foreground mr-1">Brand:</span>
-        {brandChips.map(b => (
-          <button key={b} type="button" onClick={() => setBrand(b)}
-            className={[
-              'shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-all',
-              brand === b ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:text-foreground',
-            ].join(' ')}>
-            {b} <span className="opacity-70">({countFor(b)})</span>
-          </button>
-        ))}
+        {/* Brand — one row, swipe sideways when it doesn't fit */}
+        <div className="border-t border-border/50 h-11 flex items-center gap-2 overflow-x-auto [scrollbar-width:none]">
+          <span className="text-xs text-muted-foreground font-medium shrink-0 mr-1">Brand:</span>
+          {brandChips.map(b => {
+            const active = brand === b;
+            const n = countFor(b);
+            return (
+              <button key={b} type="button" onClick={() => setBrand(b)}
+                className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  active ? 'bg-foreground text-background shadow-sm'
+                    : n === 0 && b !== 'All' ? 'text-muted-foreground/50 hover:text-foreground hover:bg-muted/60'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                }`}>
+                {b === 'All' ? 'All Brands' : b}
+                {n > 0 && <span className={`ml-1 ${active ? 'opacity-70' : 'opacity-60'}`}>{n}</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* States */}

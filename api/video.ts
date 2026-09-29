@@ -19,6 +19,9 @@
  *   GET  ?action=list            → &owner=<profile id> (default me) | &owner=archive
  *   GET  ?action=stream          → &id=<drive id>&owner=…  plays a video (range slices)
  *   POST ?action=like / unlike   → favorites on MY videos (Supabase `liked_videos`)
+ *   GET  ?action=businesses      → saved "Custom business" profiles (shared by the team)
+ *   POST ?action=business-save   → create/update one  { id?, name, industry, promote, color, accent, tagline, logo }
+ *   POST ?action=business-delete → { id } (whoever created it, or an admin)
  *   GET  ?action=usage-mine      → &days=30  my Higgsfield credit usage
  *   GET  ?action=usage-team      → (admins) &days=30[&format=csv[&kind=images]]  everyone's usage
  *   (both usage actions include IMAGE costs in US$ from Supabase `image_usage`)
@@ -35,7 +38,7 @@ import {
   HttpError, startConnect, finishConnect, disconnect, connectionStatus,
   submitVideo, videoCost, videoStatus, uploadImage, TEAM_CONNECTION as HF, type VideoParams,
 } from './_higgsfield-mcp.js';
-import { brandVideo, END_CARD_SECONDS } from './_video-brand.js';
+import { brandVideoWithKit, brandKit, customKit, END_CARD_SECONDS, type CustomKitInput } from './_video-brand.js';
 import { AuthError, requireUser, libraryOwner, sb, type Profile } from './_session.js';
 import { uploadToUserDrive, listUserFolder, userFileMeta, fetchUserFileRange, type UserDriveFile } from './_user-drive.js';
 
@@ -413,7 +416,11 @@ async function save(req: VercelRequest, p: Profile, body: Record<string, unknown
   let branded = false;
   let brandError = '';
   try {
-    const out = await brandVideo(buffer, brand, opts, siteOrigin(req));
+    // "Custom business" mode brings its own name/colours/logo; otherwise our brand's kit.
+    const kit = body.mode === 'custom'
+      ? customKit({ ...(body.custom as CustomKitInput || {}), name: brand })
+      : await brandKit(brand, siteOrigin(req));
+    const out = await brandVideoWithKit(buffer, kit, opts);
     buffer = out.buffer; branded = out.branded;
   } catch (err) {
     // Never lose the render over branding — save the plain video and say why.
@@ -428,7 +435,10 @@ async function save(req: VercelRequest, p: Profile, body: Record<string, unknown
   const prompt = String(body.prompt || '');
   const aspectRatio = String(body.aspectRatio || '');
   const model = ALLOWED_MODELS.has(String(body.model)) ? String(body.model) : '';
-  const appProperties = { provider: 'higgsfield', brand, aspectRatio, duration, model };
+  const mode = body.mode === 'custom' ? 'custom' : 'brand';
+  const industry = mode === 'custom' ? String((body.custom as { industry?: string } | undefined)?.industry || '').slice(0, 40) : '';
+  const appProperties: Record<string, string> = { provider: 'higgsfield', brand, aspectRatio, duration, model, mode };
+  if (industry) appProperties.industry = industry;
   const id = await uploadToUserDrive(p, 'videos', { buffer, mimeType: 'video/mp4', name, description: prompt, appProperties });
   return {
     branded,
@@ -518,6 +528,58 @@ async function unlike(p: Profile, body: Record<string, unknown>) {
   return { success: true };
 }
 
+// ── Saved custom businesses (e.g. "Dr Demajo") ─────────────────────────────
+// Team-wide, so anyone can reuse a business someone set up. Stored in
+// Supabase `custom_businesses`; the logo is a small data URL (≤ ~1 MB).
+
+const BUSINESS_FIELDS = 'id,name,industry,promote,color,accent,tagline,logo,created_by,created_by_email,updated_at';
+
+async function listBusinesses() {
+  try {
+    return { businesses: await sb(`custom_businesses?select=${BUSINESS_FIELDS}&order=updated_at.desc&limit=200`) };
+  } catch (err) {
+    if (err instanceof Error && /custom_businesses/.test(err.message)) {
+      throw new HttpError(503, 'Saved businesses are not set up yet — run supabase/migrations/2026-09-29-custom-businesses.sql in Supabase.');
+    }
+    throw err;
+  }
+}
+
+async function saveBusiness(p: Profile, body: Record<string, unknown>) {
+  const name = String(body.name || '').trim().slice(0, 60);
+  if (!name) throw new HttpError(400, 'Business name is required');
+  const hex = (v: unknown, d: string) => (/^#[0-9a-f]{6}$/i.test(String(v)) ? String(v) : d);
+  const logo = typeof body.logo === 'string' && /^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(body.logo) ? body.logo : null;
+  if (logo && logo.length > 1_400_000) throw new HttpError(413, 'Logo is too big — please use one under 1 MB.');
+  const row = {
+    name,
+    industry: String(body.industry || '').slice(0, 40) || null,
+    promote: String(body.promote || '').slice(0, 300) || null,
+    color: hex(body.color, '#0F4C81'),
+    accent: hex(body.accent, '#38BDF8'),
+    tagline: String(body.tagline || '').slice(0, 80) || null,
+    logo,
+    updated_at: new Date().toISOString(),
+  };
+  const id = String(body.id || '');
+  if (/^[0-9a-f-]{36}$/i.test(id)) {
+    const out = await sb(`custom_businesses?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(row) }) as unknown[];
+    if (out.length === 0) throw new HttpError(404, 'That business no longer exists');
+    return { business: out[0] };
+  }
+  const out = await sb('custom_businesses', { method: 'POST', body: JSON.stringify({ ...row, created_by: p.id, created_by_email: p.email }) }) as unknown[];
+  return { business: out[0] };
+}
+
+async function deleteBusiness(p: Profile, body: Record<string, unknown>) {
+  const id = String(body.id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, 'invalid id');
+  const filter = p.is_admin ? '' : `&created_by=eq.${p.id}`;
+  const out = await sb(`custom_businesses?id=eq.${id}${filter}`, { method: 'DELETE' }) as unknown[];
+  if (out.length === 0) throw new HttpError(403, 'Only the person who saved this business (or an admin) can delete it.');
+  return { success: true };
+}
+
 // ── Higgsfield sign-in ────────────────────────────────────────────────────
 
 async function oauthCallback(req: VercelRequest, res: VercelResponse) {
@@ -555,6 +617,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST' && action === 'save') return res.status(200).json(await save(req, p, body));
     if (req.method === 'POST' && action === 'like') return res.status(200).json(await like(p, body));
     if (req.method === 'POST' && action === 'unlike') return res.status(200).json(await unlike(p, body));
+    if (req.method === 'GET' && action === 'businesses') return res.status(200).json(await listBusinesses());
+    if (req.method === 'POST' && action === 'business-save') return res.status(200).json(await saveBusiness(p, body));
+    if (req.method === 'POST' && action === 'business-delete') return res.status(200).json(await deleteBusiness(p, body));
     if (req.method === 'GET' && action === 'usage-mine') return res.status(200).json(await usageMine(p, req.query.days));
     if (req.method === 'GET' && action === 'usage-team') return await usageTeam(req, res, p);
     return res.status(404).json({ error: `Unknown action "${action}" for ${req.method}` });

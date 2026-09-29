@@ -64,7 +64,7 @@ export async function itemsSharedWithMe(viewer: Profile, kind: ItemKind): Promis
     rows = await sb(`item_shares?viewer_id=eq.${viewer.id}&kind=eq.${kind}&select=owner_id,file_id,created_at&order=created_at.desc&limit=500`) as typeof rows;
   } catch (err) {
     // Table not created yet → nothing shared.
-    if (err instanceof Error && /item_shares/.test(err.message)) return [];
+    if (err instanceof Error && /item[_-]shares/.test(err.message)) return [];
     throw err;
   }
   const byOwner = new Map<string, Array<{ file_id: string; created_at: string }>>();

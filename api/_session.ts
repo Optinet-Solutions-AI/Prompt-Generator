@@ -7,7 +7,10 @@
  * cookie, every existing fetch('/api/…') in the app sends it automatically —
  * no frontend changes needed for protected routes.
  *
- * The cookie is httpOnly (page scripts can't read it) and lasts 30 days.
+ * The cookie is httpOnly (page scripts can't read it) and is a BROWSER-SESSION
+ * cookie: it ends when the browser is fully closed (e.g. a restart), and the
+ * signed value itself expires after SESSION_HOURS either way. Drive and
+ * Higgsfield connections are stored server-side, so signing back in is one click.
  *
  * Underscore file = helper, not its own Vercel route.
  */
@@ -15,7 +18,7 @@ import crypto from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export const SESSION_COOKIE = 'pg_session';
-const SESSION_DAYS = 30;
+const SESSION_HOURS = 12;
 
 export class AuthError extends Error {
   status: number;
@@ -54,7 +57,7 @@ const sign = (payload: string) => crypto.createHmac('sha256', secret()).update(p
 
 /** "<base64 payload>.<signature>" */
 export function makeSessionValue(profileId: string): string {
-  const payload = Buffer.from(JSON.stringify({ uid: profileId, exp: Date.now() + SESSION_DAYS * 86400_000 })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({ uid: profileId, exp: Date.now() + SESSION_HOURS * 3600_000 })).toString('base64url');
   return `${payload}.${sign(payload)}`;
 }
 
@@ -76,7 +79,8 @@ function isLocal(req: VercelRequest): boolean {
 export function setSessionCookie(req: VercelRequest, res: VercelResponse, profileId: string) {
   const secure = isLocal(req) ? '' : '; Secure';
   res.setHeader('Set-Cookie',
-    `${SESSION_COOKIE}=${makeSessionValue(profileId)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secure}`);
+    // No Max-Age/Expires → the browser forgets it when it closes.
+    `${SESSION_COOKIE}=${makeSessionValue(profileId)}; Path=/; HttpOnly; SameSite=Lax${secure}`);
 }
 
 export function clearSessionCookie(req: VercelRequest, res: VercelResponse) {

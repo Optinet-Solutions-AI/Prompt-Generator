@@ -118,9 +118,18 @@ export function useVideoGenerator() {
     setForm(f => ({ ...f, custom: { ...f.custom, [key]: value } }));
   }, []);
 
-  /** Load a saved business (or a blank one) into the form. */
+  /**
+   * Load a saved business (or a blank one) into the form. A real business
+   * gets its first format filled in straight away (★ business-specific first,
+   * else the industry's best one) so the form is never a wall of empty boxes.
+   */
   const loadBusiness = useCallback((b: CustomBusiness) => {
-    setForm(f => ({ ...f, custom: b, styleId: '', creator: '', setting: '', action: '', camera: '', dialogue: '' }));
+    const first = b.name.trim() ? (b.presets[0] || findIndustry(b.industry)?.styles[0]) : undefined;
+    setForm(f => ({
+      ...f, custom: first ? { ...b, tagline: b.tagline || first.endCard } : b,
+      styleId: first?.id || '', creator: first?.creator || '', setting: first?.setting || '', action: first?.action || '',
+      camera: first?.camera || '', dialogue: first?.line || '', hook: (first as { hook?: string } | undefined)?.hook || '',
+    }));
   }, []);
 
   /** Industry preset → fields + its suggested spoken line + end-card line (if still empty). */
@@ -131,10 +140,30 @@ export function useVideoGenerator() {
       if (!st) return f;
       return {
         ...f, styleId, creator: st.creator, setting: st.setting, action: st.action, camera: st.camera, dialogue: st.line,
+        hook: (st as { hook?: string }).hook || f.hook,
         custom: { ...f.custom, tagline: f.custom.tagline || st.endCard },
       };
     });
   }, []);
+
+  // ── "✨ Write the script for me" (optional) ──
+  const [writing, setWriting] = useState(false);
+  const writeScript = useCallback(async () => {
+    const c = form.custom;
+    const fmt = [...c.presets, ...(findIndustry(c.industry)?.styles || [])].find(x => x.id === form.styleId);
+    setWriting(true); setError('');
+    try {
+      const s = await videoApi.writeScript({
+        business: { name: c.name, industry: c.industry, promote: c.promote, research: c.research },
+        format: fmt ? { label: fmt.label, creator: fmt.creator, setting: fmt.setting, action: fmt.action, camera: fmt.camera } : null,
+        duration: form.duration, audio: form.audio,
+      });
+      setForm(f => ({ ...f, creator: s.creator, setting: s.setting, action: s.action, camera: s.camera, dialogue: s.line || f.dialogue, hook: s.hook || f.hook }));
+      setPromptEdited(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not write the script');
+    } finally { setWriting(false); }
+  }, [form.custom, form.styleId, form.duration, form.audio]);
 
   const editPrompt = useCallback((text: string) => { setPrompt(text); setPromptEdited(true); }, []);
   const rebuildPrompt = useCallback(() => setPromptEdited(false), []);
@@ -195,6 +224,7 @@ export function useVideoGenerator() {
         const out = await videoApi.save({
           video_url: videoUrl, brand: brandName, prompt, aspectRatio: form.aspectRatio, duration: form.duration,
           model: form.model, brandLogo: form.brandLogo, brandEndCard: form.brandEndCard,
+          hook: form.hook, hookOn: form.hookOn,
           ...(form.mode === 'custom' ? {
             mode: 'custom' as const,
             custom: { industry: form.custom.industry, color: form.custom.color, accent: form.custom.accent, tagline: form.custom.tagline, logo: form.custom.logo },
@@ -224,7 +254,7 @@ export function useVideoGenerator() {
   }, []);
 
   return {
-    form, setField, applyStyle, setMode, setCustom, loadBusiness, applyIndustryStyle,
+    form, setField, applyStyle, setMode, setCustom, loadBusiness, applyIndustryStyle, writeScript, writing,
     prompt, promptEdited, editPrompt, rebuildPrompt,
     appState, statusText, elapsed, error, result,
     connection, connect, disconnectHf, refreshConnection, cost,

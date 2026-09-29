@@ -62,6 +62,7 @@ export const videoApi = {
   save: (body: {
     video_url: string; brand: string; prompt: string; aspectRatio: string; duration: number;
     model: string; brandLogo: boolean; brandEndCard: boolean;
+    hook?: string; hookOn?: boolean;
     mode?: 'custom';
     custom?: { industry: string; color: string; accent: string; tagline: string; logo: string };
   }) => call<{ file: LibraryVideo; branded: boolean; brand_error: string | null }>('save', { body }),
@@ -71,6 +72,12 @@ export const videoApi = {
   saveBusiness: (b: Omit<SavedBusiness, 'created_by' | 'created_by_email' | 'updated_at'>) => call<{ business: SavedBusiness }>('business-save', { body: b }),
   deleteBusiness: (id: string) => call('business-delete', { body: { id } }),
   researchBusiness: (url: string) => call<BusinessResearchResult>('business-research', { body: { url } }),
+  /** "✨ Write the script for me": scene + a line that fits the length + hook caption. */
+  writeScript: (body: {
+    business: { name: string; industry: string; promote: string; research: BusinessResearchNotes | null };
+    format: { label: string; creator: string; setting: string; action: string; camera: string } | null;
+    duration: number; audio: boolean;
+  }) => call<{ creator: string; setting: string; action: string; camera: string; line: string; hook: string }>('script-write', { body }),
 
   // Library
   /** owner: '' = mine, a profile id = a shared library, 'archive' = team archive */

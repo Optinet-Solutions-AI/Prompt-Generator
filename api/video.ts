@@ -23,6 +23,7 @@
  *   POST ?action=business-save   → create/update one  { id?, name, industry, promote, color, accent, tagline, logo }
  *   POST ?action=business-delete → { id } (whoever created it, or an admin)
  *   POST ?action=business-research → { url } read the website + research it → a filled-in business (not saved)
+ *   POST ?action=script-write    → { business, format, duration, audio } → scene + line that fits + hook
  *   GET  ?action=usage-mine      → &days=30  my Higgsfield credit usage
  *   GET  ?action=usage-team      → (admins) &days=30[&format=csv[&kind=images]]  everyone's usage
  *   (both usage actions include IMAGE costs in US$ from Supabase `image_usage`)
@@ -40,6 +41,7 @@ import {
   submitVideo, videoCost, videoStatus, uploadImage, TEAM_CONNECTION as HF, type VideoParams,
 } from './_higgsfield-mcp.js';
 import { researchBusiness } from './_business-research.js';
+import { writeScript, type ScriptRequest } from './_script-writer.js';
 import { brandVideoWithKit, brandKit, customKit, END_CARD_SECONDS, type CustomKitInput } from './_video-brand.js';
 import { AuthError, requireUser, libraryOwner, sb, type Profile } from './_session.js';
 import { uploadToUserDrive, listUserFolder, userFileMeta, fetchUserFileRange, type UserDriveFile } from './_user-drive.js';
@@ -414,7 +416,12 @@ async function save(req: VercelRequest, p: Profile, body: Record<string, unknown
   let buffer = Buffer.from(await vid.arrayBuffer());
 
   // Stamp the real brand (corner logo + end card) unless switched off.
-  const opts = { logo: body.brandLogo !== false, endCard: body.brandEndCard !== false };
+  const opts = {
+    logo: body.brandLogo !== false,
+    endCard: body.brandEndCard !== false,
+    // On-screen hook caption for the first seconds (only when switched on).
+    hook: body.hookOn === false ? '' : String(body.hook || ''),
+  };
   let branded = false;
   let brandError = '';
   try {
@@ -639,6 +646,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST' && action === 'business-research') {
       try { return res.status(200).json(await researchBusiness(String(body.url || ''))); }
       catch (err) { throw new HttpError(422, `Could not research that website: ${err instanceof Error ? err.message : err}`); }
+    }
+    if (req.method === 'POST' && action === 'script-write') {
+      try { return res.status(200).json(await writeScript(body as unknown as ScriptRequest)); }
+      catch (err) { throw new HttpError(422, `Could not write the script: ${err instanceof Error ? err.message : err}`); }
     }
     if (req.method === 'POST' && action === 'business-delete') return res.status(200).json(await deleteBusiness(p, body));
     if (req.method === 'GET' && action === 'usage-mine') return res.status(200).json(await usageMine(p, req.query.days));

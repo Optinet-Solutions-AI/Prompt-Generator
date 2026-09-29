@@ -70,6 +70,6 @@ Rules: no readable text, signs, screens or brochures in the scene; no blood, nee
   let line = req.audio ? f('line', 160) : '';
   // Hard guarantee the line fits: trim to the word budget at a natural break.
   if (words(line) > maxWords) line = line.split(/\s+/).slice(0, maxWords).join(' ').replace(/[,;:–-]+$/, '') + '.';
-  const hook = f('hook', 70).replace(/\p{Extended_Pictographic}|️|‍/gu, '').trim();
+  const hook = f('hook', 70).replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '').trim();
   return { creator: f('creator', 200), setting: f('setting', 220), action: f('action', 300), camera: f('camera', 150), line, hook };
 }

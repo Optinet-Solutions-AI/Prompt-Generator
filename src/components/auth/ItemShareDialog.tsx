@@ -91,7 +91,10 @@ export function ItemShareDialog({ open, onOpenChange, kind, fileId, previewUrl, 
               <Loader2 className="w-4 h-4 animate-spin" />Loading people…
             </div>
           )}
-          {!loading && filtered.length === 0 && (
+          {!loading && loadError && (
+            <p className="text-sm text-destructive text-center py-6">Couldn’t load sharing: {loadError}</p>
+          )}
+          {!loading && !loadError && filtered.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-6">
               {people.length === 0 ? 'No one else has signed in to the app yet.' : 'No one matches that search.'}
             </p>

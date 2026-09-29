@@ -189,7 +189,7 @@ export function UserBar() {
             <UserPlus className="w-4 h-4 mr-2" />Share my library…
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setUsageOpen(true)}>
-            <BarChart3 className="w-4 h-4 mr-2" />My Higgsfield usage
+            <BarChart3 className="w-4 h-4 mr-2" />My usage
           </DropdownMenuItem>
           {user.is_admin && (
             <DropdownMenuItem onClick={() => setTeamUsageOpen(true)}>

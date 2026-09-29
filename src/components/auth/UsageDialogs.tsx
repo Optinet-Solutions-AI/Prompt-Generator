@@ -113,8 +113,8 @@ function StatusBadge({ status }: { status: string }) {
 function Table({ head, children, empty }: { head: string[]; children: ReactNode; empty?: boolean }) {
   return (
     <div className="rounded-xl border border-border overflow-hidden">
-      <div className="max-h-64 overflow-y-auto">
-        <table className="w-full text-xs">
+      <div className="max-h-64 overflow-auto">
+        <table className="w-full min-w-[520px] text-xs">
           <thead className="sticky top-0 bg-muted/80 backdrop-blur text-muted-foreground">
             <tr>{head.map((h, i) => <th key={h} className={`px-3 py-2 font-medium ${i === head.length - 1 ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr>
           </thead>
@@ -173,8 +173,8 @@ export function MyUsageDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const { data, loading, error } = useUsage<MyUsage>(open, days, videoApi.usageMine);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0" onOpenAutoFocus={e => e.preventDefault()}>
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border text-left">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0" onOpenAutoFocus={e => e.preventDefault()}>
+        <DialogHeader className="px-4 sm:px-6 pt-6 pb-4 border-b border-border text-left">
           <div className="flex flex-wrap items-center justify-between gap-3 pr-6">
             <div>
               <DialogTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-primary" />My usage</DialogTitle>
@@ -183,7 +183,7 @@ export function MyUsageDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <PeriodPicker days={days} onChange={setDays} />
           </div>
         </DialogHeader>
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5 min-w-0">
           <Loading loading={loading} error={error}>
             {data && (
               <>
@@ -261,8 +261,8 @@ export function TeamUsageDialog({ open, onOpenChange }: { open: boolean; onOpenC
   const { data, loading, error } = useUsage<TeamUsage>(open, days, videoApi.usageTeam);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 gap-0" onOpenAutoFocus={e => e.preventDefault()}>
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border text-left">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0" onOpenAutoFocus={e => e.preventDefault()}>
+        <DialogHeader className="px-4 sm:px-6 pt-6 pb-4 border-b border-border text-left">
           <div className="flex flex-wrap items-center justify-between gap-3 pr-6">
             <div>
               <DialogTitle className="flex items-center gap-2"><Users className="w-5 h-5 text-primary" />Team usage</DialogTitle>
@@ -275,7 +275,7 @@ export function TeamUsageDialog({ open, onOpenChange }: { open: boolean; onOpenC
             </div>
           </div>
         </DialogHeader>
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5 min-w-0">
           <Loading loading={loading} error={error}>
             {data && (
               <>

@@ -4,15 +4,21 @@
  * WHY: AI video models draw logos and text badly (warped, misspelled,
  * flickering), so the prompt tells them NOT to draw any. Instead, after the
  * video renders, we add the brand ourselves with ffmpeg:
- *   A) Logo in the corner — the brand's real logo on a soft dark pill,
- *      top-left (clear of TikTok/Reels buttons on the right and the caption
- *      area at the bottom).
- *   B) End card — a 1.5s closing frame: the logo on the brand's dark panel
- *      colour with a glow in its accent colour, fading in.
+ *   A) Corner badge — the real logo (or, with no logo, the business NAME in
+ *      a clean font) on a soft dark pill, top-left (clear of TikTok/Reels
+ *      buttons on the right and the caption area at the bottom).
+ *   B) End card — a 1.5s closing frame: logo (or name) on the brand's dark
+ *      panel colour with a glow in its accent colour, plus an optional
+ *      tagline such as "Book today · drdemajo.com", fading in.
  *
- * Logos come from /public/brand-references/<brand>/scraped/ (SVG) and are
- * rasterised with sharp. ffmpeg comes from the ffmpeg-static package
- * (bundled into the function via vercel.json "includeFiles").
+ * TWO KINDS OF KIT:
+ *   - our brands: logos from /public/brand-references/<brand>/scraped/ (SVG)
+ *   - custom businesses (Video tab → "Custom business"): logo the user
+ *     uploaded (PNG/JPG/WebP/SVG data URL), their colours, name and tagline
+ *
+ * Text is drawn with the bundled Poppins font (api/fonts, SIL OFL) because
+ * Vercel's servers have no fonts installed. ffmpeg comes from ffmpeg-static.
+ * Both are bundled into the function via vercel.json "includeFiles".
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -40,6 +46,31 @@ export const END_CARD_SECONDS = 1.5;
 
 export interface BrandOptions { logo: boolean; endCard: boolean }
 
+/** Everything needed to brand one video. */
+export interface VideoKit {
+  name: string;          // shown as text when there's no logo
+  panel: string;         // end-card background (dark)
+  accent: string;        // end-card glow
+  logo: Buffer | null;   // PNG/JPG/WebP/SVG bytes, or null → use the name
+  tagline?: string;      // optional end-card line under the logo/name
+}
+
+/** Custom business settings sent by the Video tab. */
+export interface CustomKitInput {
+  name?: string; color?: string; accent?: string; logo?: string; tagline?: string;
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/** Darken a hex colour toward black (0..1) — turns a brand colour into an end-card panel. */
+function darken(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = (v: number) => Math.round(v * (1 - amount)).toString(16).padStart(2, '0');
+  return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+}
+
+const escapeMarkup = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 async function ffmpegPath(): Promise<string> {
   const mod = await import('ffmpeg-static');
   const p = (mod.default ?? mod) as unknown as string;
@@ -47,13 +78,59 @@ async function ffmpegPath(): Promise<string> {
   return p;
 }
 
-/** Load the brand's SVG logo: from disk locally, from the site itself on Vercel. */
+/** Path to a bundled font file (works locally and inside the Vercel function). */
+async function fontFile(weight: 'Bold' | 'Medium'): Promise<string> {
+  const candidates = [
+    path.join(process.cwd(), 'api', 'fonts', `Poppins-${weight}.ttf`),
+    path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'fonts', `Poppins-${weight}.ttf`),
+  ];
+  for (const c of candidates) { try { await fs.access(c); return c; } catch { /* next */ } }
+  throw new Error('bundled font not found');
+}
+
+/** Render a line of text to a transparent PNG with the bundled font. */
+async function textPng(text: string, weight: 'Bold' | 'Medium', px: number, color = '#FFFFFF', maxWidth?: number): Promise<Buffer> {
+  const sharp = (await import('sharp')).default;
+  return sharp({
+    text: {
+      text: `<span foreground="${color}">${escapeMarkup(text)}</span>`,
+      font: `Poppins ${weight} ${px}`,
+      fontfile: await fontFile(weight),
+      rgba: true,
+      dpi: 72,
+      align: 'centre',
+      ...(maxWidth ? { width: maxWidth, wrap: 'word' as const } : {}),
+    },
+  }).png().toBuffer();
+}
+
+/** Load a built-in brand's SVG logo: from disk locally, from the site itself on Vercel. */
 async function loadLogoSvg(slug: string, file: string, siteOrigin: string): Promise<Buffer> {
   const rel = `brand-references/${slug}/scraped/${file}`;
   try { return await fs.readFile(path.join(process.cwd(), 'public', rel)); } catch { /* not on disk — fetch */ }
   const res = await fetch(`${siteOrigin}/${rel}`);
   if (!res.ok) throw new Error(`logo fetch failed (${res.status})`);
   return Buffer.from(await res.arrayBuffer());
+}
+
+/** Kit for one of our built-in brands, or null if the brand has none. */
+export async function brandKit(brand: string, siteOrigin: string): Promise<VideoKit | null> {
+  const slug = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const k = BRAND_KIT[slug];
+  if (!k) return null;
+  return { name: brand, panel: k.panel, accent: k.accent, logo: await loadLogoSvg(slug, k.logo, siteOrigin) };
+}
+
+/** Kit for a custom business from the Video tab's fields. */
+export function customKit(c: CustomKitInput): VideoKit | null {
+  const name = String(c.name || '').trim().slice(0, 60);
+  if (!name) return null;
+  const color = HEX.test(String(c.color)) ? String(c.color) : '#0F4C81';
+  const accent = HEX.test(String(c.accent)) ? String(c.accent) : '#38BDF8';
+  let logo: Buffer | null = null;
+  const m = String(c.logo || '').match(/^data:image\/(png|jpeg|webp|svg\+xml);base64,(.+)$/);
+  if (m) logo = Buffer.from(m[2], 'base64');
+  return { name, panel: darken(color, 0.72), accent, logo, tagline: String(c.tagline || '').trim().slice(0, 80) || undefined };
 }
 
 /** Read width, height, fps and whether there's an audio track. */
@@ -73,15 +150,22 @@ async function probe(ff: string, file: string) {
   };
 }
 
+/** The kit's logo (or name, as text) resized to fit a box. */
+async function markPng(kit: VideoKit, boxW: number, boxH: number): Promise<Buffer> {
+  const sharp = (await import('sharp')).default;
+  if (kit.logo) {
+    return sharp(kit.logo, { density: 400 }).resize({ width: boxW, height: boxH, fit: 'inside', withoutEnlargement: false }).png().toBuffer();
+  }
+  const px = Math.max(14, Math.round(boxH * 0.62));
+  const t = await textPng(kit.name, 'Bold', px);
+  return sharp(t).resize({ width: boxW, height: boxH, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
+}
+
 /**
- * Brand a video. Returns the new MP4 bytes, or the original bytes unchanged
- * when branding is off / the brand has no kit.
+ * Brand a video with a kit. Returns the new MP4 bytes, or the original bytes
+ * unchanged when branding is off / there's no kit.
  */
-export async function brandVideo(
-  input: Buffer, brand: string, opts: BrandOptions, siteOrigin: string,
-): Promise<{ buffer: Buffer; branded: boolean }> {
-  const slug = brand.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const kit = BRAND_KIT[slug];
+export async function brandVideoWithKit(input: Buffer, kit: VideoKit | null, opts: BrandOptions): Promise<{ buffer: Buffer; branded: boolean }> {
   if (!kit || (!opts.logo && !opts.endCard)) return { buffer: input, branded: false };
 
   const sharp = (await import('sharp')).default;
@@ -91,25 +175,24 @@ export async function brandVideo(
     const src = path.join(dir, 'in.mp4');
     await fs.writeFile(src, input);
     const v = await probe(ff, src);
-    const svg = await loadLogoSvg(slug, kit.logo, siteOrigin);
 
     const args: string[] = ['-hide_banner', '-y', '-i', src];
     const filters: string[] = [];
     let mainV = '0:v';
     let nextInput = 1;
 
-    // ── A) corner logo on a rounded dark pill ──
+    // ── A) corner badge on a rounded dark pill ──
     if (opts.logo) {
-      const logoW = Math.round(v.width * 0.34);
-      const logoPng = await sharp(svg, { density: 400 }).resize({ width: logoW, height: Math.round(logoW / 2.6), fit: 'inside' }).png().toBuffer();
-      const lm = await sharp(logoPng).metadata();
-      const padX = Math.round(logoW * 0.07); const padY = Math.round(logoW * 0.05);
-      const pw = (lm.width || logoW) + padX * 2; const ph = (lm.height || 60) + padY * 2;
+      const markW = Math.round(v.width * 0.34);
+      const mark = await markPng(kit, markW, Math.round(markW / 2.6));
+      const mm = await sharp(mark).metadata();
+      const padX = Math.round(markW * 0.07); const padY = Math.round(markW * 0.05);
+      const pw = (mm.width || markW) + padX * 2; const ph = (mm.height || 60) + padY * 2;
       const pill = Buffer.from(
         `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}"><rect width="${pw}" height="${ph}" rx="${Math.round(ph / 2.4)}" fill="#000" fill-opacity="0.55"/></svg>`,
       );
       const badge = path.join(dir, 'badge.png');
-      await sharp(pill).composite([{ input: logoPng, left: padX, top: padY }]).png().toFile(badge);
+      await sharp(pill).composite([{ input: mark, left: padX, top: padY }]).png().toFile(badge);
       args.push('-i', badge);
       const x = Math.round(v.width * 0.045); const y = Math.round(v.height * 0.06);
       filters.push(`[0:v][${nextInput}:v]overlay=${x}:${y}[withlogo]`);
@@ -122,10 +205,23 @@ export async function brandVideo(
       args.push('-filter_complex', filters.join(';'), '-map', '[v]');
       if (v.hasAudio) args.push('-map', '0:a?', '-c:a', 'copy');
     } else {
-      // ── B) end card: logo on brand panel with an accent glow ──
-      const cardLogoW = Math.round(v.width * 0.7);
-      const cardLogo = await sharp(svg, { density: 400 }).resize({ width: cardLogoW, height: Math.round(v.height * 0.3), fit: 'inside' }).png().toBuffer();
-      const cm = await sharp(cardLogo).metadata();
+      // ── B) end card: logo/name (+ tagline) on the panel with an accent glow ──
+      const mark = await markPng(kit, Math.round(v.width * 0.7), Math.round(v.height * (kit.tagline ? 0.22 : 0.3)));
+      const mm = await sharp(mark).metadata();
+      const layers: Array<{ input: Buffer; left: number; top: number }> = [];
+      let tagH = 0; let tag: Buffer | null = null;
+      if (kit.tagline) {
+        tag = await textPng(kit.tagline, 'Medium', Math.round(v.width * 0.045), '#FFFFFF', Math.round(v.width * 0.8));
+        tagH = (await sharp(tag).metadata()).height || 0;
+      }
+      const gap = tag ? Math.round(v.height * 0.035) : 0;
+      const blockH = (mm.height || 0) + gap + tagH;
+      const top = Math.round((v.height - blockH) / 2);
+      layers.push({ input: mark, left: Math.round((v.width - (mm.width || 0)) / 2), top });
+      if (tag) {
+        const tw = (await sharp(tag).metadata()).width || 0;
+        layers.push({ input: tag, left: Math.round((v.width - tw) / 2), top: top + (mm.height || 0) + gap });
+      }
       const bg = Buffer.from(
         `<svg xmlns="http://www.w3.org/2000/svg" width="${v.width}" height="${v.height}">` +
         `<defs><radialGradient id="g" cx="50%" cy="50%" r="55%"><stop offset="0%" stop-color="${kit.accent}" stop-opacity="0.45"/>` +
@@ -133,11 +229,7 @@ export async function brandVideo(
         `<rect width="100%" height="100%" fill="${kit.panel}"/><rect width="100%" height="100%" fill="url(#g)"/></svg>`,
       );
       const card = path.join(dir, 'card.png');
-      await sharp(bg).composite([{
-        input: cardLogo,
-        left: Math.round((v.width - (cm.width || cardLogoW)) / 2),
-        top: Math.round((v.height - (cm.height || 200)) / 2),
-      }]).png().toFile(card);
+      await sharp(bg).composite(layers).png().toFile(card);
 
       const cardIn = nextInput++;
       args.push('-loop', '1', '-framerate', String(v.fps), '-t', String(END_CARD_SECONDS), '-i', card);
@@ -163,4 +255,9 @@ export async function brandVideo(
   } finally {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
   }
+}
+
+/** Built-in brand version (kept for existing callers). */
+export async function brandVideo(input: Buffer, brand: string, opts: BrandOptions, siteOrigin: string) {
+  return brandVideoWithKit(input, await brandKit(brand, siteOrigin), opts);
 }

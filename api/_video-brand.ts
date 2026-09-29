@@ -162,15 +162,33 @@ async function probe(ff: string, file: string) {
   };
 }
 
+/** Relative brightness of a hex colour, 0 (black) … 1 (white). */
+function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+
+/** A soft drop shadow in the shape of a PNG (padded by 2×blur on each side). */
+async function softShadow(png: Buffer, blur: number, alpha: number): Promise<Buffer> {
+  const sharp = (await import('sharp')).default;
+  const m = await sharp(png).metadata();
+  const solid = await sharp({ create: { width: m.width || 1, height: m.height || 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha } } })
+    .composite([{ input: png, blend: 'dest-in' }]).png().toBuffer();
+  return sharp(solid).extend({ top: blur * 2, bottom: blur * 2, left: blur * 2, right: blur * 2, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .blur(blur).png().toBuffer();
+}
+
 /** The kit's logo (or name, as text) resized to fit a box. */
-async function markPng(kit: VideoKit, boxW: number, boxH: number): Promise<Buffer> {
+async function markPng(kit: VideoKit, boxW: number, boxH: number, maxTextW = boxW): Promise<Buffer> {
   const sharp = (await import('sharp')).default;
   if (kit.logo) {
     return sharp(kit.logo, { density: 400 }).resize({ width: boxW, height: boxH, fit: 'inside', withoutEnlargement: false }).png().toBuffer();
   }
-  const px = Math.max(14, Math.round(boxH * 0.62));
+  // No logo: the business name in the bundled font, sized from the box HEIGHT
+  // and allowed up to `maxTextW` wide so a long name stays readable.
+  const px = Math.max(16, Math.round(boxH * 0.55));
   const t = await textPng(kit.name, 'Bold', px);
-  return sharp(t).resize({ width: boxW, height: boxH, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
+  return sharp(t).resize({ width: maxTextW, height: boxH, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
 }
 
 /**
@@ -195,43 +213,56 @@ export async function brandVideoWithKit(input: Buffer, kit: VideoKit | null, opt
     let mainV = '0:v';
     let nextInput = 1;
 
-    // ── A) corner badge on a rounded dark pill ──
+    // ── A) corner logo — Reels/TikTok-ad style: no box. A soft dark gradient
+    //    fades down from the top edge and the logo carries a soft shadow, so
+    //    a white logo reads on any background without looking like a label.
     if (opts.logo) {
-      // Wide, short logos (e.g. a crest + two lines of text, ~7:1) get a wider
-      // badge so their text stays readable; normal logos use 34% of the width.
+      // Wide, short logos (e.g. a crest + two lines of text, ~7:1) get more
+      // width so their small text stays readable.
       let wide = false;
       if (kit.logo) {
         const lm = await sharp(kit.logo, { density: 72 }).metadata().catch(() => ({} as { width?: number; height?: number }));
         wide = !!lm.width && !!lm.height && lm.width / lm.height > 4;
       }
-      const markW = Math.round(v.width * (wide ? 0.52 : 0.34));
-      const mark = await markPng(kit, markW, Math.round(markW / (wide ? 5 : 2.6)));
-      const mm = await sharp(mark).metadata();
-      const padX = Math.round(markW * 0.07); const padY = Math.round(markW * 0.05);
-      const pw = (mm.width || markW) + padX * 2; const ph = (mm.height || 60) + padY * 2;
-      const pill = Buffer.from(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}"><rect width="${pw}" height="${ph}" rx="${Math.round(ph / 2.4)}" fill="#000" fill-opacity="0.55"/></svg>`,
+      const markW = Math.round(v.width * (wide ? 0.5 : 0.3));
+      const mark = await markPng(kit, markW, Math.round(markW / (wide ? 5 : 2.4)), Math.round(v.width * 0.6));
+      const shadowBlur = Math.max(3, Math.round(v.width * 0.009));
+      const markShadow = await softShadow(mark, shadowBlur, 0.6);
+      const scrimH = Math.round(v.height * 0.2);
+      const x = Math.round(v.width * 0.045); const y = Math.round(v.height * 0.05);
+      const layer = Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${v.width}" height="${scrimH}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="#000" stop-opacity="0.5"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs>` +
+        `<rect width="100%" height="100%" fill="url(#g)"/></svg>`,
       );
       const badge = path.join(dir, 'badge.png');
-      await sharp(pill).composite([{ input: mark, left: padX, top: padY }]).png().toFile(badge);
+      await sharp(layer).composite([
+        { input: markShadow, left: Math.max(0, x - shadowBlur * 2), top: Math.max(0, y - shadowBlur * 2 + 2) },
+        { input: mark, left: x, top: y },
+      ]).png().toFile(badge);
       args.push('-i', badge);
-      const x = Math.round(v.width * 0.045); const y = Math.round(v.height * 0.06);
-      filters.push(`[0:v][${nextInput}:v]overlay=${x}:${y}[withlogo]`);
+      filters.push(`[0:v][${nextInput}:v]overlay=0:0[withlogo]`);
       mainV = 'withlogo';
       nextInput++;
     }
 
-    // ── Hook caption: big clear line near the top for the first seconds ──
+    // ── Hook caption — "brand colour" card: the business's accent colour,
+    //    dark or white text chosen for contrast, soft shadow, fades in/out.
     if (hookText) {
-      const txt = await textPng(hookText, 'Bold', Math.round(v.width * 0.058), '#FFFFFF', Math.round(v.width * 0.8));
+      const onAccent = luminance(kit.accent) > 0.55 ? kit.panel : '#FFFFFF';
+      const txt = await textPng(hookText, 'Bold', Math.round(v.width * 0.056), onAccent, Math.round(v.width * 0.78));
       const tm = await sharp(txt).metadata();
-      const padX = Math.round(v.width * 0.04); const padY = Math.round(v.width * 0.025);
+      const padX = Math.round(v.width * 0.042); const padY = Math.round(v.width * 0.026);
       const bw = (tm.width || 0) + padX * 2; const bh = (tm.height || 0) + padY * 2;
-      const box = Buffer.from(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}"><rect width="${bw}" height="${bh}" rx="${Math.round(v.width * 0.03)}" fill="#000" fill-opacity="0.62"/></svg>`,
-      );
+      const card = await sharp(Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${bw}" height="${bh}"><rect width="${bw}" height="${bh}" rx="${Math.round(v.width * 0.032)}" fill="${kit.accent}"/></svg>`,
+      )).composite([{ input: txt, left: padX, top: padY }]).png().toBuffer();
+      const blur = Math.max(4, Math.round(v.width * 0.014));
+      const cardShadow = await softShadow(card, blur, 0.35);
+      const cs = await sharp(cardShadow).metadata();
       const hookPng = path.join(dir, 'hook.png');
-      await sharp(box).composite([{ input: txt, left: padX, top: padY }]).png().toFile(hookPng);
+      await sharp({ create: { width: cs.width || bw, height: (cs.height || bh) + 6, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+        .composite([{ input: cardShadow, left: 0, top: 6 }, { input: card, left: blur * 2, top: blur * 2 }]).png().toFile(hookPng);
       const hookIn = nextInput++;
       args.push('-loop', '1', '-framerate', String(v.fps), '-t', String(HOOK_SECONDS), '-i', hookPng);
       filters.push(`[${hookIn}:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1,fade=t=out:st=${HOOK_SECONDS - 0.4}:d=0.4:alpha=1[hk]`);
@@ -245,15 +276,35 @@ export async function brandVideoWithKit(input: Buffer, kit: VideoKit | null, opt
       if (v.hasAudio) args.push('-map', '0:a?', '-c:a', 'copy');
     } else {
       // ── B) end card: logo/name (+ tagline) on the panel with an accent glow ──
-      const mark = await markPng(kit, Math.round(v.width * 0.7), Math.round(v.height * (kit.tagline ? 0.22 : 0.3)));
+      const mark = await markPng(kit, Math.round(v.width * 0.7), Math.round(v.height * (kit.tagline ? 0.1 : 0.14)), Math.round(v.width * 0.86));
       const mm = await sharp(mark).metadata();
       const layers: Array<{ input: Buffer; left: number; top: number }> = [];
+      // Tagline → an ad-style call-to-action: "Book your consultation · site.org"
+      // becomes a button in the accent colour + the rest small underneath.
       let tagH = 0; let tag: Buffer | null = null;
       if (kit.tagline) {
-        tag = await textPng(kit.tagline, 'Medium', Math.round(v.width * 0.045), '#FFFFFF', Math.round(v.width * 0.8));
-        tagH = (await sharp(tag).metadata()).height || 0;
+        const [cta, ...restParts] = kit.tagline.split(/\s*[·|•]\s*/);
+        const rest = restParts.join(' · ');
+        const onAccent = luminance(kit.accent) > 0.55 ? kit.panel : '#FFFFFF';
+        const ctaTxt = await textPng(cta, 'Bold', Math.round(v.width * 0.046), onAccent, Math.round(v.width * 0.72));
+        const ct = await sharp(ctaTxt).metadata();
+        const bx = Math.round(v.width * 0.06); const by = Math.round(v.width * 0.028);
+        const btnW = (ct.width || 0) + bx * 2; const btnH = (ct.height || 0) + by * 2;
+        const button = await sharp(Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${btnW}" height="${btnH}"><rect width="${btnW}" height="${btnH}" rx="${Math.round(btnH / 2)}" fill="${kit.accent}"/></svg>`,
+        )).composite([{ input: ctaTxt, left: bx, top: by }]).png().toBuffer();
+        const small = rest ? await textPng(rest, 'Medium', Math.round(v.width * 0.036), '#FFFFFF', Math.round(v.width * 0.8)) : null;
+        const sm = small ? await sharp(small).metadata() : null;
+        const gapIn = small ? Math.round(v.height * 0.02) : 0;
+        const w = Math.max(btnW, sm?.width || 0); const h = btnH + gapIn + (sm?.height || 0);
+        tag = await sharp({ create: { width: w, height: h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+          .composite([
+            { input: button, left: Math.round((w - btnW) / 2), top: 0 },
+            ...(small && sm ? [{ input: small, left: Math.round((w - (sm.width || 0)) / 2), top: btnH + gapIn }] : []),
+          ]).png().toBuffer();
+        tagH = h;
       }
-      const gap = tag ? Math.round(v.height * 0.035) : 0;
+      const gap = tag ? Math.round(v.height * 0.05) : 0;
       const blockH = (mm.height || 0) + gap + tagH;
       const top = Math.round((v.height - blockH) / 2);
       layers.push({ input: mark, left: Math.round((v.width - (mm.width || 0)) / 2), top });

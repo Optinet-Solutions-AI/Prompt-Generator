@@ -99,7 +99,7 @@ export function ItemShareDialog({ open, onOpenChange, kind, fileId, previewUrl, 
               {people.length === 0 ? 'No one else has signed in to the app yet.' : 'No one matches that search.'}
             </p>
           )}
-          {!loading && filtered.map(p => (
+          {!loading && !loadError && filtered.map(p => (
             <div key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
               <Avatar p={p} />
               <span className="min-w-0 flex-1">

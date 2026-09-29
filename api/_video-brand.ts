@@ -183,8 +183,15 @@ export async function brandVideoWithKit(input: Buffer, kit: VideoKit | null, opt
 
     // ── A) corner badge on a rounded dark pill ──
     if (opts.logo) {
-      const markW = Math.round(v.width * 0.34);
-      const mark = await markPng(kit, markW, Math.round(markW / 2.6));
+      // Wide, short logos (e.g. a crest + two lines of text, ~7:1) get a wider
+      // badge so their text stays readable; normal logos use 34% of the width.
+      let wide = false;
+      if (kit.logo) {
+        const lm = await sharp(kit.logo, { density: 72 }).metadata().catch(() => ({} as { width?: number; height?: number }));
+        wide = !!lm.width && !!lm.height && lm.width / lm.height > 4;
+      }
+      const markW = Math.round(v.width * (wide ? 0.52 : 0.34));
+      const mark = await markPng(kit, markW, Math.round(markW / (wide ? 5 : 2.6)));
       const mm = await sharp(mark).metadata();
       const padX = Math.round(markW * 0.07); const padY = Math.round(markW * 0.05);
       const pw = (mm.width || markW) + padX * 2; const ph = (mm.height || 60) + padY * 2;

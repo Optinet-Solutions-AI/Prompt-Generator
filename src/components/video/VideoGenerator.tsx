@@ -16,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/FormField';
 import { BRANDS } from '@/types/prompt';
 import { UGC_STYLES, VIDEO_ASPECT_RATIOS, VIDEO_DURATIONS, VIDEO_MODELS } from '@/lib/ugc-video';
+import { findIndustry } from '@/lib/ugc-industries';
+import { CustomBusinessPanel } from './CustomBusinessPanel';
 import { videoApi } from '@/lib/video-api';
 import type { useVideoGenerator } from '@/hooks/useVideoGenerator';
 
@@ -100,7 +102,7 @@ function ConnectionCard({ state }: { state: VideoState }) {
 }
 
 export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; onOpenLibrary: () => void }) {
-  const { form, setField, applyStyle, prompt, promptEdited, editPrompt, rebuildPrompt, connection, cost,
+  const { form, setField, applyStyle, setMode, applyIndustryStyle, prompt, promptEdited, editPrompt, rebuildPrompt, connection, cost,
     appState, statusText, elapsed, error, result, generate, cancel, backToEdit, clear, markLiked } = state;
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -146,7 +148,7 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Video className="w-5 h-5 text-primary" />
-          <h2 className="font-semibold text-foreground">Your UGC video · {form.brand}</h2>
+          <h2 className="font-semibold text-foreground">Your UGC video · {form.mode === 'custom' ? form.custom.name : form.brand}</h2>
         </div>
         <div className="flex justify-center bg-muted/40 rounded-xl p-3">
           <video key={result.previewUrl} src={result.previewUrl} controls autoPlay loop playsInline className="max-h-[520px] rounded-lg" />
@@ -189,20 +191,53 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
         <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">{error}</div>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <FormField
-          type="select" label="Brand" required
-          options={[...BRANDS]} value={form.brand}
-          onChange={v => setField('brand', v)} placeholder="Select a brand"
-        />
-        <FormField
-          type="select" label="UGC Style"
-          options={UGC_STYLES.map(s => `${s.emoji} ${s.label}`)}
-          value={(() => { const s = UGC_STYLES.find(x => x.id === form.styleId); return s ? `${s.emoji} ${s.label}` : ''; })()}
-          onChange={v => { const s = UGC_STYLES.find(x => `${x.emoji} ${x.label}` === v); if (s) applyStyle(s.id); }}
-          placeholder="Pick a UGC style"
-        />
+      {/* Mode: one of our brands, or any business (e.g. a dental clinic) */}
+      <div className="space-y-1.5">
+        <Label>Who is this video for?</Label>
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-muted/60 border border-border">
+          {([['brand', 'Our brands', 'Roosterbet, SpinJo, …'], ['custom', 'Custom business', 'Any company or niche']] as const).map(([m, label, hint]) => (
+            <button key={m} type="button" onClick={() => form.mode !== m && setMode(m)}
+              className={`rounded-lg px-3 py-2 text-left transition-all ${form.mode === m ? 'bg-card shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground'}`}>
+              <span className="block text-sm font-medium">{label}</span>
+              <span className="block text-[11px] text-muted-foreground">{hint}</span>
+            </button>
+          ))}
+        </div>
       </div>
+
+      {form.mode === 'brand' ? (
+        <div className="grid sm:grid-cols-2 gap-4">
+          <FormField
+            type="select" label="Brand" required
+            options={[...BRANDS]} value={form.brand}
+            onChange={v => setField('brand', v)} placeholder="Select a brand"
+          />
+          <FormField
+            type="select" label="UGC Style"
+            options={UGC_STYLES.map(s => `${s.emoji} ${s.label}`)}
+            value={(() => { const s = UGC_STYLES.find(x => x.id === form.styleId); return s ? `${s.emoji} ${s.label}` : ''; })()}
+            onChange={v => { const s = UGC_STYLES.find(x => `${x.emoji} ${x.label}` === v); if (s) applyStyle(s.id); }}
+            placeholder="Pick a UGC style"
+          />
+        </div>
+      ) : (
+        <>
+          <CustomBusinessPanel state={state} />
+          {(() => {
+            const styles = findIndustry(form.custom.industry)?.styles || [];
+            const label = (x: { emoji: string; label: string }) => `${x.emoji} ${x.label}`;
+            return (
+              <FormField
+                type="select" label={`UGC Style — what works for ${findIndustry(form.custom.industry)?.label.toLowerCase() || 'this business'}`}
+                options={styles.map(label)}
+                value={(() => { const st = styles.find(x => x.id === form.styleId); return st ? label(st) : ''; })()}
+                onChange={v => { const st = styles.find(x => label(x) === v); if (st) applyIndustryStyle(st.id); }}
+                placeholder="Pick a format (fills everything below)"
+              />
+            );
+          })()}
+        </>
+      )}
 
       {/* Structured prompt fields — pre-filled by the style, all editable */}
       <div className="grid sm:grid-cols-2 gap-4">
@@ -289,7 +324,11 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
             </span>
           </label>
         </div>
-        <p className="text-xs text-muted-foreground">The creator's phone screen also shows the brand's mascot and colours.</p>
+        <p className="text-xs text-muted-foreground">
+          {form.mode === 'brand'
+            ? "The creator's phone screen also shows the brand's mascot and colours."
+            : `Uses ${form.custom.logo ? 'your logo' : `"${form.custom.name || 'the business name'}" in a clean font`} and your colours${form.custom.tagline ? `, with "${form.custom.tagline}" on the end card` : ''}.`}
+        </p>
       </div>
 
       {/* Final prompt — auto-built, editable */}
@@ -307,7 +346,7 @@ export function VideoGenerator({ state, onOpenLibrary }: { state: VideoState; on
       </div>
 
       <div className="flex flex-wrap items-center gap-2 pt-2">
-        <Button onClick={generate} disabled={!form.brand || !connection.connected} className="gradient-primary">
+        <Button onClick={generate} disabled={!(form.mode === 'custom' ? form.custom.name.trim() : form.brand) || !connection.connected} className="gradient-primary">
           <Sparkles className="w-4 h-4 mr-1" />Generate Video
         </Button>
         {connection.connected && (

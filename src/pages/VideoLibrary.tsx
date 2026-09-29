@@ -46,6 +46,8 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const countFor = (b: string) => videos.filter(v => (b === 'All' || v.brand === b) && (model === 'All' || v.model === model)).length;
   const countModel = (m: string) => videos.filter(v => (m === 'All' || v.model === m) && (brand === 'All' || v.brand === brand)).length;
   const hasUnknownModel = videos.some(v => !v.model);
+  // Our brands first, then any custom businesses that have videos (e.g. "Dr Demajo").
+  const brandChips = ['All', ...BRANDS, ...[...new Set(videos.map(v => v.brand).filter(b => b && !(BRANDS as readonly string[]).includes(b)))].sort()];
 
   const toggleLike = async (v: LibraryVideo) => {
     // Optimistic: flip the heart now, undo if the server says no.
@@ -97,7 +99,7 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
       {/* Brand filter */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-muted-foreground mr-1">Brand:</span>
-        {['All', ...BRANDS].map(b => (
+        {brandChips.map(b => (
           <button key={b} type="button" onClick={() => setBrand(b)}
             className={[
               'px-3 py-1.5 rounded-full text-xs font-medium border transition-all',

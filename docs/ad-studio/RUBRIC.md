@@ -25,6 +25,8 @@ If your score for a new piece is above 7, you must say exactly how it avoids eve
 7. AI tells in hero shots: crowds of faces, typing hands in close-up, readable screens, morphing props, warped hands.
 
 ## Scored criteria (1–10 each)
+- **Entertaining:** is there a moment (surprise, escalation, visual payoff) a viewer would retell? Below 6 = reject, however clean the ad is.
+- **Promotional:** is a concrete offer or proof shown in the scene (what you get, a real number, the result on screen, the brand said 3+ times, a call to action before the end card)? Below 6 = reject.
 - **Premium feel:** would it sit next to an Apple, Stripe or Notion brand film?
 - **Clarity:** "your whole digital team on demand: SEO, AI automation, design, support", understood muted.
 - **Ownable idea:** one visual device that is Optinet's and repeats in every cut-down.

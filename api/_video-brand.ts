@@ -78,7 +78,7 @@ function darken(hex: string, amount: number): string {
 
 const escapeMarkup = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-async function ffmpegPath(): Promise<string> {
+export async function ffmpegPath(): Promise<string> {
   const mod = await import('ffmpeg-static');
   const p = (mod.default ?? mod) as unknown as string;
   if (!p) throw new Error('ffmpeg binary not available on this platform');
@@ -96,7 +96,7 @@ async function fontFile(weight: 'Bold' | 'Medium'): Promise<string> {
 }
 
 /** Render a line of text to a transparent PNG with the bundled font. */
-async function textPng(text: string, weight: 'Bold' | 'Medium', px: number, color = '#FFFFFF', maxWidth?: number): Promise<Buffer> {
+export async function textPng(text: string, weight: 'Bold' | 'Medium', px: number, color = '#FFFFFF', maxWidth?: number): Promise<Buffer> {
   const sharp = (await import('sharp')).default;
   return sharp({
     text: {
@@ -146,7 +146,7 @@ export function customKit(c: CustomKitInput): VideoKit | null {
 }
 
 /** Read width, height, fps and whether there's an audio track. */
-async function probe(ff: string, file: string) {
+export async function probe(ff: string, file: string) {
   // `ffmpeg -i` with no output exits non-zero but prints the stream info to stderr.
   const out = await run(ff, ['-hide_banner', '-i', file]).catch((e: { stderr?: string }) => ({ stderr: e.stderr || '' }));
   const info = String(out.stderr);
@@ -163,13 +163,13 @@ async function probe(ff: string, file: string) {
 }
 
 /** Relative brightness of a hex colour, 0 (black) … 1 (white). */
-function luminance(hex: string): number {
+export function luminance(hex: string): number {
   const n = parseInt(hex.slice(1), 16);
   return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
 }
 
 /** A soft drop shadow in the shape of a PNG (padded by 2×blur on each side). */
-async function softShadow(png: Buffer, blur: number, alpha: number): Promise<Buffer> {
+export async function softShadow(png: Buffer, blur: number, alpha: number): Promise<Buffer> {
   const sharp = (await import('sharp')).default;
   const m = await sharp(png).metadata();
   const solid = await sharp({ create: { width: m.width || 1, height: m.height || 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha } } })
@@ -179,7 +179,7 @@ async function softShadow(png: Buffer, blur: number, alpha: number): Promise<Buf
 }
 
 /** The kit's logo (or name, as text) resized to fit a box. */
-async function markPng(kit: VideoKit, boxW: number, boxH: number, maxTextW = boxW): Promise<Buffer> {
+export async function markPng(kit: VideoKit, boxW: number, boxH: number, maxTextW = boxW): Promise<Buffer> {
   const sharp = (await import('sharp')).default;
   if (kit.logo) {
     return sharp(kit.logo, { density: 400 }).resize({ width: boxW, height: boxH, fit: 'inside', withoutEnlargement: false }).png().toBuffer();

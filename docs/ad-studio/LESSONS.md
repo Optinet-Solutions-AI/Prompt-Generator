@@ -6,6 +6,24 @@ The client is the Optinet founder, who is also the product owner. Their taste is
 
 ---
 
+## 2026-10-08: "Four Hires" (café, Leo & Nadia) rejected, "it's not entertaining or promotional"
+**What we made:** 24.4 s. Two owners at a café table, made in 3 Veo steps (each continuing from the last frame), 6 lines: "I need to hire four people." / "For what?" / "SEO, design, AI automation, support." / "Or get Optinet. Your whole digital team, on demand." / "Do they need desks?" / "No desks. Just more customers." One glass caption (four job chips fold into a green Optinet pill), then the Four Seats end card. Technically clean: right words and speakers, consistent faces and voices, seamless joins, -14 LUFS. The client approved this script on paper before production.
+
+**Client verdict:** "It's not entertaining or promotional."
+
+**Why it failed (our diagnosis):**
+1. **Nothing happens.** Two people sit and talk at a table for 19 s with a locked-off camera. There is no situation, no escalation, no surprise and no visual payoff, so there is nothing to watch or retell. The one joke ("Do they need desks?") is mild wordplay, said softly.
+2. **No proof and no offer.** "More customers" is a vague claim. There is no number, no demo of a result, no price or offer in the scene, and Optinet is named once before the end card. Trivago shows the app and a concrete saving ("same hotel, $100 less") and says the brand 5 times.
+3. **We over-corrected into safe.** After "The Tooth" (too silly) and "Padel Bench" (too messy) we stripped everything back to two calm people, a clear line and one caption. That is clear but bland. The target is in between: premium, but with energy and a payoff.
+4. **Paper approval doesn't predict entertainment.** A script that reads clear can play flat. Clarity can be judged on paper; entertainment can't.
+
+**Rules learned:**
+1. **Every ad needs a "moment":** a surprise, an escalation or a visual payoff the viewer would retell. Talking heads at a table are not entertainment, however clean.
+2. **Promotional means a concrete offer and proof, shown in the scene:** what you get, a real number (price, saving or a real result the client gives us; never invented), the product or result on screen, the brand said 3+ times, and the call to action before the end card, not only on it.
+3. **Energy is part of the brief:** camera moves and cuts, a scene that changes, and ad music under the scene where it helps. A 19 s static two-shot is a no.
+4. **Test the moment before the full spend:** after the script is approved, make the single funniest or most surprising beat first (one clip or an animatic) and show it to the client. Only then produce the rest.
+5. **Score "entertaining" and "promotional" separately** (RUBRIC). A clean, clear ad that scores low on either is a reject.
+
 ## 2026-10-08: "Padel Bench" (acted Trivago-style version) rejected, "the purpose was not clear, the intention was not there, too messy"
 **What we made:** 30 s, a doubles foursome on a bench after padel (Veo 3.1 speaking actors), 11 lines across 4 characters in 25 s, glass job-tags stacking on three heads, a services card, "Chatbot" tag drops, a "New enquiry" chip, then the Four Seats end card. Technically clean: every word right, consistent faces, no logos, -14 LUFS.
 

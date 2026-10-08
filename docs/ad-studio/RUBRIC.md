@@ -10,6 +10,7 @@ The **client proxy** judge scores every concept and every cut against this rubri
 | "Innovation Hub" reference (presenter + glass UI cards) | Liked the graphics, but it is a generic talking head | 5/10 overall, 8/10 for the graphics |
 | "Four Seats" 30s master, music only (2026-10-08) | "Good and professional, not quite Trivago; lacking a voiceover" | 6/10 overall, 8/10 for the picture |
 | "Padel Bench" acted foursome (2026-10-08) | Rejected: "purpose not clear, intention not there, too messy" | 3/10, even though every technical gate passed |
+| "Four Hires" café two-hander (2026-10-08) | Rejected: "not entertaining or promotional" | 3/10: clear, but nothing happens and nothing is offered or proven |
 
 If your score for a new piece is above 7, you must say exactly how it avoids every failure in the table and in LESSONS.md.
 

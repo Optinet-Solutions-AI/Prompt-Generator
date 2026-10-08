@@ -37,7 +37,7 @@ export function useOnlineUsers(me: AppUser | null): OnlineUser[] {
     const channel = sb.channel('online-users', { config: { presence: { key: me.id } } });
 
     const payload = (activity: string): OnlineUser => ({
-      id: me.id, name: me.name || me.email.split('@')[0], email: me.email, avatar: me.avatar_url, activity,
+      id: me.id, name: me.name || me.email?.split('@')[0] || me.username || 'Someone', email: me.email || '', avatar: me.avatar_url, activity,
     });
 
     channel.on('presence', { event: 'sync' }, () => {

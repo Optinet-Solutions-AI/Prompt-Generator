@@ -27,8 +27,10 @@ export class AuthError extends Error {
 
 export interface Profile {
   id: string;
-  google_sub: string;
-  email: string;
+  /** null for username + password accounts that never used Google */
+  google_sub: string | null;
+  /** optional for username + password accounts */
+  email: string | null;
   name: string | null;
   avatar_url: string | null;
   status: 'pending' | 'approved' | 'blocked';
@@ -40,6 +42,13 @@ export interface Profile {
   drive_images_folder_id: string | null;
   drive_videos_folder_id: string | null;
   last_seen_at: string | null;
+  // Username + password sign-in (supabase/migrations/2026-10-08-password-login.sql).
+  // Optional because rows read before that migration don't have them.
+  username?: string | null;
+  password_hash?: string | null;
+  must_change_password?: boolean;
+  failed_logins?: number;
+  locked_until?: string | null;
 }
 
 function secret(): string {
@@ -69,6 +78,28 @@ function readSessionValue(value: string): string | null {
   try {
     const { uid, exp } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     return typeof uid === 'string' && Date.now() < exp ? uid : null;
+  } catch { return null; }
+}
+
+/**
+ * A short-lived signed token for ONE purpose (e.g. 'pw-change'). The purpose is
+ * part of what's signed, so a token can never be passed off as a sign-in
+ * session (or as a token for a different purpose).
+ */
+export function makeToken(purpose: string, data: Record<string, unknown>, minutes: number): string {
+  const payload = Buffer.from(JSON.stringify({ ...data, exp: Date.now() + minutes * 60_000 })).toString('base64url');
+  return `${payload}.${sign(`${purpose}:${payload}`)}`;
+}
+
+/** The token's data if it's genuine, for this purpose, and not expired — otherwise null. */
+export function readToken(purpose: string, value: string): Record<string, unknown> | null {
+  const [payload, sig] = String(value || '').split('.');
+  if (!payload || !sig) return null;
+  const expected = sign(`${purpose}:${payload}`);
+  if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return data && typeof data === 'object' && Date.now() < data.exp ? data : null;
   } catch { return null; }
 }
 
@@ -199,5 +230,10 @@ export async function itemOwner(viewer: Profile, ownerId: string | undefined | n
 
 /** Public-safe view of a profile (never includes tokens). */
 export function publicProfile(p: Profile) {
-  return { id: p.id, email: p.email, name: p.name, avatar_url: p.avatar_url, status: p.status, is_admin: p.is_admin };
+  return {
+    id: p.id, email: p.email, name: p.name, avatar_url: p.avatar_url, status: p.status, is_admin: p.is_admin,
+    username: p.username ?? null,
+    has_google: !!p.google_sub,       // signs in with Google (Drive reconnects through that)
+    has_password: !!p.password_hash,  // has a username + password (can change it)
+  };
 }

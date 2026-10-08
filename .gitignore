@@ -32,3 +32,7 @@ public/brand-references/*/scraped/*
 !public/brand-references/*/scraped/logo-1.svg
 !public/brand-references/*/scraped/logo-long.svg
 public/brand-references/_scrape-report*.json
+
+# Local-only scratch: ad-production helper scripts and loose videos (never commit)
+/.*.tmp.mjs
+/*.mp4

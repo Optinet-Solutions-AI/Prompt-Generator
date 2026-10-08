@@ -3,8 +3,10 @@
  *   [who's online right now: avatars]  [my avatar ▾ → Drive status · Share my library · Sign out]
  */
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Check, ExternalLink, HardDrive, Loader2, LogOut, RefreshCw, Search, Share2, UserPlus, Users } from 'lucide-react';
+import { BarChart3, Check, ExternalLink, HardDrive, KeyRound, Loader2, LogOut, RefreshCw, Search, Share2, UserCog, UserPlus, Users } from 'lucide-react';
 import { MyUsageDialog, TeamUsageDialog } from './UsageDialogs';
+import { AccountsDialog } from './AccountsDialog';
+import { ChangePasswordDialog } from './PasswordSignIn';
 import { toast } from 'sonner';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -14,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { useOnlineUsers, type OnlineUser } from '@/hooks/useOnlineUsers';
-import { authApi, type Person } from '@/lib/auth-api';
+import { authApi, accountLabel, type Person } from '@/lib/auth-api';
 
 function Avatar({ src, name, size = 32, ring = false }: { src: string | null; name: string; size?: number; ring?: boolean }) {
   const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -119,7 +121,7 @@ function ShareDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: 
           )}
           {!loading && filtered.map(p => (
             <label key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
-              <Avatar src={p.avatar_url} name={p.name || p.email} size={32} />
+              <Avatar src={p.avatar_url} name={p.name || p.email || '?'} size={32} />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium text-foreground truncate">{p.name || p.email}</span>
                 <span className="block text-xs text-muted-foreground truncate">{p.email}</span>
@@ -141,8 +143,13 @@ export function UserBar() {
   const [shareOpen, setShareOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
   const [teamUsageOpen, setTeamUsageOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   if (!user) return null;
-  const name = user.name || user.email;
+  const name = user.name || user.email || user.username || '?';
+  // Google accounts reconnect Drive by signing in with Google again; username +
+  // password accounts connect a Google Drive to the account they're signed in to.
+  const connectDrive = user.has_google === false ? authApi.connectDrive : signIn;
 
   return (
     <div className="relative z-50 flex items-center justify-end gap-2 px-3 sm:px-5 pt-3">
@@ -160,7 +167,7 @@ export function UserBar() {
             <Avatar src={user.avatar_url} name={name} size={36} />
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{name}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{accountLabel(user)}</p>
             </div>
           </div>
           <DropdownMenuSeparator />
@@ -181,8 +188,8 @@ export function UserBar() {
               </DropdownMenuItem>
             </>
           ) : (
-            <DropdownMenuItem onClick={signIn} className="text-amber-700">
-              <RefreshCw className="w-4 h-4 mr-2" />Reconnect Google Drive
+            <DropdownMenuItem onClick={connectDrive} className="text-amber-700">
+              <RefreshCw className="w-4 h-4 mr-2" />{user.has_google === false ? 'Connect Google Drive' : 'Reconnect Google Drive'}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onClick={() => setShareOpen(true)}>
@@ -196,6 +203,16 @@ export function UserBar() {
               <Users className="w-4 h-4 mr-2" />Team usage <span className="ml-auto text-[10px] text-muted-foreground">admin</span>
             </DropdownMenuItem>
           )}
+          {user.is_admin && (
+            <DropdownMenuItem onClick={() => setAccountsOpen(true)}>
+              <UserCog className="w-4 h-4 mr-2" />Manage accounts <span className="ml-auto text-[10px] text-muted-foreground">admin</span>
+            </DropdownMenuItem>
+          )}
+          {user.has_password && (
+            <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
+              <KeyRound className="w-4 h-4 mr-2" />Change password
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={signOut}>
             <LogOut className="w-4 h-4 mr-2" />Sign out
@@ -206,6 +223,8 @@ export function UserBar() {
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
       <MyUsageDialog open={usageOpen} onOpenChange={setUsageOpen} />
       {user.is_admin && <TeamUsageDialog open={teamUsageOpen} onOpenChange={setTeamUsageOpen} />}
+      {user.is_admin && <AccountsDialog open={accountsOpen} onOpenChange={setAccountsOpen} />}
+      {user.has_password && <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />}
     </div>
   );
 }

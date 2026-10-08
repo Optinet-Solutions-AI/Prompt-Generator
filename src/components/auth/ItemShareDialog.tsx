@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { authApi, type Person } from '@/lib/auth-api';
 
 function Avatar({ p }: { p: Person }) {
-  const name = p.name || p.email;
+  const name = p.name || p.email || '?';
   return p.avatar_url
     ? <img src={p.avatar_url} alt="" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full shrink-0" />
     : <span className="w-8 h-8 rounded-full shrink-0 bg-primary/15 text-primary text-xs font-semibold inline-flex items-center justify-center">{name.slice(0, 2).toUpperCase()}</span>;

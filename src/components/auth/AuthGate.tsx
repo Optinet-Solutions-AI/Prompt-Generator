@@ -1,21 +1,25 @@
 /**
- * AuthGate — nothing in the app shows until the person has signed in with
- * Google and been approved.
+ * AuthGate — nothing in the app shows until the person has signed in (with
+ * Google, or with a username + password an admin made for them) and been approved.
  *
- *   not signed in → "Sign in with Google" screen
+ *   not signed in → sign-in screen: "Sign in with Google" or "Sign in with a username"
  *   pending       → "waiting for approval" screen
  *   blocked       → "access turned off" screen
- *   approved      → the app, with the user bar (who's online + menu) top-right
+ *   approved      → the app, with the user bar (who's online + menu) top-right,
+ *                   and a "Connect Google Drive" bar for username accounts without Drive
  *
  * Company accounts are approved automatically; others are approved by an admin
- * in Supabase → profiles → status (see api/auth.ts).
+ * in Supabase → profiles → status (see api/auth.ts). Username accounts are
+ * created already approved (avatar menu → Manage accounts).
  */
-import { useEffect, type ReactNode } from 'react';
-import { Clock, Loader2, ShieldOff } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Clock, HardDrive, Loader2, ShieldOff, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { authApi, accountLabel } from '@/lib/auth-api';
 import { UserBar } from './UserBar';
+import { UsernameSignIn } from './PasswordSignIn';
 
 function GoogleG() {
   return (
@@ -36,26 +40,57 @@ function Screen({ children }: { children: ReactNode }) {
   );
 }
 
-function SignInScreen({ onSignIn, error }: { onSignIn: () => void; error: string }) {
+function SignInScreen({ onSignIn, onSignedIn, error }: { onSignIn: () => void; onSignedIn: () => void; error: string }) {
+  const [withUsername, setWithUsername] = useState(false);
   return (
     <Screen>
       <img src="/logo.svg" alt="AI Prompt Generator" className="mx-auto w-16 h-16 mb-5 drop-shadow-[0_10px_24px_rgba(99,102,241,0.35)]" />
       <h1 className="text-2xl font-bold text-foreground mb-2">AI Prompt Generator</h1>
-      <p className="text-muted-foreground mb-6">Sign in with your Google account to start creating.</p>
-      <Button onClick={onSignIn} size="lg" variant="outline" className="w-full gap-3 h-12 text-base">
-        <GoogleG />Sign in with Google
-      </Button>
-      <p className="text-xs text-muted-foreground mt-5 leading-relaxed">
-        Your images and videos are saved to <b>your own Google Drive</b>, in a folder called
-        “Prompt Generator”. The app can only see the files it creates — nothing else in your Drive.
-      </p>
+      {withUsername ? (
+        <UsernameSignIn onSignedIn={onSignedIn} googleIcon={<GoogleG />} onUseGoogle={() => setWithUsername(false)} />
+      ) : (
+        <>
+          <p className="text-muted-foreground mb-6">Sign in to start creating.</p>
+          <Button onClick={onSignIn} size="lg" variant="outline" className="w-full gap-3 h-12 text-base">
+            <GoogleG />Sign in with Google
+          </Button>
+          <div className="flex items-center gap-3 my-4 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />or<span className="h-px flex-1 bg-border" />
+          </div>
+          <Button onClick={() => setWithUsername(true)} size="lg" variant="ghost" className="w-full gap-3 h-11 text-base">
+            <UserRound className="w-5 h-5" />Sign in with a username
+          </Button>
+          <p className="text-xs text-muted-foreground mt-5 leading-relaxed">
+            Your images and videos are saved to <b>your own Google Drive</b>, in a folder called
+            “Prompt Generator”. The app can only see the files it creates — nothing else in your Drive.
+          </p>
+        </>
+      )}
       {error && <p className="text-xs text-destructive mt-4">{error}</p>}
     </Screen>
   );
 }
 
+/** Username accounts don't come with Google Drive; until it's connected nothing can be saved. */
+function ConnectDriveBar() {
+  return (
+    <div className="px-3 sm:px-5 pt-2">
+      <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5">
+        <HardDrive className="w-4 h-4 text-amber-600 shrink-0" />
+        <p className="text-sm text-foreground flex-1 min-w-[12rem]">
+          Connect your Google Drive so your images and videos can be saved.
+          <span className="text-muted-foreground"> The app only sees the files it creates.</span>
+        </p>
+        <Button size="sm" variant="outline" className="gap-2 bg-background" onClick={authApi.connectDrive}>
+          <GoogleG />Connect Google Drive
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { loading, user, error, signIn, signOut, refresh } = useAuth();
+  const { loading, user, driveConnected, error, signIn, signOut, refresh } = useAuth();
 
   // Coming back from Google (/?auth=…): show the outcome once and tidy the URL.
   useEffect(() => {
@@ -63,6 +98,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     if (!auth) return;
     if (auth === 'no-drive') {
       toast.warning('Signed in — but Google Drive access was not allowed, so nothing can be saved. Use "Reconnect Google Drive" in your menu (top right) and tick the Drive box.');
+    } else if (auth === 'drive-connected') {
+      toast.success('Google Drive connected. Your images and videos will be saved there.');
     } else if (auth.startsWith('error:')) {
       toast.error(auth.slice(6));
     }
@@ -79,7 +116,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) return <SignInScreen onSignIn={signIn} error={error} />;
+  if (!user) return <SignInScreen onSignIn={signIn} onSignedIn={refresh} error={error} />;
 
   if (user.status === 'pending') {
     return (
@@ -87,7 +124,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <Clock className="w-10 h-10 text-primary mx-auto mb-4" />
         <h1 className="text-xl font-bold text-foreground mb-2">Thanks, {user.name?.split(' ')[0] || 'there'}!</h1>
         <p className="text-muted-foreground mb-1">Your access is waiting for approval.</p>
-        <p className="text-sm text-muted-foreground mb-6">Signed in as {user.email}. We'll let you in as soon as an admin approves your account.</p>
+        <p className="text-sm text-muted-foreground mb-6">Signed in as {accountLabel(user)}. We'll let you in as soon as an admin approves your account.</p>
         <div className="flex gap-2 justify-center">
           <Button variant="outline" onClick={refresh}>Check again</Button>
           <Button variant="ghost" onClick={signOut}>Use a different account</Button>
@@ -101,7 +138,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       <Screen>
         <ShieldOff className="w-10 h-10 text-destructive mx-auto mb-4" />
         <h1 className="text-xl font-bold text-foreground mb-2">Access turned off</h1>
-        <p className="text-muted-foreground mb-6">Your access to this app ({user.email}) has been turned off. Contact the app admin if this is a mistake.</p>
+        <p className="text-muted-foreground mb-6">Your access to this app ({accountLabel(user)}) has been turned off. Contact the app admin if this is a mistake.</p>
         <Button variant="ghost" onClick={signOut}>Sign out</Button>
       </Screen>
     );
@@ -110,6 +147,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   return (
     <>
       <UserBar />
+      {user.has_google === false && !driveConnected && <ConnectDriveBar />}
       {children}
     </>
   );

@@ -6,6 +6,17 @@ The client is the Optinet founder, who is also the product owner. Their taste is
 
 ---
 
+## 2026-10-09: "Page Seven" test clip rejected, "still bad… I'm disappointed with the results, it's all bad"
+**What we made:** the single "moment" test the client approved: 7 s, a florist (Marcus) checks his phone after a café owner (Priya) says her customer googled "florist near me". A glass search card types the query and a page counter ticks 1→7 as his smile drops; "…Uh, page seven." Our panel had scored the concept 6.5 ("maybe, leaning yes").
+
+**Client verdict:** "Still bad. By now I'm disappointed with the results. It's all bad."
+
+**What this tells us (executive producer):**
+1. **AI-acted comedy is not working for this client, four times running** (Padel Bench, Four Hires, Page Seven, and "The Tooth" before them), even when every technical gate passes and the script was approved. Stop proposing it unless the client asks.
+2. **Veo cannot deliver comic timing on demand.** In 4 of 4 takes it bunched Marcus's two lines together, so the silent beat the joke needed never existed. It swapped speakers in 2 takes and added music in another. A joke that depends on a performance beat is not dependable with these tools.
+3. **Our panel is miscalibrated for acted work.** The client proxy scored concepts 6–6.5 that the client rejected outright. Until recalibrated, subtract about 3 points from proxy scores for acted/comedy concepts, and never present a proxy score as a prediction of approval.
+4. **The best-rated work is still "Four Seats"** (visual, motion graphics, narrator: "good and professional"). The tools are reliable in that format.
+
 ## 2026-10-08: "Four Hires" (café, Leo & Nadia) rejected, "it's not entertaining or promotional"
 **What we made:** 24.4 s. Two owners at a café table, made in 3 Veo steps (each continuing from the last frame), 6 lines: "I need to hire four people." / "For what?" / "SEO, design, AI automation, support." / "Or get Optinet. Your whole digital team, on demand." / "Do they need desks?" / "No desks. Just more customers." One glass caption (four job chips fold into a green Optinet pill), then the Four Seats end card. Technically clean: right words and speakers, consistent faces and voices, seamless joins, -14 LUFS. The client approved this script on paper before production.
 

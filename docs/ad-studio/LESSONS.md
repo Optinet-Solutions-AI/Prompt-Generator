@@ -6,6 +6,25 @@ The client is the Optinet founder, who is also the product owner. Their taste is
 
 ---
 
+## 2026-10-09: Client direction for the next ad ("Should've Checked Optinet", rooftop hot tub)
+**Context:** after rejecting the "Swipe Right" animatic as "just another variation", the client restated the target: "the Trivago ads style, it's nice and interactive and catchy". Gemini 3.1 Pro watched the actual Trivago ad (youtu.be/GWE0fRtReUw) and planned the Optinet version. The client approved the storyboard ("it looks good now").
+
+**What "Trivago style" means (from the ad itself, not our summary):**
+- an absurd setup played straight (three men buried in sand);
+- big, excited, friendly acting with fast, overlapping dialogue;
+- a loser-vs-winner comparison;
+- the brand said 6+ times;
+- proof on a phone screen;
+- a physical payoff with a chanted catchphrase ("You should've checked Trivago!" ×2, high-five).
+
+Our earlier acted versions failed partly because we directed "natural, understated" acting, which is the opposite of this.
+
+**Client requirements added 2026-10-09:**
+1. **Good, natural music:** organic, acoustic, feel-good, under the whole scene like the Trivago ad. The client picks by ear from options laid under the picture.
+2. **The actors' voices must sound natural.** The AI (Veo) voices are the unnatural part. Don't ship Veo's native voices without the client hearing an alternative.
+3. **Unique graphics, elements and animation, but not AI-slop quality that flows unnaturally.** All readable UI and graphics are hand-built in our HTML motion engine, with eased, purposeful timing. Cuts land on dialogue beats. No AI morph transitions, no generic templates.
+4. **The phone moment must live inside the scene.** It's a real close-up of her hand holding the phone over the hot tub, with our animated screen on it, not a flat graphic on a coloured background.
+
 ## 2026-10-09: "Page Seven" test clip rejected, "still bad… I'm disappointed with the results, it's all bad"
 **What we made:** the single "moment" test the client approved: 7 s, a florist (Marcus) checks his phone after a café owner (Priya) says her customer googled "florist near me". A glass search card types the query and a page counter ticks 1→7 as his smile drops; "…Uh, page seven." Our panel had scored the concept 6.5 ("maybe, leaning yes").
 

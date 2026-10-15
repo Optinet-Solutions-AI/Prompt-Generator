@@ -174,6 +174,22 @@ and re-learn them:
 3. **Always read the card back** and assert the description, assignee and
    column. Never trust the write.
 
+**Write every `title` and `description` for a non-technical reader.** The board
+and the daily report are read by managers and the client, not by developers.
+
+- **Title:** the result in everyday words: what a user can now do or see.
+  Good: "Each brand's prompts can be saved and reused". Not: "Persist prompt
+  templates per brand in brand_prompts table".
+- **Description:** two to four short sentences: what changed, why it matters
+  or who it helps, and anything still left to do.
+- **No jargon:** no file or code names, no API, model or library names, no
+  settings names, no error codes. If a technical word can't be avoided,
+  explain it in a few words.
+- **Commit hashes or links go last**, on a line of their own
+  ("Ref: abc1234"), so developers can still trace the work.
+- **Read it back as an outsider** before saving: if they would have to ask
+  what a word means, rewrite it.
+
 Write descriptions with the tested/verified discipline used everywhere else in
 this project: say explicitly what was **unit-tested** versus **verified live**,
 and name what is still unverified. A card claiming more confidence than the work

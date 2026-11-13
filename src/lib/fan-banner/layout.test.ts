@@ -116,6 +116,16 @@ describe('layoutFanBanner', () => {
     expect(l.button!.text).toBe('PLAY NOW');
   });
 
+  it('sets the bonus code larger when the brand font asks for it (tall, narrow fonts)', () => {
+    const base = FAN_BANNER_BRANDS.SpinsUp;
+    const scaled = { ...base, fonts: { ...base.fonts, code: { ...base.fonts.code, scale: 1.3 } } };
+    // A short code, so the column width doesn't cap the size (long codes still shrink to fit).
+    const texts = { ...FULL, codeLabel: 'Code:', code: 'W5' };
+    const plain = layoutFanBanner({ brand: base, texts, side: 'right', logoAspect: LOGO_ASPECT, measure });
+    const big = layoutFanBanner({ brand: scaled, texts, side: 'right', logoAspect: LOGO_ASPECT, measure });
+    expect(big.code!.size).toBeGreaterThan(plain.code!.size * 1.2);
+  });
+
   it("keeps Lucky7even's handwritten button text as typed", () => {
     const l = run({ button: 'Claim Now!' }, { brand: 'Lucky7even' });
     expect(l.button!.text).toBe('Claim Now!');

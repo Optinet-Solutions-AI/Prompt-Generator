@@ -161,18 +161,20 @@ export function layoutFanBanner(input: {
 
   const codeValue = transform(texts.code.trim(), fonts.code);
   const codeLabel = codeValue ? transform(texts.codeLabel.trim(), fonts.code) : '';
+  const codeBase = BASE.code * (fonts.code.scale ?? 1);
+  const cornerCodeBase = BASE.cornerCode * (fonts.code.scale ?? 1);
   const codeItem: Extract<Item, { kind: 'code' }> | null = codeValue
     ? {
       kind: 'code', gap: GAP.beforeCode, label: codeLabel, value: codeValue, font: fonts.code,
-      label_m: codeLabel ? measure(codeLabel, fontCss(fonts.code, BASE.code)) : { width: 0, ascent: 0, descent: 0 },
-      value_m: measure(codeValue, fontCss(fonts.code, BASE.code)),
+      label_m: codeLabel ? measure(codeLabel, fontCss(fonts.code, codeBase)) : { width: 0, ascent: 0, descent: 0 },
+      value_m: measure(codeValue, fontCss(fonts.code, codeBase)),
     }
     : null;
   if (codeItem && brand.codePlacement === 'under-button') items.push(codeItem);
 
   // Size of each item at a given overall scale.
   const codeWidthAtBase = (c: Extract<Item, { kind: 'code' }>) =>
-    c.label_m.width + (c.label ? BASE.code * 0.3 : 0) + c.value_m.width;
+    c.label_m.width + (c.label ? codeBase * 0.3 : 0) + c.value_m.width;
 
   const sizeOf = (item: Item, s: number) => {
     switch (item.kind) {
@@ -191,8 +193,8 @@ export function layoutFanBanner(input: {
         return { h: BASE.buttonH * s, w: column.w, size };
       }
       case 'code': {
-        const size = BASE.code * Math.min(s, column.w / Math.max(codeWidthAtBase(item), 1));
-        const k = size / BASE.code;
+        const size = codeBase * Math.min(s, column.w / Math.max(codeWidthAtBase(item), 1));
+        const k = size / codeBase;
         const asc = Math.max(item.label_m.ascent, item.value_m.ascent);
         const desc = Math.max(item.label_m.descent, item.value_m.descent);
         return { h: (asc + desc) * k, w: codeWidthAtBase(item) * k, size };
@@ -260,8 +262,8 @@ export function layoutFanBanner(input: {
   if (codeItem && brand.codePlacement === 'corner') {
     const inset = 80;
     const room = column.x - inset - 40; // same on both sides by symmetry
-    const size = BASE.cornerCode * Math.min(1, room / Math.max(codeWidthAtBase(codeItem) * (BASE.cornerCode / BASE.code), 1));
-    const k = size / BASE.code;
+    const size = cornerCodeBase * Math.min(1, room / Math.max(codeWidthAtBase(codeItem) * (cornerCodeBase / codeBase), 1));
+    const k = size / codeBase;
     const width = codeWidthAtBase(codeItem) * k;
     const cx = side === 'right' ? inset + width / 2 : FAN_W - inset - width / 2;
     const asc = Math.max(codeItem.label_m.ascent, codeItem.value_m.ascent) * k;
@@ -271,7 +273,7 @@ export function layoutFanBanner(input: {
   return layout;
 
   function placeCode(c: Extract<Item, { kind: 'code' }>, size: number, cx: number, top: number, placement: PlacedCode['placement']): PlacedCode {
-    const k = size / BASE.code;
+    const k = size / codeBase;
     const ascent = Math.max(c.label_m.ascent, c.value_m.ascent) * k;
     const descent = Math.max(c.label_m.descent, c.value_m.descent) * k;
     return {

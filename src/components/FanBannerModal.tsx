@@ -3,12 +3,14 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, AlignLeft, AlignRight, Download, ImageDown, Loader2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { AlertTriangle, AlignLeft, AlignRight, Download, ImageDown, Loader2, Move, RotateCcw } from 'lucide-react';
 import { triggerBlobDownload } from '@/lib/imageDownload';
 import {
   FAN_BANNER_BRAND_NAMES, canonicalFanBannerBrandName, fanBannerFilename, getFanBannerBrand,
 } from '@/lib/fan-banner/brands';
-import type { FanBannerTexts, FanSide } from '@/lib/fan-banner/layout';
+import { FAN_W, type FanBannerTexts, type FanSide } from '@/lib/fan-banner/layout';
+import { CENTERED, MAX_ZOOM, panAfterDrag, type PictureFraming } from '@/lib/fan-banner/picture';
 import { canvasToPngBlob, drawFanBanner, loadBrandFonts, loadLogo, loadPicture } from '@/lib/fan-banner/render';
 
 /**
@@ -54,6 +56,8 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
   useEffect(() => { setBrandName(canonicalFanBannerBrandName(brand)); }, [brand]);
   const [texts, setTexts] = useState<FanBannerTexts>(START_TEXTS);
   const [side, setSide] = useState<FanSide>('right');
+  // Where the picture sits behind the text (drag to move, slider to zoom).
+  const [framing, setFraming] = useState<PictureFraming>(CENTERED);
 
   const [picture, setPicture] = useState<HTMLImageElement | null>(null);
   const [pictureState, setPictureState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -66,13 +70,18 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawSeq = useRef(0);
+  // The logo from the last full draw, so dragging can redraw instantly.
+  const lastLogoRef = useRef<HTMLImageElement | null>(null);
+  // Where a drag started (pointer position + framing at that moment).
+  const dragRef = useRef<{ x: number; y: number; framing: PictureFraming } | null>(null);
 
-  // Load the picture once per image while the window is open.
+  // Load the picture once per image while the window is open. A new picture starts centred.
   useEffect(() => {
     if (!isOpen || !imageUrl) return;
     let cancelled = false;
     setPictureState('loading');
     setPicture(null);
+    setFraming(CENTERED);
     loadPicture(imageUrl)
       .then((img) => { if (!cancelled) { setPicture(img); setPictureState('ready'); } })
       .catch((err) => {
@@ -96,10 +105,48 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
     const logo = await loadLogo(style.logo).catch(() => null);
     if (!isCurrent()) return null;
     setLogoMissing(!logo);
-    drawFanBanner(canvas, { brand: style, texts, side, picture, logo });
+    lastLogoRef.current = logo;
+    drawFanBanner(canvas, { brand: style, texts, side, picture, logo, framing });
     canvas.dataset.brand = brandName; // which brand is on screen (used by browser checks)
     return canvasToPngBlob(canvas);
-  }, [brandName, texts, side, picture]);
+  }, [brandName, texts, side, picture, framing]);
+
+  /**
+   * Instant redraw while dragging or zooming (fonts and logo are already
+   * loaded). The regular redraw above follows once the movement pauses and
+   * also updates the file size.
+   */
+  const redrawNow = (next: PictureFraming) => {
+    const style = getFanBannerBrand(brandName);
+    const canvas = canvasRef.current;
+    if (!style || !canvas) return;
+    drawFanBanner(canvas, { brand: style, texts, side, picture, logo: lastLogoRef.current, framing: next });
+  };
+
+  const changeFraming = (next: PictureFraming) => {
+    setFraming(next);
+    redrawNow(next);
+  };
+
+  // Drag the picture with the mouse or a finger. The movement is measured from
+  // where the drag started, converted from screen pixels to banner pixels.
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!picture) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { x: e.clientX, y: e.clientY, framing };
+  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const start = dragRef.current;
+    if (!start || !picture) return;
+    const toBanner = FAN_W / e.currentTarget.getBoundingClientRect().width;
+    changeFraming(panAfterDrag(
+      { w: picture.naturalWidth, h: picture.naturalHeight },
+      start.framing,
+      (e.clientX - start.x) * toBanner,
+      (e.clientY - start.y) * toBanner,
+    ));
+  };
+  const endDrag = () => { dragRef.current = null; };
 
   // Redraw the preview after every change (short delay so typing stays smooth).
   useEffect(() => {
@@ -150,6 +197,7 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
   const handleClose = () => {
     setTexts(START_TEXTS);
     setSide('right');
+    setFraming(CENTERED);
     setFormError(null);
     setDrawError(null);
     setFileSize(null);
@@ -158,6 +206,8 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
   };
 
   const showCanvas = !!brandName && pictureState !== 'loading';
+  const canMovePicture = showCanvas && !!picture;
+  const isCentered = framing.zoom === CENTERED.zoom && framing.panX === CENTERED.panX && framing.panY === CENTERED.panY;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
@@ -187,8 +237,16 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
                 ref={canvasRef}
                 width={1200}
                 height={600}
-                className={`absolute inset-0 w-full h-full ${showCanvas ? '' : 'invisible'}`}
+                className={`absolute inset-0 w-full h-full ${showCanvas ? '' : 'invisible'} ${canMovePicture ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                // touch-action none: a finger drag moves the picture instead of scrolling the window.
+                style={{ touchAction: canMovePicture ? 'none' : 'auto' }}
                 aria-label="Banner preview"
+                title={canMovePicture ? 'Drag to move the picture' : undefined}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                onLostPointerCapture={endDrag}
               />
               {!showCanvas && (
                 <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-muted/60">
@@ -198,6 +256,30 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
                 </div>
               )}
             </div>
+
+            {/* Picture position: drag hint, zoom, reset */}
+            {canMovePicture && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Move className="w-3.5 h-3.5" /> Drag the picture to choose what shows
+                </span>
+                <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                  <span className="text-[11px] font-medium text-muted-foreground">Zoom</span>
+                  <Slider
+                    min={1} max={MAX_ZOOM} step={0.01}
+                    value={[framing.zoom]}
+                    onValueChange={([zoom]) => changeFraming({ ...framing, zoom })}
+                    className="flex-1"
+                    aria-label="Zoom the picture"
+                  />
+                  <span className="text-[11px] tabular-nums w-9 text-right text-muted-foreground">{Math.round(framing.zoom * 100)}%</span>
+                </div>
+                <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs gap-1"
+                  onClick={() => changeFraming(CENTERED)} disabled={isCentered}>
+                  <RotateCcw className="w-3 h-3" /> Reset
+                </Button>
+              </div>
+            )}
 
             {/* File facts + warnings */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">

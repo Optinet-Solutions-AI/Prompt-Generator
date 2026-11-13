@@ -4,7 +4,7 @@
 
 const DEFAULT_CORNER_RADIUS = 40;
 
-function triggerBlobDownload(blob: Blob, filename: string) {
+export function triggerBlobDownload(blob: Blob, filename: string) {
   const blobUrl = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = blobUrl;
@@ -243,7 +243,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function roundedRectPath(
+export function roundedRectPath(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,

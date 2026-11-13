@@ -12,6 +12,7 @@ import {
   FAN_CORNER_RADIUS, FAN_H, FAN_W, layoutFanBanner,
   type FanBannerLayout, type FanBannerTexts, type FanSide, type Measure,
 } from './layout';
+import { CENTERED, placePicture, type PictureFraming } from './picture';
 
 // ── Loading ──────────────────────────────────────────────────────────────────
 
@@ -133,11 +134,10 @@ function noShadow(ctx: CanvasRenderingContext2D) {
   ctx.shadowOffsetY = 0;
 }
 
-/** Fill the banner with the picture, cropping the overflow (no stretching). */
-function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement) {
-  const scale = Math.max(FAN_W / img.naturalWidth, FAN_H / img.naturalHeight);
-  const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-  ctx.drawImage(img, (FAN_W - w) / 2, (FAN_H - h) / 2, w, h);
+/** Fill the banner with the picture at the chosen position and zoom (no stretching, no gaps). */
+function drawPicture(ctx: CanvasRenderingContext2D, img: HTMLImageElement, framing: PictureFraming) {
+  const p = placePicture({ w: img.naturalWidth, h: img.naturalHeight }, framing);
+  ctx.drawImage(img, p.x, p.y, p.w, p.h);
 }
 
 export interface DrawFanBannerOptions {
@@ -146,6 +146,8 @@ export interface DrawFanBannerOptions {
   side: FanSide;
   picture: HTMLImageElement | null;
   logo: HTMLImageElement | null;
+  /** Where the picture sits behind the text; centred if left out. */
+  framing?: PictureFraming;
 }
 
 /** Draws the full banner onto `canvas` (resized to 1200×600) and returns the layout used. */
@@ -170,7 +172,7 @@ export function drawFanBanner(canvas: HTMLCanvasElement, opts: DrawFanBannerOpti
   // 1. Picture (or the brand's dark tone if there is none).
   ctx.fillStyle = brand.colors.panel;
   ctx.fillRect(0, 0, FAN_W, FAN_H);
-  if (picture) drawCover(ctx, picture);
+  if (picture) drawPicture(ctx, picture, opts.framing ?? CENTERED);
 
   // 2. Dark fade so the text stays readable over any picture.
   const { fade } = layout;

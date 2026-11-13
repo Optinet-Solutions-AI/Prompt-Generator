@@ -82,15 +82,22 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
     return () => { cancelled = true; };
   }, [isOpen, imageUrl]);
 
-  /** Paints the banner onto the preview canvas and returns it as a PNG file. */
-  const drawToCanvas = useCallback(async (): Promise<Blob | null> => {
+  /**
+   * Paints the banner onto the preview canvas and returns it as a PNG file.
+   * `isCurrent` is checked after the fonts and logo load: if the user changed
+   * something meanwhile, this older draw is dropped instead of painting the
+   * previous brand over the newer one.
+   */
+  const drawToCanvas = useCallback(async (isCurrent: () => boolean = () => true): Promise<Blob | null> => {
     const style = getFanBannerBrand(brandName);
     const canvas = canvasRef.current;
     if (!style || !canvas) return null;
     await loadBrandFonts(style, Object.values(texts).join(' '));
     const logo = await loadLogo(style.logo).catch(() => null);
+    if (!isCurrent()) return null;
     setLogoMissing(!logo);
     drawFanBanner(canvas, { brand: style, texts, side, picture, logo });
+    canvas.dataset.brand = brandName; // which brand is on screen (used by browser checks)
     return canvasToPngBlob(canvas);
   }, [brandName, texts, side, picture]);
 
@@ -101,7 +108,7 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
     setIsDrawing(true);
     const timer = setTimeout(async () => {
       try {
-        const blob = await drawToCanvas();
+        const blob = await drawToCanvas(() => seq === drawSeq.current);
         if (seq !== drawSeq.current) return;
         setFileSize(blob ? blob.size : null);
         setDrawError(null);

@@ -114,7 +114,7 @@ export const FAN_BANNER_BRANDS: Record<string, FanBannerBrand> = {
       offer: caps({ family: 'Teko', weight: 600, scale: 1.25 }),
       line: caps({ family: 'Teko', weight: 500, scale: 1.3 }),
       button: caps({ family: 'Teko', weight: 600, scale: 1.35 }),
-      code: { family: 'Teko', weight: 500 },
+      code: { family: 'Teko', weight: 500, scale: 1.35 },
     },
     colors: {
       panel: '#191A23', headline: '#FFFFFF', offer: '#FFFFFF', line: '#17B4E8',

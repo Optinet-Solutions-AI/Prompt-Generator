@@ -229,7 +229,12 @@ async function shares(req: VercelRequest) {
   const p = await requireUser(req);
   const out = await sb(`library_shares?owner_id=eq.${p.id}&select=viewer:profiles!library_shares_viewer_id_fkey(${PERSON})`) as Array<{ viewer: unknown }>;
   const inn = await sb(`library_shares?viewer_id=eq.${p.id}&select=owner:profiles!library_shares_owner_id_fkey(${PERSON})`) as Array<{ owner: unknown }>;
-  return { sharing_with: out.map(r => r.viewer), shared_with_me: inn.map(r => r.owner) };
+  const result: { sharing_with: unknown[]; shared_with_me: unknown[]; everyone?: unknown[] } = { sharing_with: out.map(r => r.viewer), shared_with_me: inn.map(r => r.owner) };
+  // Admins can open anyone's library (see libraryOwner): list everyone who has one.
+  if (p.is_admin) {
+    result.everyone = await sb(`profiles?id=neq.${p.id}&or=(drive_images_folder_id.not.is.null,drive_videos_folder_id.not.is.null)&select=${PERSON}&order=name.asc`) as unknown[];
+  }
+  return result;
 }
 
 async function share(req: VercelRequest, body: Record<string, unknown>, add: boolean) {

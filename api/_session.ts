@@ -199,12 +199,25 @@ export async function guard(req: VercelRequest, res: VercelResponse): Promise<Pr
 }
 
 /**
- * The profile whose library `viewer` wants to see: themselves, or someone who
- * shared their library with them. Throws 403 otherwise.
+ * Admins may open anyone's library or items — blocked people's too, so their
+ * past work stays visible. Returns the owner, or null when `viewer` isn't an admin.
+ */
+async function adminOwner(viewer: Profile, ownerId: string): Promise<Profile | null> {
+  if (!viewer.is_admin) return null;
+  const owner = await getProfileById(ownerId);
+  if (!owner) throw new AuthError(404, 'That person no longer exists.');
+  return owner;
+}
+
+/**
+ * The profile whose library `viewer` wants to see: themselves, someone who
+ * shared their library with them, or (for admins) anyone. Throws 403 otherwise.
  */
 export async function libraryOwner(viewer: Profile, ownerId: string | undefined | null): Promise<Profile> {
   if (!ownerId || ownerId === viewer.id) return viewer;
   if (!/^[0-9a-f-]{36}$/i.test(ownerId)) throw new AuthError(400, 'invalid owner');
+  const asAdmin = await adminOwner(viewer, ownerId);
+  if (asAdmin) return asAdmin;
   const share = (await sb(`library_shares?owner_id=eq.${ownerId}&viewer_id=eq.${viewer.id}&select=owner_id`) as unknown[])[0];
   if (!share) throw new AuthError(403, "That library hasn't been shared with you.");
   const owner = await getProfileById(ownerId);
@@ -215,11 +228,13 @@ export async function libraryOwner(viewer: Profile, ownerId: string | undefined 
 /**
  * The owner whose ONE file `viewer` wants: allowed if it's the viewer's own,
  * the owner shared their whole library, or shared this specific item
- * (item_shares). Throws 403 otherwise.
+ * (item_shares), or the viewer is an admin. Throws 403 otherwise.
  */
 export async function itemOwner(viewer: Profile, ownerId: string | undefined | null, kind: 'image' | 'video', fileId: string): Promise<Profile> {
   if (!ownerId || ownerId === viewer.id) return viewer;
   if (!/^[0-9a-f-]{36}$/i.test(ownerId)) throw new AuthError(400, 'invalid owner');
+  const asAdmin = await adminOwner(viewer, ownerId);
+  if (asAdmin) return asAdmin;
   const lib = (await sb(`library_shares?owner_id=eq.${ownerId}&viewer_id=eq.${viewer.id}&select=owner_id`) as unknown[])[0];
   const item = lib ? null : (await sb(
     `item_shares?owner_id=eq.${ownerId}&viewer_id=eq.${viewer.id}&kind=eq.${kind}&file_id=eq.${encodeURIComponent(fileId)}&select=owner_id`,

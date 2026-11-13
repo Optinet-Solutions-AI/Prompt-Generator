@@ -76,7 +76,8 @@ export const authApi = {
     call<{ user: Account; temp_password: string }>('admin-create-user', args),
   adminResetPassword: (id: string) => call<{ temp_password: string }>('admin-reset-password', { id }),
   users: () => call<{ users: Person[] }>('users'),
-  shares: () => call<{ sharing_with: Person[]; shared_with_me: Person[] }>('shares'),
+  // `everyone` comes only for admins: every person with a library, which admins may open.
+  shares: () => call<{ sharing_with: Person[]; shared_with_me: Person[]; everyone?: Person[] }>('shares'),
   share: (viewerId: string) => call('share', { viewer_id: viewerId }),
   unshare: (viewerId: string) => call('unshare', { viewer_id: viewerId }),
   // Share ONE image / video (fileId = its Google Drive file id)

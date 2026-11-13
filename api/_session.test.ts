@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setSessionCookie, clearSessionCookie, currentProfile, SESSION_COOKIE } from './_session.js';
+import { setSessionCookie, clearSessionCookie, currentProfile, libraryOwner, itemOwner, SESSION_COOKIE, type Profile } from './_session.js';
 
 const DAY = 24 * 3600 * 1000;
 const UID = '96bd042c-0000-4000-8000-000000000001';   // profile ids are UUIDs (getProfileById rejects anything else)
@@ -54,5 +54,48 @@ describe('staying signed in', () => {
     const r = res();
     clearSessionCookie(req(), r);
     expect(r.headers['set-cookie']).toContain('Max-Age=0');
+  });
+});
+
+describe('whose library someone may open', () => {
+  const OWNER = '96bd042c-0000-4000-8000-0000000000aa';
+  const BLOCKED = '96bd042c-0000-4000-8000-0000000000bb';
+  const viewer = (is_admin: boolean) => ({ id: UID, status: 'approved', is_admin }) as unknown as Profile;
+  const profiles: Record<string, { id: string; status: string }> = {
+    [OWNER]: { id: OWNER, status: 'approved' },
+    [BLOCKED]: { id: BLOCKED, status: 'blocked' },
+  };
+  beforeEach(() => {
+    process.env.SUPABASE_URL = 'https://db.example';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+    // Supabase: nobody has shared anything with the viewer; profiles answer by id
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      const u = decodeURIComponent(String(url));
+      if (u.includes('library_shares') || u.includes('item_shares')) return new Response('[]', { status: 200 });
+      const id = u.match(/profiles\?id=eq\.([^&]+)/)?.[1] || '';
+      return new Response(JSON.stringify(profiles[id] ? [profiles[id]] : []), { status: 200 });
+    }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('a regular user still cannot open a library nobody shared with them', async () => {
+    await expect(libraryOwner(viewer(false), OWNER)).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('an admin can open anyone\'s library without it being shared', async () => {
+    expect((await libraryOwner(viewer(true), OWNER)).id).toBe(OWNER);
+  });
+
+  it('an admin can also open a blocked person\'s library, so their past work stays visible', async () => {
+    expect((await libraryOwner(viewer(true), BLOCKED)).id).toBe(BLOCKED);
+  });
+
+  it('an admin asking for someone who does not exist gets "not found"', async () => {
+    await expect(libraryOwner(viewer(true), '96bd042c-0000-4000-8000-0000000000cc')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('an admin can play one of someone else\'s videos; a regular user still cannot', async () => {
+    expect((await itemOwner(viewer(true), OWNER, 'video', 'drive-file-1')).id).toBe(OWNER);
+    await expect(itemOwner(viewer(false), OWNER, 'video', 'drive-file-1')).rejects.toMatchObject({ status: 403 });
   });
 });

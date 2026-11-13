@@ -3,7 +3,8 @@
  *
  * Options: My library · Individual items (single images/videos colleagues
  * shared with me) · each colleague who shared their WHOLE library with me ·
- * Team archive (everything made before accounts existed).
+ * (admins only) Everyone — any person's library · Team archive (everything
+ * made before accounts existed).
  */
 import { useEffect, useState } from 'react';
 import { Archive, ChevronDown, Share2, User, Users } from 'lucide-react';
@@ -32,10 +33,17 @@ export function sourceLabel(s: LibrarySource): string {
 
 export function LibrarySourcePicker({ value, onChange }: { value: LibrarySource; onChange: (s: LibrarySource) => void }) {
   const [sharedWithMe, setSharedWithMe] = useState<Person[]>([]);
+  const [everyone, setEveryone] = useState<Person[]>([]);   // admins only (the server sends it to admins alone)
 
   useEffect(() => {
-    authApi.shares().then(r => setSharedWithMe(r.shared_with_me)).catch(() => setSharedWithMe([]));
+    authApi.shares()
+      .then(r => { setSharedWithMe(r.shared_with_me); setEveryone(r.everyone || []); })
+      .catch(() => { setSharedWithMe([]); setEveryone([]); });
   }, []);
+  const pick = (p: Person) => onChange({ kind: 'shared', ownerId: p.id, name: firstName(p) });
+  const avatar = (p: Person) => p.avatar_url
+    ? <img src={p.avatar_url} alt="" referrerPolicy="no-referrer" className="w-5 h-5 rounded-full mr-2" />
+    : <Users className="w-4 h-4 mr-2" />;
 
   const Icon = value.kind === 'mine' ? User : value.kind === 'archive' ? Archive : value.kind === 'items' ? Share2 : Users;
   return (
@@ -59,13 +67,25 @@ export function LibrarySourcePicker({ value, onChange }: { value: LibrarySource;
           <span>Individual items <span className="text-xs text-muted-foreground">(shared one by one)</span></span>
         </DropdownMenuItem>
         {sharedWithMe.map(p => (
-          <DropdownMenuItem key={p.id} onClick={() => onChange({ kind: 'shared', ownerId: p.id, name: firstName(p) })}>
-            {p.avatar_url
-              ? <img src={p.avatar_url} alt="" referrerPolicy="no-referrer" className="w-5 h-5 rounded-full mr-2" />
-              : <Users className="w-4 h-4 mr-2" />}
+          <DropdownMenuItem key={p.id} onClick={() => pick(p)}>
+            {avatar(p)}
             <span className="truncate">{p.name || p.email} <span className="text-xs text-muted-foreground">(whole library)</span></span>
           </DropdownMenuItem>
         ))}
+        {everyone.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Everyone (admin)</DropdownMenuLabel>
+            <div className="max-h-64 overflow-y-auto">
+              {everyone.map(p => (
+                <DropdownMenuItem key={p.id} onClick={() => pick(p)}>
+                  {avatar(p)}
+                  <span className="truncate">{p.name || p.email}</span>
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onChange({ kind: 'archive' })}>
           <Archive className="w-4 h-4 mr-2" />

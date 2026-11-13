@@ -1,8 +1,9 @@
 import { useEffect, useCallback } from 'react';
-import { X, Download, FileCode, Mail, ChevronDown } from 'lucide-react';
+import { X, Download, FileCode, Mail, ChevronDown, ImageDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
+import { FanBannerModal } from './FanBannerModal';
 import { useState } from 'react';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS } from '@/lib/imageDownload';
 import {
@@ -26,6 +27,7 @@ interface LikedImageViewModalProps {
 export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId, bannerDimensions, aspectRatio }: LikedImageViewModalProps) {
   const [showHtmlModal, setShowHtmlModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showFanModal, setShowFanModal] = useState(false);
 
   const handleEsc = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -130,6 +132,14 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId, bannerD
             <Mail className="w-4 h-4" />
             Convert to Email
           </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowFanModal(true)}
+          >
+            <ImageDown className="w-4 h-4" />
+            Fan Banner
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="gap-2 gradient-primary">
@@ -159,6 +169,11 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId, bannerD
       <EmailHtmlConversionModal
         isOpen={showEmailModal}
         onClose={() => setShowEmailModal(false)}
+        imageUrl={imgUrl}
+      />
+      <FanBannerModal
+        isOpen={showFanModal}
+        onClose={() => setShowFanModal(false)}
         imageUrl={imgUrl}
       />
     </>

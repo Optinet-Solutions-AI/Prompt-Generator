@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import {
   ArrowLeft, Download, FileCode, Mail, Images, RefreshCw, Share2, Trash2, X,
   ChevronLeft, ChevronRight, ChevronDown, Sparkles, Wand2, Bot, Cpu, Loader2, Plus, Save, Heart, Shuffle, Expand,
-  AlertTriangle, Check,
+  AlertTriangle, Check, ImageDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { HtmlConversionModal } from '@/components/HtmlConversionModal';
 import { EmailHtmlConversionModal } from '@/components/EmailHtmlConversionModal';
+import { FanBannerModal } from '@/components/FanBannerModal';
 import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -404,6 +405,7 @@ function Lightbox({
   const [isDownloading, setIsDownloading] = useState(false);
   const [showHtmlModal,  setShowHtmlModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showFanModal,   setShowFanModal]   = useState(false);
   const [confirmDelete,  setConfirmDelete] = useState(false);
   const [showShare,      setShowShare]     = useState(false);
   const shareId = canShare ? driveFileId(image.public_url) : null;
@@ -533,7 +535,7 @@ function Lightbox({
   // Keyboard nav
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (showHtmlModal || showEmailModal || confirmDelete || showSaveModal || showUnsavedDialog) return;
+      if (showHtmlModal || showEmailModal || showFanModal || confirmDelete || showSaveModal || showUnsavedDialog) return;
       if (e.key === 'Escape') {
         // Close variation viewer first if open, then close main lightbox
         if (variationViewerUrl) { setVariationViewerUrl(null); setVariationViewerIdx(-1); return; }
@@ -546,7 +548,7 @@ function Lightbox({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, showEmailModal, confirmDelete, showSaveModal, showUnsavedDialog, variationViewerUrl, hasUnsavedWork]);
+  }, [onClose, onPrev, onNext, hasPrev, hasNext, showHtmlModal, showEmailModal, showFanModal, confirmDelete, showSaveModal, showUnsavedDialog, variationViewerUrl, hasUnsavedWork]);
 
   const displayUrl = editedImgUrl || image.public_url;
 
@@ -1126,6 +1128,14 @@ function Lightbox({
               Convert to Email
             </button>
 
+            <button
+              onClick={() => setShowFanModal(true)}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
+            >
+              <ImageDown className="w-4 h-4" />
+              Fan Banner (PNG)
+            </button>
+
             {/* Share just this one image with chosen colleagues */}
             {shareId && (
               <button
@@ -1310,6 +1320,14 @@ function Lightbox({
         onClose={() => setShowEmailModal(false)}
         imageUrl={displayUrl}
         brand={image.brand_name || activeBrand}
+      />
+
+      {/* Fan Banner (PNG) Modal — Drive images carry their brand in `brand` */}
+      <FanBannerModal
+        isOpen={showFanModal}
+        onClose={() => setShowFanModal(false)}
+        imageUrl={displayUrl}
+        brand={image.brand_name || image.brand || activeBrand}
       />
 
       {/* Save Edited Modal */}

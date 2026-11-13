@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Heart, Loader2, AlertTriangle, Download, FileCode, Mail, ChevronLeft, ChevronRight, Wand2 } from 'lucide-react';
+import { X, Heart, Loader2, AlertTriangle, Download, FileCode, Mail, ChevronLeft, ChevronRight, Wand2, ImageDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { LikedImageCard } from './LikedImageCard';
 import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
+import { FanBannerModal } from './FanBannerModal';
 import { supabaseThumbnail } from '@/lib/imageUtils';
 import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
 import { myFavoritesFilter } from '@/lib/current-user';
@@ -34,6 +35,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const [showHtmlModal, setShowHtmlModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showFanModal, setShowFanModal] = useState(false);
 
   // Edit image state
   const [editInstructions, setEditInstructions] = useState('');
@@ -425,6 +427,9 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
                 <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setShowEmailModal(true)}>
                   <Mail className="w-3.5 h-3.5" />Email
                 </Button>
+                <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setShowFanModal(true)}>
+                  <ImageDown className="w-3.5 h-3.5" />Fan Banner
+                </Button>
                 <Button variant="outline" size="sm"
                   className="gap-1.5 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
                   onClick={() => activeRecordId && activeImgUrl && handleUnlike(activeRecordId, activeImgUrl)}>
@@ -530,6 +535,14 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
         <EmailHtmlConversionModal
           isOpen={showEmailModal}
           onClose={() => setShowEmailModal(false)}
+          imageUrl={activeImgUrl}
+          brand={activeRecord?.brand_name || brand}
+        />
+      )}
+      {showFanModal && activeImgUrl && (
+        <FanBannerModal
+          isOpen={showFanModal}
+          onClose={() => setShowFanModal(false)}
           imageUrl={activeImgUrl}
           brand={activeRecord?.brand_name || brand}
         />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Download, FileCode, Mail, Loader2, Wand2, Bot, Gem, Heart, Shuffle, Save, Check, AlertTriangle, ChevronDown } from 'lucide-react';
+import { X, Download, FileCode, Mail, Loader2, Wand2, Bot, Gem, Heart, Shuffle, Save, Check, AlertTriangle, ChevronDown, ImageDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
+import { FanBannerModal } from './FanBannerModal';
 import { FavoriteHeart } from './FavoriteHeart';
 
 import { storeImage, deleteStoredImage } from '@/lib/imageStore';
@@ -101,6 +102,7 @@ export function ImageModal({
   const [editError, setEditError] = useState<string | null>(null);
   const [showHtmlModal, setShowHtmlModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showFanModal, setShowFanModal] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const updatedUrlsRef = useRef<Map<string, { displayUrl: string; editUrl: string }>>(new Map());
@@ -836,6 +838,9 @@ export function ImageModal({
               <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => setShowEmailModal(true)} disabled={isEditing}>
                 <Mail className="w-3.5 h-3.5" />Convert to Email
               </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => setShowFanModal(true)} disabled={isEditing}>
+                <ImageDown className="w-3.5 h-3.5" />Fan Banner
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" className="gap-1.5 gradient-primary shrink-0" disabled={isEditing}>
@@ -964,6 +969,7 @@ export function ImageModal({
 
       <HtmlConversionModal isOpen={showHtmlModal} onClose={() => setShowHtmlModal(false)} imageUrl={current.displayUrl || current.editUrl} brand={brand} />
       <EmailHtmlConversionModal isOpen={showEmailModal} onClose={() => setShowEmailModal(false)} imageUrl={current.displayUrl || current.editUrl} brand={brand} />
+      <FanBannerModal isOpen={showFanModal} onClose={() => setShowFanModal(false)} imageUrl={current.displayUrl || current.editUrl} brand={brand} />
 
       {/* Unsaved Changes Dialog */}
       {showUnsavedDialog && (

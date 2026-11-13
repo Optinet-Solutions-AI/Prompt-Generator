@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { placePicture, panAfterDrag, CENTERED, MAX_ZOOM } from './picture';
+import { placePicture, panAfterDrag, minZoom, CENTERED, MAX_ZOOM } from './picture';
 
 const W = 1200;
 const H = 600;
@@ -23,12 +23,29 @@ describe('placePicture', () => {
     expect(bottom.y + bottom.h).toBe(H);
   });
 
-  it('never leaves an empty gap, whatever the position and zoom', () => {
+  it('never leaves an empty gap at 100% zoom or more, whatever the position', () => {
     for (const img of [SQUARE, WIDE, { w: 600, h: 1400 }]) {
-      for (const zoom of [0.2, 1, 1.7, MAX_ZOOM, 99]) {
+      for (const zoom of [1, 1.7, MAX_ZOOM, 99]) {
         for (const pan of [-1, 0, 0.3, 1, 2]) {
           const p = placePicture(img, { zoom, panX: pan, panY: pan });
           expect(coversFrame(p), JSON.stringify({ img, zoom, pan, p })).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('when zoomed out, keeps the whole picture inside the banner on the side that has room', () => {
+    // On each axis the picture either covers the banner or sits fully inside it —
+    // never cut off on one side while leaving empty space on the other.
+    const axisOk = (pos: number, size: number, frame: number) =>
+      (pos <= 0.001 && pos + size >= frame - 0.001) || (pos >= -0.001 && pos + size <= frame + 0.001);
+    for (const img of [SQUARE, WIDE, { w: 600, h: 1400 }, { w: 1800, h: 600 }]) {
+      for (const zoom of [0, 0.2, 0.5, 0.8, 1]) {
+        for (const pan of [-1, 0, 0.3, 1, 2]) {
+          const p = placePicture(img, { zoom, panX: pan, panY: pan });
+          const ctx = JSON.stringify({ img, zoom, pan, p });
+          expect(axisOk(p.x, p.w, W), ctx).toBe(true);
+          expect(axisOk(p.y, p.h, H), ctx).toBe(true);
         }
       }
     }
@@ -43,9 +60,22 @@ describe('placePicture', () => {
     expect(right.x + right.w).toBeCloseTo(W);
   });
 
-  it('does not zoom out past "fills the banner", or beyond the maximum', () => {
-    expect(placePicture(SQUARE, { ...CENTERED, zoom: 0.5 })).toEqual(placePicture(SQUARE, CENTERED));
+  it('zooms out until the whole picture fits, and no further', () => {
+    // Square picture: whole picture visible at 600×600 (50% of "fills the banner").
+    expect(minZoom(SQUARE)).toBeCloseTo(0.5);
+    expect(placePicture(SQUARE, { zoom: 0.5, panX: 0.5, panY: 0.5 })).toMatchObject({ w: 600, h: 600 });
+    expect(placePicture(SQUARE, { zoom: 0.1, panX: 0.5, panY: 0.5 })).toEqual(placePicture(SQUARE, { zoom: 0.5, panX: 0.5, panY: 0.5 }));
+    // A 2:1 picture already fits exactly, so it can't zoom out.
+    expect(minZoom(WIDE)).toBeCloseTo(1);
     expect(placePicture(SQUARE, { ...CENTERED, zoom: 50 }).w).toBeCloseTo(1200 * MAX_ZOOM);
+  });
+
+  it('a zoomed-out picture slides between the left and right edges', () => {
+    const left = placePicture(SQUARE, { zoom: 0.5, panX: 0, panY: 0.5 });
+    const right = placePicture(SQUARE, { zoom: 0.5, panX: 1, panY: 0.5 });
+    expect(left.x).toBe(0);
+    expect(right.x + right.w).toBeCloseTo(W);
+    expect(left.y).toBe(0); // fits the height exactly
   });
 });
 
@@ -66,6 +96,15 @@ describe('panAfterDrag', () => {
   it('moves sideways once zoomed in', () => {
     const next = panAfterDrag(SQUARE, { zoom: 2, panX: 0.5, panY: 0.5 }, -300, 0);
     expect(next.panX).toBeGreaterThan(0.5); // dragging left reveals more of the right side
+  });
+
+  it('moves a zoomed-out picture with the pointer and stops at the banner edges', () => {
+    // Square at 50%: 600px picture in a 1200px banner → 600px of room to slide.
+    const start = { zoom: 0.5, panX: 0.5, panY: 0.5 };
+    expect(panAfterDrag(SQUARE, start, -150, 0).panX).toBeCloseTo(0.25); // drag left → moves left
+    expect(panAfterDrag(SQUARE, start, -5000, 0).panX).toBe(0);           // stops at the left edge
+    expect(panAfterDrag(SQUARE, start, 5000, 0).panX).toBe(1);            // stops at the right edge
+    expect(panAfterDrag(SQUARE, start, 0, 200).panY).toBe(0.5);           // fits the height: no vertical room
   });
 
   it('keeps the zoom unchanged', () => {

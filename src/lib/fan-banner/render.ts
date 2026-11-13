@@ -134,10 +134,34 @@ function noShadow(ctx: CanvasRenderingContext2D) {
   ctx.shadowOffsetY = 0;
 }
 
-/** Fill the banner with the picture at the chosen position and zoom (no stretching, no gaps). */
-function drawPicture(ctx: CanvasRenderingContext2D, img: HTMLImageElement, framing: PictureFraming) {
+// How far the picture's edge fades into the brand colour when zoomed out.
+const EDGE_FADE = 120;
+
+/**
+ * Draw the picture at the chosen position and zoom (never stretched). When it
+ * is zoomed out and doesn't reach a banner edge, the brand's dark colour shows
+ * there (painted underneath), and the picture's edge on that side fades softly
+ * into it so there's no hard line.
+ */
+function drawPicture(ctx: CanvasRenderingContext2D, img: HTMLImageElement, framing: PictureFraming, panel: string) {
   const p = placePicture({ w: img.naturalWidth, h: img.naturalHeight }, framing);
   ctx.drawImage(img, p.x, p.y, p.w, p.h);
+
+  const solid = hexToRgba(panel, 1);
+  const clear = hexToRgba(panel, 0);
+  const fade = (x0: number, y0: number, x1: number, y1: number, rect: [number, number, number, number]) => {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, solid);
+    g.addColorStop(1, clear);
+    ctx.fillStyle = g;
+    ctx.fillRect(...rect);
+  };
+  const fx = Math.min(EDGE_FADE, p.w / 2);
+  const fy = Math.min(EDGE_FADE, p.h / 2);
+  if (p.x > 0.5) fade(p.x, 0, p.x + fx, 0, [p.x, p.y, fx, p.h]);                                  // left edge
+  if (p.x + p.w < FAN_W - 0.5) fade(p.x + p.w, 0, p.x + p.w - fx, 0, [p.x + p.w - fx, p.y, fx, p.h]); // right edge
+  if (p.y > 0.5) fade(0, p.y, 0, p.y + fy, [p.x, p.y, p.w, fy]);                                  // top edge
+  if (p.y + p.h < FAN_H - 0.5) fade(0, p.y + p.h, 0, p.y + p.h - fy, [p.x, p.y + p.h - fy, p.w, fy]); // bottom edge
 }
 
 export interface DrawFanBannerOptions {
@@ -172,7 +196,7 @@ export function drawFanBanner(canvas: HTMLCanvasElement, opts: DrawFanBannerOpti
   // 1. Picture (or the brand's dark tone if there is none).
   ctx.fillStyle = brand.colors.panel;
   ctx.fillRect(0, 0, FAN_W, FAN_H);
-  if (picture) drawPicture(ctx, picture, opts.framing ?? CENTERED);
+  if (picture) drawPicture(ctx, picture, opts.framing ?? CENTERED, brand.colors.panel);
 
   // 2. Dark fade so the text stays readable over any picture.
   const { fade } = layout;

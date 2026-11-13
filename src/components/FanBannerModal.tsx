@@ -10,7 +10,7 @@ import {
   FAN_BANNER_BRAND_NAMES, canonicalFanBannerBrandName, fanBannerFilename, getFanBannerBrand,
 } from '@/lib/fan-banner/brands';
 import { FAN_W, type FanBannerTexts, type FanSide } from '@/lib/fan-banner/layout';
-import { CENTERED, MAX_ZOOM, panAfterDrag, type PictureFraming } from '@/lib/fan-banner/picture';
+import { CENTERED, MAX_ZOOM, minZoom, panAfterDrag, type PictureFraming } from '@/lib/fan-banner/picture';
 import { canvasToPngBlob, drawFanBanner, loadBrandFonts, loadLogo, loadPicture } from '@/lib/fan-banner/render';
 
 /**
@@ -208,6 +208,10 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
   const showCanvas = !!brandName && pictureState !== 'loading';
   const canMovePicture = showCanvas && !!picture;
   const isCentered = framing.zoom === CENTERED.zoom && framing.panX === CENTERED.panX && framing.panY === CENTERED.panY;
+  // Lowest zoom = the whole picture fits (50% for a square picture, 100% for a 2:1 one).
+  // The slider snaps to whole percents, so its floor is rounded down; the readout shows the real value.
+  const exactMinZoom = picture ? minZoom({ w: picture.naturalWidth, h: picture.naturalHeight }) : 1;
+  const zoomFloor = Math.floor(exactMinZoom * 100) / 100;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
@@ -266,13 +270,13 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
                 <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                   <span className="text-[11px] font-medium text-muted-foreground">Zoom</span>
                   <Slider
-                    min={1} max={MAX_ZOOM} step={0.01}
+                    min={zoomFloor} max={MAX_ZOOM} step={0.01}
                     value={[framing.zoom]}
                     onValueChange={([zoom]) => changeFraming({ ...framing, zoom })}
                     className="flex-1"
                     aria-label="Zoom the picture"
                   />
-                  <span className="text-[11px] tabular-nums w-9 text-right text-muted-foreground">{Math.round(framing.zoom * 100)}%</span>
+                  <span className="text-[11px] tabular-nums w-9 text-right text-muted-foreground">{Math.round(Math.max(framing.zoom, exactMinZoom) * 100)}%</span>
                 </div>
                 <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs gap-1"
                   onClick={() => changeFraming(CENTERED)} disabled={isCentered}>

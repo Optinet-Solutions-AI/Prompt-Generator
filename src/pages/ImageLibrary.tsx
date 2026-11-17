@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Download, FileCode, Mail, Images, RefreshCw, Share2, Trash2, X,
+  Download, FileCode, Mail, Images, RefreshCw, Share2, Trash2, X,
   ChevronLeft, ChevronRight, ChevronDown, Sparkles, Wand2, Bot, Cpu, Loader2, Plus, Save, Heart, Shuffle, Expand,
   AlertTriangle, Check, ImageDown,
 } from 'lucide-react';
@@ -41,7 +41,8 @@ interface GeneratedImage {
 import { BRANDS } from '@/types/prompt';
 import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, storeImage, setImageLibraryView, pruneStoredImages } from '@/lib/imageStore';
 import { ItemShareDialog } from '@/components/auth/ItemShareDialog';
-import { LibrarySourcePicker, ownerParam, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
+import { LibrarySourcePicker, ownerParam, sourceLabel, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
+import { sourceFromSearch, libraryPath } from '@/lib/nav/library-address';
 import { useAuth } from '@/hooks/useAuth';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
 import { getBrandOverlayUrl } from '@/lib/brandOverlays';
@@ -89,13 +90,23 @@ function fetchImages(page: number, filter: string, brand = 'all'): { data: Gener
 // This means the Image Library works on ANY domain — not just the original one.
 // `owner` picks whose images: '' = mine, a profile id = a shared library,
 // 'archive' = the team folder from before accounts.
-async function syncFromDrive(owner = ''): Promise<number> {
+// If the server says the library isn't shared with you (403) or is gone (404),
+// the result carries its message in `accessError` so the page can show it.
+async function syncFromDrive(owner = ''): Promise<{ added: number; accessError?: string }> {
   try {
     const res = await fetch(`/api/list-drive-images${owner ? `?owner=${encodeURIComponent(owner)}` : ''}`);
     if (!res.ok) {
       const errText = await res.text();
       console.error('[syncFromDrive] API error:', res.status, errText);
-      return 0;
+      if (res.status === 403 || res.status === 404) {
+        let message = res.status === 403 ? "That library hasn't been shared with you." : 'That library is no longer available.';
+        try {
+          const body = JSON.parse(errText) as { error?: string };
+          if (body.error) message = body.error;
+        } catch { /* not JSON — keep the default message */ }
+        return { added: 0, accessError: message };
+      }
+      return { added: 0 };
     }
 
     const data = await res.json() as {
@@ -106,22 +117,22 @@ async function syncFromDrive(owner = ''): Promise<number> {
     };
 
     const files = data.files;
-    if (!Array.isArray(files)) return 0;
+    if (!Array.isArray(files)) return { added: 0 };
     // "Individual items": the server list is the whole truth — anything the
     // owner stopped sharing disappears from the cache too.
     const removed = owner === 'items' ? pruneStoredImages(new Set(files.map(f => f.public_url))) : 0;
-    if (files.length === 0) return removed;
+    if (files.length === 0) return { added: removed };
 
     // Only add images not already in localStorage (deduplicate by public_url)
     const existingUrls = new Set(getAllStoredImages().map(i => i.public_url));
     const newFiles = files.filter(
       f => f.public_url && !existingUrls.has(f.public_url)
     );
-    if (newFiles.length === 0) return removed;
+    if (newFiles.length === 0) return { added: removed };
 
     // Single batch write — much faster than writing one at a time
     console.log(`[syncFromDrive] synced ${newFiles.length} new images from Drive`);
-    return batchStoreImages(newFiles.map(f => ({
+    const stored = batchStoreImages(newFiles.map(f => ({
       public_url:   f.public_url,
       provider:     (f.provider || 'chatgpt').toLowerCase(),
       aspect_ratio: f.aspect_ratio || '16:9',
@@ -129,10 +140,11 @@ async function syncFromDrive(owner = ''): Promise<number> {
       filename:     f.filename     || `image-${f.id}.png`,
       brand:        f.brand || undefined,
       shared_by:    f.shared_by || undefined,
-    }))) + removed;
+    })));
+    return { added: stored + removed };
   } catch (err) {
     console.error('[syncFromDrive] failed:', err);
-    return 0;
+    return { added: 0 };
   }
 }
 
@@ -1681,9 +1693,12 @@ const FILTERS = [
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
-export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean; onBack?: () => void } = {}) {
+export default function ImageLibrary() {
   // Lazy-init from localStorage so the first render already has images (no empty-state flash)
+  // (Only when the address points at my own library — for a colleague's library the cache
+  // read would still be mine, which would flash my images for a moment.)
   const [images,      setImages]      = useState<GeneratedImage[]>(() => {
+    if (sourceFromSearch(window.location.search).kind !== 'mine') return [];
     try { return getImages(0, 'all').data as GeneratedImage[]; } catch { return []; }
   });
   const [page,        setPage]        = useState(0);
@@ -1697,7 +1712,12 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
 
   // Whose library is showing (My library / a colleague's / Team archive)
   const { user } = useAuth();
-  const [source, setSource] = useState<LibrarySource>({ kind: 'mine' });
+  // Whose library is showing comes from the address (?from=...), so it can be bookmarked and shared.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const source = useMemo(() => sourceFromSearch(location.search), [location.search]);
+  // Set when the server refuses the library (not shared with me / no longer available).
+  const [accessError, setAccessError] = useState<string | null>(null);
   const sourceRef = useRef<LibrarySource>(source);
   const [syncing, setSyncing] = useState(false);
 
@@ -1733,8 +1753,16 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
     setImageLibraryView(source.kind === 'shared' ? { kind: 'shared', ownerId: source.ownerId } : { kind: source.kind });
     load(0, filter, brandFilter, true);
     setSyncing(true);
-    syncFromDrive(ownerParam(source)).then(count => {
-      if (count > 0 && sourceRef.current === source) {
+    setAccessError(null);
+    syncFromDrive(ownerParam(source)).then(({ added, accessError: refused }) => {
+      if (sourceRef.current !== source) return;
+      if (refused) {
+        setAccessError(refused);
+        // The view still points at the refused library's cache: clear it so none of its images show.
+        pruneStoredImages(new Set());
+        setImages([]);
+      }
+      if (added > 0) {
         // New images were synced from Drive — reload the grid so they appear
         load(0, filter, brandFilter, true);
       }
@@ -1780,26 +1808,13 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
   const nextImage   = () => lightboxIdx < images.length - 1 && setLightbox(images[lightboxIdx + 1]);
 
   return (
-    <div className={embedded ? '' : 'min-h-screen bg-background'}>
+    <div className="bg-background">
 
       {/* Top bar */}
-      <div className={`${embedded ? 'sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border' : 'sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border'}`}>
+      <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border">
         {/* Phones/tablets: title + picker + refresh on row 1, filter tabs full-width on row 2 */}
         <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-2 lg:py-0 lg:h-16 flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-2 lg:gap-6">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 lg:flex-none">
-            {embedded ? (
-              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground -ml-2" onClick={onBack}>
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back</span>
-              </Button>
-            ) : (
-              <Link to="/">
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground -ml-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Back</span>
-                </Button>
-              </Link>
-            )}
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center shadow-sm">
                 <Images className="w-4 h-4 text-primary-foreground" />
@@ -1812,7 +1827,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
                 </p>
               </div>
             </div>
-            <LibrarySourcePicker value={source} onChange={setSource} />
+            <LibrarySourcePicker value={source} onChange={next => navigate(libraryPath('images', next))} />
           </div>
 
           {/* Filter tabs */}
@@ -1878,6 +1893,17 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
       {/* Content */}
       <div className="max-w-[1600px] mx-auto px-6 py-8">
 
+        {/* Library refused: not shared with me, or gone */}
+        {accessError && (
+          <div className="text-center py-20">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-destructive/10 mb-4">
+              <X className="w-6 h-6 text-destructive" />
+            </div>
+            <p className="text-foreground font-medium mb-6">{accessError}</p>
+            <Link to="/library/images"><Button variant="outline">Go to My images</Button></Link>
+          </div>
+        )}
+
         {/* Error */}
         {error && (
           <div className="text-center py-20">
@@ -1891,7 +1917,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
         )}
 
         {/* Empty */}
-        {!isLoading && !error && images.length === 0 && (
+        {!isLoading && !error && !accessError && images.length === 0 && (
           <div className="text-center py-28">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl gradient-primary shadow-glow mb-6">
               <Sparkles className="w-10 h-10 text-primary-foreground" />
@@ -1905,24 +1931,20 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
                   ? "Nothing shared with you one by one yet. When a colleague opens one of their images and clicks \"Share this image\", it shows up here."
                 : source.kind === 'mine'
                   ? "Images you generate are saved to your own Google Drive and appear here. Looking for images made before accounts? They're in the Team archive."
-                  : "Generate some images and they'll appear here."}
+                  : `No images in ${sourceLabel(source)} yet.`}
             </p>
             <div className="flex gap-3 justify-center">
               {filter !== 'all' && <Button variant="outline" onClick={() => handleFilter('all')}>Show all</Button>}
               {filter === 'all' && source.kind === 'mine' && (
-                <Button variant="outline" onClick={() => setSource({ kind: 'archive' })}>Open Team archive</Button>
+                <Button variant="outline" onClick={() => navigate(libraryPath('images', { kind: 'archive' }))}>Open Team archive</Button>
               )}
-              {embedded ? (
-                <Button onClick={onBack}>Generate images</Button>
-              ) : (
-                <Link to="/"><Button>Generate images</Button></Link>
-              )}
+              {source.kind === 'mine' && <Link to="/custom"><Button>Generate images</Button></Link>}
             </div>
           </div>
         )}
 
         {/* Skeleton */}
-        {isLoading && images.length === 0 && (
+        {isLoading && !accessError && images.length === 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {Array.from({ length: 24 }).map((_, i) => (
               <div key={i} className="rounded-2xl bg-muted/60 animate-pulse aspect-[4/3]" />
@@ -1931,7 +1953,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
         )}
 
         {/* Grid */}
-        {images.length > 0 && (
+        {!accessError && images.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {images.map((image, i) => (
               <ImageCard
@@ -1946,7 +1968,7 @@ export default function ImageLibrary({ embedded, onBack }: { embedded?: boolean;
         )}
 
         {/* Load more */}
-        {hasMore && !isLoading && images.length > 0 && (
+        {!accessError && hasMore && !isLoading && images.length > 0 && (
           <div className="flex justify-center mt-10">
             <Button variant="outline" size="lg" onClick={() => load(page + 1, filter, brandFilter)} className="gap-2 px-8 rounded-xl">
               Load more images

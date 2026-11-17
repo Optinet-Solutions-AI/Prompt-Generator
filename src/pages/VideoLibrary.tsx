@@ -6,9 +6,10 @@
  * archive from before accounts. Favorites (liked_videos) are per person, so
  * the heart only appears on my own videos.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Clapperboard, Download, Film, Heart, Loader2, RefreshCw, Share2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Clapperboard, Download, Film, Heart, Loader2, RefreshCw, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { BRANDS } from '@/types/prompt';
 import { videoApi, type LibraryVideo } from '@/lib/video-api';
@@ -16,17 +17,23 @@ import { VIDEO_MODELS } from '@/lib/ugc-video';
 
 /** 'seedance_2_5' → 'Seedance 2.5'; '' → '' (older videos didn't record a model). */
 const modelLabel = (id: string) => VIDEO_MODELS.find(m => m.id === id)?.label || id;
-import { LibrarySourcePicker, ownerParam, sourceLabel, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
+import { LibrarySourcePicker, ownerParam, sourceLabel } from '@/components/auth/LibrarySourcePicker';
+import { sourceFromSearch, libraryPath } from '@/lib/nav/library-address';
 import { ItemShareDialog } from '@/components/auth/ItemShareDialog';
 
-export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
+export default function VideoLibrary() {
   const [videos, setVideos] = useState<LibraryVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [brand, setBrand] = useState('All');
   const [model, setModel] = useState('All');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  const [source, setSource] = useState<LibrarySource>({ kind: 'mine' });
+  // Whose library is showing comes from the address (?from=...), so it can be bookmarked and shared.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const source = useMemo(() => sourceFromSearch(location.search), [location.search]);
+  // Changing the source starts fresh: clear the brand, model and favorites filters.
+  useEffect(() => { setBrand('All'); setModel('All'); setFavoritesOnly(false); }, [source]);
   const isMine = source.kind === 'mine';
   // The video whose "Share" window is open (null = closed)
   const [sharing, setSharing] = useState<LibraryVideo | null>(null);
@@ -35,11 +42,23 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   const [visible, setVisible] = useState(PAGE);
   useEffect(() => { setVisible(PAGE); }, [source, brand, model, favoritesOnly]);
 
+  // Which library is showing right now — a slow reply for an older choice is ignored.
+  const sourceRef = useRef(source);
+  sourceRef.current = source;
+
   const load = useCallback(async () => {
+    const asked = source;
     setLoading(true); setError('');
-    try { setVideos((await videoApi.list(ownerParam(source))).files); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Could not load videos'); }
-    finally { setLoading(false); }
+    try {
+      const files = (await videoApi.list(ownerParam(asked))).files;
+      if (sourceRef.current !== asked) return;
+      setVideos(files);
+    }
+    catch (e) {
+      if (sourceRef.current !== asked) return;
+      setError(e instanceof Error ? e.message : 'Could not load videos');
+    }
+    finally { if (sourceRef.current === asked) setLoading(false); }
   }, [source]);
 
   useEffect(() => { load(); }, [load]);
@@ -67,18 +86,17 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
   };
 
   return (
-    <div className="space-y-5">
+    // Page padding to match the Image Library (same width limit and side gaps).
+    // w-full keeps it no wider than the screen (the frame lays pages out in a column).
+    <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-6 py-6 space-y-5">
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-3">
-        {onBack && (
-          <Button variant="outline" size="sm" onClick={onBack}><ArrowLeft className="w-4 h-4 mr-1" />Back</Button>
-        )}
         <div className="flex items-center gap-2">
           <Clapperboard className="w-5 h-5 text-primary" />
           <h2 className="text-xl font-bold text-foreground">Video Library</h2>
           {!loading && <span className="text-sm text-muted-foreground">{videos.length} videos</span>}
         </div>
-        <LibrarySourcePicker value={source} onChange={s => { setSource(s); setBrand('All'); setModel('All'); setFavoritesOnly(false); }} />
+        <LibrarySourcePicker value={source} onChange={next => navigate(libraryPath('videos', next))} />
         <div className="ml-auto flex gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading} aria-label="Refresh" title="Refresh">
             <RefreshCw className={`w-4 h-4 sm:mr-1 ${loading ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Refresh</span>
@@ -152,13 +170,16 @@ export default function VideoLibrary({ onBack }: { onBack?: () => void }) {
         <div className="p-4 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">
           <p className="font-medium">Couldn't load the Video Library</p>
           <p className="mt-1">{error}</p>
+          {!isMine && (
+            <Link to="/library/videos"><Button variant="outline" size="sm" className="mt-3">Go to My videos</Button></Link>
+          )}
         </div>
       )}
       {!loading && !error && shown.length === 0 && (
         <div className="text-center py-16 text-muted-foreground">
           <Clapperboard className="w-10 h-10 mx-auto mb-3 opacity-40" />
           {videos.length === 0
-            ? (isMine ? 'No videos yet — generate one in the Video tab.'
+            ? (isMine ? 'No videos yet — make one on the Video page.'
               : source.kind === 'items' ? 'Nothing shared with you one by one yet. When a colleague clicks Share on one of their videos, it shows up here.'
               : `No videos in ${sourceLabel(source)} yet.`)
             : 'No videos match these filters.'}

@@ -66,6 +66,10 @@ interface ResultDisplayProps {
   onRemoveGeneratedImage?: (provider: "chatgpt" | "gemini", index: number) => void;
   persistedVariations?: GalleryImage[];
   onVariationsChange?: (variations: GalleryImage[]) => void;
+  /** Told true while an image is being made here, false when done (used for the sidebar's "working" dot). */
+  onImageBusyChange?: (busy: boolean) => void;
+  /** False while another screen is showing (this one is only hidden). Its dialogs then close, and the image viewer stops listening to the keyboard. */
+  isVisible?: boolean;
 }
 
 export function ResultDisplay({
@@ -91,6 +95,8 @@ export function ResultDisplay({
   onRemoveGeneratedImage,
   persistedVariations: persistedVariationsProp = [],
   onVariationsChange,
+  onImageBusyChange,
+  isVisible = true,
 }: ResultDisplayProps) {
   // Load all prompts from Airtable via n8n (same as the form page)
   const { getReferencesForBrand, getRecordId, refetch } = usePromptList();
@@ -178,6 +184,11 @@ export function ResultDisplay({
     chatgpt: false,
     gemini: false,
   });
+  // Tell the parent whether an image is being made right now, and "not busy"
+  // when this result view closes.
+  const isMakingImage = generatingImage.chatgpt || generatingImage.gemini;
+  useEffect(() => { onImageBusyChange?.(isMakingImage); }, [isMakingImage, onImageBusyChange]);
+  useEffect(() => () => onImageBusyChange?.(false), [onImageBusyChange]);
   // Which Gemini image model to use. Restored from localStorage so a tester's
   // choice survives a page reload mid-comparison.
   const [geminiModel, setGeminiModel] = useState<string>(loadSavedGeminiModel);
@@ -209,6 +220,20 @@ export function ResultDisplay({
   // now lives inside SaveAsReferenceDialog itself — this page only tracks
   // whether it's open.
   const [saveAsRefOpen, setSaveAsRefOpen] = useState(false);
+
+  // Leaving this screen (it stays loaded, only hidden) closes its dialogs
+  // (create / archive / rename / save-as-reference). They float above the page,
+  // so otherwise they would sit on top of the next screen.
+  // The image viewer is NOT closed: it is hidden along with this screen, so an
+  // edit running inside it carries on and is still there when you come back.
+  // It only stops listening to the keyboard while hidden (keyboardActive below).
+  useEffect(() => {
+    if (isVisible) return;
+    setCreateDialogOpen(false);
+    setArchiveDialogOpen(false);
+    setRenameDialogOpen(false);
+    setSaveAsRefOpen(false);
+  }, [isVisible]);
 
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
@@ -1090,6 +1115,7 @@ export function ResultDisplay({
         return (
           <ImageModal
             isOpen={true}
+            keyboardActive={isVisible}
             onClose={() => setModalImage(null)}
             allImages={galleryImages}
             initialIndex={modalImage.initialIndex}

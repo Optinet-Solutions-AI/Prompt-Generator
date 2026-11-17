@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -26,6 +26,8 @@ interface PromptFormProps {
   onSubmit: () => void;
   onClear: () => void;
   onOpenFavorites: () => void;
+  /** False while another screen is showing (this one is only hidden). Its dialogs then close. */
+  isVisible?: boolean;
 }
 
 export function PromptForm({
@@ -38,6 +40,7 @@ export function PromptForm({
   onSubmit,
   onClear,
   onOpenFavorites,
+  isVisible = true,
 }: PromptFormProps) {
   // Load all prompts from Airtable via n8n
   const { getReferencesForBrand, getRecordId, refetch, isLoading: isLoadingList, error: listError } = usePromptList();
@@ -60,6 +63,17 @@ export function PromptForm({
   const [renameInput, setRenameInput] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameError, setRenameError] = useState('');
+
+  // Leaving this screen (it stays loaded, only hidden) closes its dialogs
+  // (rename / create / save-as-reference / archive). They float above the page,
+  // so otherwise they would sit on top of the next screen.
+  useEffect(() => {
+    if (isVisible) return;
+    setRenameDialogOpen(false);
+    setCreateDialogOpen(false);
+    setSaveAsRefOpen(false);
+    setArchiveDialogOpen(false);
+  }, [isVisible]);
 
   const handleRename = async () => {
     if (!renameInput.trim()) { setRenameError('Please enter a name.'); return; }

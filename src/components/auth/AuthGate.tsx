@@ -5,8 +5,8 @@
  *   not signed in → sign-in screen: "Sign in with Google" or "Sign in with a username"
  *   pending       → "waiting for approval" screen
  *   blocked       → "access turned off" screen
- *   approved      → the app, with the user bar (who's online + menu) top-right,
- *                   and a "Connect Google Drive" bar for username accounts without Drive
+ *   approved      → the app (the frame, AppFrame, draws the user bar and the
+ *                   "Connect Google Drive" bar for username accounts without Drive)
  *
  * Company accounts are approved automatically; others are approved by an admin
  * in Supabase → profiles → status (see api/auth.ts). Username accounts are
@@ -14,11 +14,12 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Clock, HardDrive, Loader2, ShieldOff, UserRound } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { takeReturnPath } from '@/lib/nav/return-path';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { authApi, accountLabel } from '@/lib/auth-api';
-import { UserBar } from './UserBar';
 import { UsernameSignIn } from './PasswordSignIn';
 
 function GoogleG() {
@@ -72,7 +73,7 @@ function SignInScreen({ onSignIn, onSignedIn, error }: { onSignIn: () => void; o
 }
 
 /** Username accounts don't come with Google Drive; until it's connected nothing can be saved. */
-function ConnectDriveBar() {
+export function ConnectDriveBar() {
   return (
     <div className="px-3 sm:px-5 pt-2">
       <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5">
@@ -90,7 +91,8 @@ function ConnectDriveBar() {
 }
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { loading, user, driveConnected, error, signIn, signOut, refresh } = useAuth();
+  const { loading, user, error, signIn, signOut, refresh } = useAuth();
+  const navigate = useNavigate();
 
   // Coming back from Google (/?auth=…): show the outcome once and tidy the URL.
   useEffect(() => {
@@ -107,6 +109,17 @@ export function AuthGate({ children }: { children: ReactNode }) {
     url.searchParams.delete('auth');
     window.history.replaceState({}, '', url.pathname + url.search);
   }, []);
+
+  // After signing in (the trip to Google lands on "/"), go back to the page the person was on.
+  // Runs once per approved page load: takeReturnPath() reads the saved page and removes it (so it is used only once).
+  const approvedId = user?.status === 'approved' ? user.id : undefined;
+  useEffect(() => {
+    if (!approvedId) return;
+    const target = takeReturnPath();
+    // Compare with the real address bar (the effect above may have just tidied it).
+    const current = window.location.pathname + window.location.search;
+    if (target && target !== current) navigate(target, { replace: true });
+  }, [approvedId, navigate]);
 
   if (loading) {
     return (
@@ -144,11 +157,5 @@ export function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  return (
-    <>
-      <UserBar />
-      {user.has_google === false && !driveConnected && <ConnectDriveBar />}
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

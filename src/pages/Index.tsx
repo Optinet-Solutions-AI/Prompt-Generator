@@ -1,5 +1,5 @@
 import { Images, Sparkles, Trophy, Mail, Video, Clapperboard } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PromptForm } from "@/components/PromptForm";
 import { ProcessingState } from "@/components/ProcessingState";
@@ -13,6 +13,10 @@ import { useVideoGenerator } from "@/hooks/useVideoGenerator";
 import { usePromptGenerator } from "@/hooks/usePromptGenerator";
 import { useReferencePromptData } from "@/hooks/useReferencePromptData";
 import { useSportsBannerWizard } from "@/hooks/useSportsBannerWizard";
+import { useIdeas } from "@/hooks/useIdeas";
+import { GetIdeasPanel } from "@/components/ideas/GetIdeasPanel";
+import { formDataFromIdea } from "@/lib/ideas";
+import type { AssistantConcept } from "@/lib/assistant-types";
 import { LikedImagesPanel } from "@/components/LikedImagesPanel";
 import { toast } from "sonner";
 import { FormData } from "@/types/prompt";
@@ -149,6 +153,25 @@ const Index = () => {
       handleFieldChange("negative_prompt", "");
     }
   };
+
+  // ── "Get ideas" ────────────────────────────────────────────────────────────
+  // Kept here, not in the form: the form leaves the page while a prompt is made
+  // and while the result shows (and when switching tabs), and the ideas must
+  // still be there after "Edit form". Using an idea runs the normal Generate
+  // prompt with the idea's eight prompt parts and the form's own size /
+  // position / theme settings.
+  const ideas = useIdeas(formData.brand);
+  const prepareIdea = ideas.prepareIdea;
+  // The form as it is when the idea comes back (it takes a few seconds), not when it was clicked.
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+  const handleUseIdea = useCallback(async (idea: AssistantConcept) => {
+    const fields = await prepareIdea(idea);
+    if (!fields) return;
+    clearReferencePromptData();
+    setLastGenerationSource('form');
+    handleSubmitWithData(formDataFromIdea(formDataRef.current, idea.title, fields));
+  }, [prepareIdea, clearReferencePromptData, handleSubmitWithData]);
 
   const handleClearFormWithReference = () => {
     handleClearForm();
@@ -313,6 +336,14 @@ const Index = () => {
                       onSubmit={() => { setLastGenerationSource('form'); handleSubmit(); }}
                       onClear={handleClearFormWithReference}
                       onOpenFavorites={() => setShowLikedPanel(true)}
+                      ideasPanel={
+                        <GetIdeasPanel
+                          brand={formData.brand}
+                          ideas={ideas}
+                          onUseIdea={handleUseIdea}
+                          busy={appState === 'PROCESSING' || isRegeneratingPrompt}
+                        />
+                      }
                     />
                   )}
 

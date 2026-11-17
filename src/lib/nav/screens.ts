@@ -29,9 +29,9 @@ export const SCREENS: readonly ScreenInfo[] = [
 
 // The section headings in the sidebar and on Home (Home itself has none).
 export const GROUP_LABELS: Readonly<Record<'create' | 'libraries' | 'tools', string>> = {
-  create: 'CREATE',
-  libraries: 'LIBRARIES',
-  tools: 'TOOLS',
+  create: 'Create',
+  libraries: 'Libraries',
+  tools: 'Tools',
 };
 
 // Old addresses that now point somewhere new.

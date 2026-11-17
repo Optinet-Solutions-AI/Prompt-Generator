@@ -57,7 +57,7 @@ describe('SCREENS and LEGACY_REDIRECTS', () => {
     expect(LEGACY_REDIRECTS).toEqual({ '/library': '/library/images', '/video-library': '/library/videos' });
   });
   it('has the section headings', () => {
-    expect(GROUP_LABELS).toEqual({ create: 'CREATE', libraries: 'LIBRARIES', tools: 'TOOLS' });
+    expect(GROUP_LABELS).toEqual({ create: 'Create', libraries: 'Libraries', tools: 'Tools' });
   });
 });
 

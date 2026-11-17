@@ -2,7 +2,7 @@
  * AppFrame — the frame around every signed-in screen.
  *
  *   ┌──────────┬──────────────────────────────────────────┐
- *   │          │ [☰]                    who's online · me │  ← top bar
+ *   │          │ [☰] | Screen name      who's online · me │  ← top bar
  *   │ sidebar  │ (Connect Google Drive bar, when needed)  │
  *   │          │ the work screens (kept loaded, hidden)   │
  *   │          │ the other pages (<Outlet/>)               │
@@ -71,15 +71,25 @@ export function AppFrame() {
     }
   }, [pathname, search]);
 
+  // The name of the open screen, shown next to the menu button (on a phone the
+  // sidebar is hidden, so this is how you know where you are).
+  const current = SCREENS.find(s => s.id === activeScreenForLocation(pathname, search));
+
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={handleSidebarOpenChange}>
       <AppSidebar busy={busy} />
       {/* min-w-0 lets wide pages shrink to fit next to the sidebar instead of pushing past the screen edge */}
       <SidebarInset className="min-w-0">
-        {/* Top bar: menu button on the left, who's online + my account on the right */}
+        {/* Top bar: menu button + screen name on the left, who's online + my account on the right */}
         <div className="flex items-center justify-between">
-          <div className="pl-3 sm:pl-5 pt-3">
+          <div className="pl-3 sm:pl-5 pt-3 flex items-center gap-3 min-w-0">
             <MenuButton />
+            {current && (
+              <>
+                <span className="h-4 w-px bg-border shrink-0" aria-hidden="true" />
+                <span className="text-sm font-medium text-foreground/80 truncate">{current.label}</span>
+              </>
+            )}
           </div>
           <UserBar />
         </div>

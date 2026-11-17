@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import sharp from 'sharp';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import handler, { logAssistantImageGen, resizeToExact, pickOpenAiImageSize, assistantTesterId } from './generate-image.js';
 import { resolveGeminiModel, DEFAULT_GEMINI_IMAGE_MODEL } from './_image-models.js';
 
@@ -298,7 +299,7 @@ describe('assistant requests need a real tester token', () => {
   });
 
   it('does not log an image cost under an id that is not a tester token', async () => {
-    const req = { body: { source: 'assistant', test_user_id: VICTIM } } as any;
+    const req = { body: { source: 'assistant', test_user_id: VICTIM } } as unknown as VercelRequest;
     await logAssistantImageGen(req, 'file-id', 'openai', 'gpt-image-1', '1024x1024', 'standard');
     expect(insertMock).not.toHaveBeenCalled();
   });
@@ -306,7 +307,7 @@ describe('assistant requests need a real tester token', () => {
   it('makes a request with a made-up tester id sign in like everyone else (401), before any spend check', async () => {
     const res = { statusCode: 200, body: null as unknown, setHeader() {}, status(c: number) { this.statusCode = c; return this; }, json(b: unknown) { this.body = b; return this; }, end() { return this; } };
     const req = { method: 'POST', headers: { host: 'localhost:5173', cookie: '' }, body: { prompt: 'a hero', provider: 'chatgpt', source: 'assistant', test_user_id: VICTIM } };
-    await handler(req as any, res as any);
+    await handler(req as unknown as VercelRequest, res as unknown as VercelResponse);
     expect(res.statusCode).toBe(401);
     expect(spendCapMock).not.toHaveBeenCalled();
   });

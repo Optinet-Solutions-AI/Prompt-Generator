@@ -102,14 +102,22 @@ export function WorkScreens({ visible, onBusyChange }: { visible: WorkScreenId |
   // Hiding a screen doesn't pause a playing video or audio, so a finished video
   // would keep playing (with sound) after you leave. Each time the visible
   // screen changes, pause everything inside the screens that are now hidden.
-  // We never press play again when you come back.
+  // A video can also START while its screen is hidden (one that finishes
+  // rendering while you're on another screen autoplays), so hidden screens
+  // also stop anything that starts playing. 'play' doesn't bubble, so it is
+  // caught on the way down (capture). We never press play again when you come back.
   const wrapperRefs = useRef<Partial<Record<WorkScreenId, HTMLDivElement | null>>>({});
   useEffect(() => {
-    (Object.keys(wrapperRefs.current) as WorkScreenId[]).forEach(id => {
-      const wrapper = wrapperRefs.current[id];
-      if (!wrapper || id === visible) return;
+    const hidden = (Object.keys(wrapperRefs.current) as WorkScreenId[])
+      .filter(id => id !== visible)
+      .map(id => wrapperRefs.current[id])
+      .filter((wrapper): wrapper is HTMLDivElement => !!wrapper);
+    const stopIfStarted = (e: Event) => { if (e.target instanceof HTMLMediaElement) e.target.pause(); };
+    hidden.forEach(wrapper => {
       wrapper.querySelectorAll<HTMLMediaElement>('video, audio').forEach(media => media.pause());
+      wrapper.addEventListener('play', stopIfStarted, true);
     });
+    return () => hidden.forEach(wrapper => wrapper.removeEventListener('play', stopIfStarted, true));
   }, [visible]);
 
   const { referencePromptData, isLoadingReferenceData, fetchReferencePromptData, clearReferencePromptData } =

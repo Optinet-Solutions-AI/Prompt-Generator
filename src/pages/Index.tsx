@@ -15,7 +15,7 @@ import { useReferencePromptData } from "@/hooks/useReferencePromptData";
 import { useSportsBannerWizard } from "@/hooks/useSportsBannerWizard";
 import { useIdeas } from "@/hooks/useIdeas";
 import { GetIdeasPanel } from "@/components/ideas/GetIdeasPanel";
-import { formDataFromIdea } from "@/lib/ideas";
+import { formDataFromIdea, preparedIdeaStillWanted } from "@/lib/ideas";
 import type { AssistantConcept } from "@/lib/assistant-types";
 import { LikedImagesPanel } from "@/components/LikedImagesPanel";
 import { toast } from "sonner";
@@ -165,9 +165,16 @@ const Index = () => {
   // The form as it is when the idea comes back (it takes a few seconds), not when it was clicked.
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
+  const appStateRef = useRef(appState);
+  appStateRef.current = appState;
   const handleUseIdea = useCallback(async (idea: AssistantConcept) => {
+    const atClick = { brand: formDataRef.current.brand, reference: formDataRef.current.reference };
     const fields = await prepareIdea(idea);
     if (!fields) return;
+    // If they changed the brand, cleared the form, picked a saved reference or
+    // started Generate Prompt meanwhile, they moved on: drop this idea.
+    const now = { brand: formDataRef.current.brand, reference: formDataRef.current.reference, appState: appStateRef.current };
+    if (!preparedIdeaStillWanted(atClick, now)) return;
     clearReferencePromptData();
     setLastGenerationSource('form');
     handleSubmitWithData(formDataFromIdea(formDataRef.current, idea.title, fields));

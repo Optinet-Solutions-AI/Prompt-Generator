@@ -61,3 +61,17 @@ export function ideasErrorMessage(err: unknown): string {
   }
   return "Couldn't get ideas — try again";
 }
+
+/**
+ * An idea takes a few seconds to turn into prompt parts. Use it only if the
+ * form is still where the user left it: same brand, same reference, and no
+ * prompt already being made or shown. Otherwise they moved on — changed the
+ * brand, cleared the form, picked a saved reference, or clicked Generate
+ * Prompt — and sending the old idea would overrule what they did.
+ */
+export function preparedIdeaStillWanted(
+  atClick: { brand: string; reference: string },
+  now: { brand: string; reference: string; appState: string },
+): boolean {
+  return now.appState === 'FORM' && now.brand === atClick.brand && now.reference === atClick.reference;
+}

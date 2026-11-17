@@ -3,7 +3,7 @@ import { INITIAL_FORM_DATA } from '@/types/prompt';
 import { AssistantRequestError } from './assistant-client';
 import {
   IDEA_REFERENCE_PREFIX, ideaReference, ideaTitleFromReference, formDataFromIdea,
-  canAskForIdeas, briefKey, isStaleAnswer, ideasErrorMessage,
+  canAskForIdeas, briefKey, isStaleAnswer, ideasErrorMessage, preparedIdeaStillWanted,
 } from './ideas';
 
 const FIELDS = {
@@ -71,5 +71,21 @@ describe('ideasErrorMessage', () => {
     expect(ideasErrorMessage(new AssistantRequestError('m', 500))).toBe("Couldn't get ideas — try again");
     expect(ideasErrorMessage(new Error('boom'))).toBe("Couldn't get ideas — try again");
     expect(ideasErrorMessage('weird')).toBe("Couldn't get ideas — try again");
+  });
+});
+
+describe('preparedIdeaStillWanted', () => {
+  const atClick = { brand: 'RocketSpin', reference: '' };
+  it('uses the idea when the form is still on the same brand and reference', () => {
+    expect(preparedIdeaStillWanted(atClick, { brand: 'RocketSpin', reference: '', appState: 'FORM' })).toBe(true);
+  });
+  it('drops it when the brand changed, the form was cleared, or a reference was picked meanwhile', () => {
+    expect(preparedIdeaStillWanted(atClick, { brand: 'SpinJo', reference: '', appState: 'FORM' })).toBe(false);
+    expect(preparedIdeaStillWanted(atClick, { brand: '', reference: '', appState: 'FORM' })).toBe(false);
+    expect(preparedIdeaStillWanted(atClick, { brand: 'RocketSpin', reference: 'Stormcraft Arrival — A hero', appState: 'FORM' })).toBe(false);
+  });
+  it('drops it when a prompt is already being made or shown (Generate Prompt was clicked)', () => {
+    expect(preparedIdeaStillWanted(atClick, { brand: 'RocketSpin', reference: '', appState: 'PROCESSING' })).toBe(false);
+    expect(preparedIdeaStillWanted(atClick, { brand: 'RocketSpin', reference: '', appState: 'RESULT' })).toBe(false);
   });
 });

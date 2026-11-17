@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import type { AssistantConcept } from '@/lib/assistant-types';
 import { canAskForIdeas } from '@/lib/ideas';
+import { parseBoldSegments } from '@/lib/inline-bold';
 import type { Ideas } from '@/hooks/useIdeas';
 
 /**
@@ -26,6 +27,13 @@ export function GetIdeasPanel({ brand, ideas, onUseIdea, busy }: GetIdeasPanelPr
   const preparing = !!ideas.preparingTitle;
   const canAsk = canAskForIdeas(brand, ideas.task) && !ideas.loading && !preparing;
   const shown = ideas.ideas && ideas.ideas.length > 0 ? ideas.ideas : null;
+  // The panel sits inside the Custom prompt <form>: Enter here must ask for
+  // ideas, not submit the form (which would start Generate Prompt).
+  const askOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (canAsk) void ideas.getIdeas();
+  };
 
   return (
     <Collapsible open={ideas.open} onOpenChange={ideas.setOpen} className="rounded-xl border border-border bg-muted/30">
@@ -59,6 +67,7 @@ export function GetIdeasPanel({ brand, ideas, onUseIdea, busy }: GetIdeasPanelPr
                   placeholder="new year banner, weekend boost…"
                   maxLength={200}
                   disabled={ideas.loading}
+                  onKeyDown={askOnEnter}
                 />
               </div>
               <div className="space-y-1.5">
@@ -70,6 +79,7 @@ export function GetIdeasPanel({ brand, ideas, onUseIdea, busy }: GetIdeasPanelPr
                   placeholder="mood, time of day, what to lean into…"
                   maxLength={300}
                   disabled={ideas.loading}
+                  onKeyDown={askOnEnter}
                 />
               </div>
             </div>
@@ -111,7 +121,14 @@ export function GetIdeasPanel({ brand, ideas, onUseIdea, busy }: GetIdeasPanelPr
 
             {shown && ideas.recommendation && (
               <p className="text-xs text-muted-foreground">
-                <span className="font-semibold text-foreground">Our pick:</span> {ideas.recommendation}
+                <span className="font-semibold text-foreground">Our pick:</span>{' '}
+                {/* The AI writes **bold** — shown as bold, never as literal asterisks.
+                    Rendered as React elements, never as HTML: this is model output. */}
+                {parseBoldSegments(ideas.recommendation).map((seg, i) =>
+                  seg.bold
+                    ? <strong key={i} className="font-semibold text-foreground">{seg.text}</strong>
+                    : <span key={i}>{seg.text}</span>
+                )}
               </p>
             )}
           </>

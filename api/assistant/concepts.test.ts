@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import handler from './concepts.js';
+import { makeSessionValue, SESSION_COOKIE } from '../_session.js';
 
 // Mocking `chat` (rather than `global.fetch`) is what lets these tests assert
 // HOW MANY calls are made and WHAT lens each one carries — the whole point of
@@ -11,8 +12,9 @@ vi.mock('../_llm.js', () => ({ chat: (...args: unknown[]) => chatMock(...args) }
 const logMock = vi.fn();
 vi.mock('../_assistant-log.js', () => ({ logLlmCall: (...args: unknown[]) => logMock(...args) }));
 
+const capMock = vi.fn(async (_who: string) => ({ allowed: true, spent_today_usd: 0, cap_usd: 1 }));
 vi.mock('../_spend-cap.js', () => ({
-  checkSpendCap: async () => ({ allowed: true, spent_today_usd: 0, cap_usd: 1 }),
+  checkSpendCap: (who: string) => capMock(who),
 }));
 
 function mockReqRes(body: unknown) {
@@ -202,5 +204,55 @@ describe('concepts fan-out', () => {
 
     expect(res.statusCode).toBe(200);
     expect((res.body as any).concepts).toHaveLength(2);
+  });
+});
+
+// The main tool (Custom prompt → Get ideas) sends no tester token: the
+// signed-in, approved person asks, and pays from their own daily budget.
+describe('concepts for signed-in people (main tool)', () => {
+  const APPROVED = '96bd042c-0000-4000-8000-0000000000a1';
+  const signedIn = (body: unknown, cookie: string) => {
+    const r = mockReqRes(body);
+    (r.req as any).headers = { host: 'localhost:5173', cookie };
+    return r;
+  };
+  beforeEach(() => {
+    chatMock.mockReset(); logMock.mockReset(); capMock.mockClear();
+    process.env.VITE_ASSISTANT_TOKENS = 'tester-her-x9k2';
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    process.env.SESSION_SECRET = 'x'.repeat(40);
+    process.env.SUPABASE_URL = 'https://db.example';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify([{ id: APPROVED, status: 'approved' }]), { status: 200 })));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('answers a signed-in person with no token, and bills and caps them by their own id', async () => {
+    chatMock
+      .mockResolvedValueOnce(conceptReply('One'))
+      .mockResolvedValueOnce(conceptReply('Two'))
+      .mockResolvedValueOnce(conceptReply('Three'))
+      .mockResolvedValueOnce({ text: 'Pick One.', usage: { input_tokens: 5, cached_input_tokens: 0, output_tokens: 5 } });
+    const { req, res } = signedIn({ brand: 'SpinJo', task: 'weekend boost', model: 'gemini' }, `${SESSION_COOKIE}=${makeSessionValue(APPROVED)}`);
+    await handler(req as any, res as any);
+    expect(res.statusCode).toBe(200);
+    expect(capMock).toHaveBeenCalledWith(APPROVED);
+    expect(logMock.mock.calls.length).toBe(4);
+    expect(logMock.mock.calls.every((c) => c[0] === APPROVED)).toBe(true);
+  });
+
+  it('refuses a signed-out request with no token (401)', async () => {
+    const { req, res } = signedIn({ brand: 'SpinJo', task: 'weekend boost', model: 'gemini' }, '');
+    await handler(req as any, res as any);
+    expect(res.statusCode).toBe(401);
+    expect(chatMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses a brand we do not have (400)', async () => {
+    const { req, res } = mockReqRes({ ...validBody, brand: 'Unknown Casino' });
+    await handler(req as any, res as any);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'Unknown brand' });
+    expect(chatMock).not.toHaveBeenCalled();
   });
 });

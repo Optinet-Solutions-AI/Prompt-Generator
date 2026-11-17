@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import handler from './generate.js';
+import { makeSessionValue, SESSION_COOKIE } from '../_session.js';
 
 function mockReqRes(body: unknown) {
   const req = { method: 'POST', body } as unknown as { method: string; body: unknown };
@@ -71,5 +72,54 @@ describe('POST /api/assistant/generate', () => {
       cached_input_tokens: 0,
       output_tokens: 400,
     });
+  });
+});
+
+describe('generate for signed-in people (main tool)', () => {
+  const APPROVED = '96bd042c-0000-4000-8000-0000000000a1';
+  const picked = { title: 'Sky Strike', description: 'Hero dives through gold coin storm.' };
+  let logged: Array<Record<string, unknown>> = [];
+  beforeEach(() => {
+    logged = [];
+    process.env.VITE_ASSISTANT_TOKENS = 'tester-her-x9k2';
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    process.env.SESSION_SECRET = 'x'.repeat(40);
+    process.env.SUPABASE_URL = 'https://db.example';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+    // One fake for everything: the profile lookup, the spend-cap reads and the
+    // cost-log insert (Supabase), and the Gemini answer.
+    global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes('/rest/v1/profiles')) return new Response(JSON.stringify([{ id: APPROVED, status: 'approved' }]), { status: 200 });
+      if (u.includes('/rest/v1/assistant_llm_calls') && init?.method === 'POST') { logged.push(JSON.parse(String(init.body))); return new Response('', { status: 201 }); }
+      if (u.includes('db.example')) return new Response('[]', { status: 200 });
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: JSON.stringify(STRUCTURED) }] } }],
+        usageMetadata: { promptTokenCount: 800, candidatesTokenCount: 400 },
+      }), { status: 200 });
+    }) as unknown as typeof fetch;
+  });
+
+  it('answers a signed-in person with no token and logs the cost under their id', async () => {
+    const { req, res } = mockReqRes({ brand: 'SpinJo', task: 'weekend boost', pickedConcept: picked, model: 'gemini' });
+    (req as any).headers = { host: 'localhost:5173', cookie: `${SESSION_COOKIE}=${makeSessionValue(APPROVED)}` };
+    await handler(req as any, res as any);
+    expect(res.statusCode).toBe(200);
+    expect((res.body as any).metadata.subject).toBe(STRUCTURED.subject);
+    expect(logged.map((r) => r.test_user_id)).toEqual([APPROVED]);
+  });
+
+  it('refuses a signed-out request with no token (401)', async () => {
+    const { req, res } = mockReqRes({ brand: 'SpinJo', task: 'weekend boost', pickedConcept: picked, model: 'gemini' });
+    (req as any).headers = { host: 'localhost:5173', cookie: '' };
+    await handler(req as any, res as any);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('refuses a brand we do not have (400)', async () => {
+    const { req, res } = mockReqRes({ token: 'tester-her-x9k2', brand: 'Unknown Casino', task: 't', pickedConcept: picked, model: 'gemini' });
+    await handler(req as any, res as any);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: 'Unknown brand' });
   });
 });

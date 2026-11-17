@@ -28,7 +28,7 @@ export function sourceLabel(s: LibrarySource): string {
   return s.kind === 'mine' ? 'My library'
     : s.kind === 'archive' ? 'Team archive'
     : s.kind === 'items' ? 'Shared items'
-    : `${s.name}'s library`;
+    : s.name ? `${s.name}'s library` : 'Shared library';
 }
 
 export function LibrarySourcePicker({ value, onChange }: { value: LibrarySource; onChange: (s: LibrarySource) => void }) {
@@ -45,6 +45,11 @@ export function LibrarySourcePicker({ value, onChange }: { value: LibrarySource;
     ? <img src={p.avatar_url} alt="" referrerPolicy="no-referrer" className="w-5 h-5 rounded-full mr-2" />
     : <Users className="w-4 h-4 mr-2" />;
 
+  // The address only carries the person's id, so when there is no name yet, look it up in the loaded lists.
+  const found = value.kind === 'shared' && !value.name
+    ? [...sharedWithMe, ...everyone].find(p => p.id === value.ownerId)
+    : undefined;
+  const shownValue: LibrarySource = value.kind === 'shared' && found ? { ...value, name: firstName(found) } : value;
   const Icon = value.kind === 'mine' ? User : value.kind === 'archive' ? Archive : value.kind === 'items' ? Share2 : Users;
   return (
     <DropdownMenu>
@@ -52,7 +57,7 @@ export function LibrarySourcePicker({ value, onChange }: { value: LibrarySource;
         <button type="button"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-muted/60">
           <Icon className="w-4 h-4 text-primary" />
-          <span className="max-w-[160px] truncate">{sourceLabel(value)}</span>
+          <span className="max-w-[160px] truncate">{sourceLabel(shownValue)}</span>
           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>

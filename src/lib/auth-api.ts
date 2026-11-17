@@ -3,6 +3,13 @@
  * The sign-in itself is a cookie the server sets, so these calls need no token.
  */
 
+import { rememberReturnPath } from '@/lib/nav/return-path';
+
+/** Google sends people back to "/", so note the page they are on now; AuthGate brings them back to it. */
+function rememberCurrentPage(): void {
+  rememberReturnPath(window.location.pathname + window.location.search);
+}
+
 export interface AppUser {
   id: string;
   /** null for some username + password accounts */
@@ -61,9 +68,9 @@ async function call<T>(action: string, body?: unknown): Promise<T> {
 export const authApi = {
   me: () => call<{ user: AppUser | null; drive_connected?: boolean }>('me'),
   /** Full-page redirect to Google's sign-in screen (also (re)connects Drive). */
-  signIn: () => { window.location.href = '/api/auth?action=google-start'; },
+  signIn: () => { rememberCurrentPage(); window.location.href = '/api/auth?action=google-start'; },
   /** Full-page redirect to Google to ONLY connect Drive to the signed-in (username + password) account. */
-  connectDrive: () => { window.location.href = '/api/auth?action=google-start&link=drive'; },
+  connectDrive: () => { rememberCurrentPage(); window.location.href = '/api/auth?action=google-start&link=drive'; },
   signOut: () => call('logout', {}),
   // Username + password
   passwordLogin: (username: string, password: string) => call<PasswordLoginResult>('password-login', { username, password }),

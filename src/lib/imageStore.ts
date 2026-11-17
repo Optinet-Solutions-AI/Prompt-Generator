@@ -28,12 +28,29 @@ export function setImageStoreOwner(userId: string | null): void {
 
 export type LibraryView = { kind: 'mine' } | { kind: 'archive' } | { kind: 'items' } | { kind: 'shared'; ownerId: string };
 
-/** Point the Image Library's reads at another shelf. */
-export function setImageLibraryView(view: LibraryView): void {
-  viewKey = view.kind === 'mine' ? ownKey
+// The browser-storage key ("shelf") that holds one library's images.
+function keyForView(view: LibraryView): string {
+  return view.kind === 'mine' ? ownKey
     : view.kind === 'archive' ? STORAGE_KEY
     : view.kind === 'items' ? `${ownKey}:items`
     : `${STORAGE_KEY}:shared:${view.ownerId}`;
+}
+
+/** Point the Image Library's reads at another shelf. */
+export function setImageLibraryView(view: LibraryView): void {
+  viewKey = keyForView(view);
+}
+
+/**
+ * A quick look at the newest `n` images already saved in this browser for a
+ * library, without changing what the Image Library shows. Used by Home
+ * ("Your latest images") and Shared with me (a preview of each colleague's
+ * library). Loads nothing from the internet, so it is empty until that
+ * library has been opened once in this browser.
+ */
+export function peekImages(view: LibraryView, n: number): StoredImage[] {
+  const all = loadAll(keyForView(view));
+  return Array.isArray(all) ? all.filter(i => i && i.public_url).slice(0, n) : [];
 }
 
 export interface StoredImage {

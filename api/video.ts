@@ -626,8 +626,9 @@ async function oauthCallback(req: VercelRequest, res: VercelResponse) {
     result = 'error:' + (err instanceof Error ? err.message : 'sign-in failed');
     console.error('[video:oauth-callback]', err);
   }
-  // Back to the app's Video tab, which reads ?hf= and shows the outcome.
-  res.setHeader('Location', `/?hf=${encodeURIComponent(result)}`);
+  // Back to the Video page (/video), which reads ?hf= and shows the outcome.
+  // The old address (/?hf=) still works: the app frame moves it to /video.
+  res.setHeader('Location', `/video?hf=${encodeURIComponent(result)}`);
   res.status(302).end();
 }
 

@@ -71,6 +71,9 @@ interface ImageModalProps {
   // Variations generated in a previous open session — restored when modal reopens
   persistedVariations?: GalleryImage[];
   onVariationsChange?: (variations: GalleryImage[]) => void;
+  // False while the screen holding this window is hidden (another screen is
+  // showing). The window stays open, but stops listening to the keyboard.
+  keyboardActive?: boolean;
 }
 
 export function ImageModal({
@@ -93,6 +96,7 @@ export function ImageModal({
   sourceRecipe,
   persistedVariations = [],
   onVariationsChange,
+  keyboardActive = true,
 }: ImageModalProps) {
   const isGallery = allImages && allImages.length > 0;
 
@@ -200,9 +204,11 @@ export function ImageModal({
     if (e.key === 'ArrowLeft') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
   }, [onClose, showStrip]);
 
+  // Escape / arrow keys — only while the window is open AND its screen is showing,
+  // so they don't act on a hidden window (or block typing) on another screen.
   useEffect(() => {
-    if (isOpen) { document.addEventListener('keydown', handleKeyDown); return () => document.removeEventListener('keydown', handleKeyDown); }
-  }, [isOpen, handleKeyDown]);
+    if (isOpen && keyboardActive) { document.addEventListener('keydown', handleKeyDown); return () => document.removeEventListener('keydown', handleKeyDown); }
+  }, [isOpen, keyboardActive, handleKeyDown]);
 
   // "Square corners" download — same exact-size cover-crop as the rounded one,
   // just without the rounding (radius 0 = no clip, opaque corners). This makes

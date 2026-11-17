@@ -15,6 +15,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Headings on Home, Shared with me and the sidebar name (font-display).
+        display: ['"Bricolage Grotesque"', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -171,7 +171,7 @@ export function useVideoGenerator() {
   const connect = useCallback(async () => {
     try {
       const { url } = await videoApi.hfConnect();
-      window.location.href = url; // Higgsfield sign-in, then back to /?hf=connected
+      window.location.href = url; // Higgsfield sign-in, then back to /video?hf=connected
     } catch (e) {
       setConnection(c => ({ ...c, error: e instanceof Error ? e.message : 'Could not start sign-in' }));
     }

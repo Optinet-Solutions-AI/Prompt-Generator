@@ -66,6 +66,7 @@ const BRAND_BADGE: Record<string, string> = {
   Lucky7even:  'bg-indigo-500 text-white',
   NovaDreams:  'bg-violet-500 text-white',
   Rollero:     'bg-orange-500 text-white',
+  RocketSpin:  'bg-cyan-600 text-white',
 };
 
 // ── Supabase helpers ────────────────────────────────────────────────────────────

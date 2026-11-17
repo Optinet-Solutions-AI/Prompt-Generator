@@ -359,6 +359,7 @@ export const BRAND_KIT_DEFAULTS: Record<string, string> = {
   Lucky7even:  'purple and gold',
   NovaDreams:  'white and blue',
   Rollero:     'crimson and dark grey',
+  RocketSpin:  'white and gold',
 };
 
 // ─────────────────────────────────────────────

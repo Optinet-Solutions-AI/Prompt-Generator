@@ -11,6 +11,12 @@ const BRAND_PALETTES: Record<string, string> = {
   PlayMojo:    'Dark noir black, bold white, sharp red accent. Sleek, cinematic. NEVER use warm gold, pastel, or cheerful bright colors.',
   Lucky7even:  'Deep purple, electric violet, metallic gold accents, black. Rich premium palette. NEVER use flat grey, earthy tones, or muted colors.',
   NovaDreams:  'Cosmic blue, electric cyan, white, deep navy black. Space/futuristic palette. NEVER use warm orange, red, gold, or earthy tones.',
+  RocketSpin:
+    'Pristine white (#F5F5F0), champagne gold (#D4B26A), glowing cyan (#00BFFF), ' +
+    'sky blue. Setting almost always bright sky with massive sun-lit cumulus ' +
+    'clouds during golden hour, occasionally a premium futuristic interior. ' +
+    'NEVER use dark moody tones, pastel washes, muted greys, or anime/cartoon ' +
+    'colour styling.',
   Rollero:     'Crimson red, dark charcoal grey, black, sharp white highlight. Warrior/combat palette. NEVER use pastel, neon, or soft warm tones.',
 };
 

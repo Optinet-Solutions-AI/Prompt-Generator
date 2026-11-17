@@ -312,7 +312,8 @@ export const BRANDS = [
   'LuckyVibe',
   'Lucky7even',
   'NovaDreams',
-  'Rollero'
+  'Rollero',
+  'RocketSpin'
 ] as const;
 
 export const INITIAL_FORM_DATA: FormData = {

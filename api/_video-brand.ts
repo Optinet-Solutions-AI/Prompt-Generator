@@ -40,6 +40,9 @@ const BRAND_KIT: Record<string, { panel: string; accent: string; logo: string }>
   lucky7even: { panel: '#08001A', accent: '#CE93D8', logo: 'logo-1.svg' },
   novadreams: { panel: '#00030F', accent: '#40C4FF', logo: 'logo-long.svg' },
   rollero: { panel: '#080600', accent: '#D4A017', logo: 'logo-long.svg' },
+  // The website logo has dark grey lettering that vanishes on a dark end card,
+  // so video uses a copy with white lettering (cyan rocket icon unchanged).
+  rocketspin: { panel: '#08243B', accent: '#45B9EA', logo: 'logo-long-white.svg' },
 };
 
 export const END_CARD_SECONDS = 1.5;

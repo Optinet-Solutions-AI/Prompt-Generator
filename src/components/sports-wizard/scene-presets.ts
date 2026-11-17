@@ -399,6 +399,7 @@ export const BRAND_LIGHTING_DEFAULTS: Record<string, string> = {
   Lucky7even:  'purple',    // deep purple gradient
   NovaDreams:  'blue',      // cool space, cosmic blue
   Rollero:     'red',       // crimson warrior, dark fire
+  RocketSpin:  'golden',    // sunlit sky, golden-hour clouds, champagne gold
 };
 
 /**
@@ -415,6 +416,7 @@ export const BRAND_LIGHTING_REASONS: Record<string, string> = {
   Lucky7even:  'Lucky7even uses deep purple gradients — purple/neon reinforces the identity.',
   NovaDreams:  'NovaDreams is a cosmic space brand — cool blue lighting matches the atmosphere.',
   Rollero:     'Rollero is a warrior/gladiator brand — red/crimson lighting adds raw intensity.',
+  RocketSpin:  'RocketSpin lives in a bright sunlit sky — golden hour lighting matches its white-and-gold look.',
 };
 
 // ─────────────────────────────────────────────

@@ -369,6 +369,11 @@ const BRAND_STYLES: Record<string, string> = {
     'The scene MUST have a warrior combat aesthetic: deep crimson red and charcoal grey tones, ' +
     'dramatic high-contrast lighting, and a powerful intense atmosphere. ' +
     'The mood must feel fierce, bold, and battle-ready.',
+  rocketspin:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST feel bright, premium and sky-high: pristine white and champagne-gold tones with glowing cyan accents, ' +
+    'usually a sunlit sky with massive golden-hour cumulus clouds (occasionally a premium futuristic interior), ' +
+    'warm soft lighting with volumetric god rays. The mood must feel aspirational, optimistic and victorious — never dark or moody.',
 };
 
 /**

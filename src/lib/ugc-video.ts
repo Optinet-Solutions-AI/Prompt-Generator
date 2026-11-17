@@ -118,6 +118,7 @@ export const BRAND_SCREEN_HINTS: Record<string, string> = {
   Lucky7even: 'a glowing purple-and-gold number 7 on a deep violet game screen',
   NovaDreams: 'a white astronaut mascot on a dark cosmic cyan game screen',
   Rollero: 'a golden spartan-helmet emblem on a black and gold game screen',
+  RocketSpin: 'a white-and-gold armoured hero with a glowing cyan chest light on a bright sky-blue game screen with gold coins',
 };
 
 // ── Form data ─────────────────────────────────────────────────────────────

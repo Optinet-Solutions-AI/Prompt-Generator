@@ -43,6 +43,7 @@ const BRAND_PALETTES: Record<string, string> = {
   lucky7even:  'classic casino red, deep black, bright gold, lucky seven aesthetics',
   novadreams:  'cosmic purple, deep navy blue, silver stardust, dreamy nebula tones',
   rollero:     'warm casino red, gold, deep mahogany — classic rolling dice aesthetic',
+  rocketspin:  'pristine white, champagne gold, glowing cyan, bright sky blue — premium sunlit sky-high aesthetic',
 };
 
 function getBrandColorDescription(brand: string): string {

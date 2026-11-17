@@ -428,7 +428,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
                   <Mail className="w-3.5 h-3.5" />Email
                 </Button>
                 <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setShowFanModal(true)}>
-                  <ImageDown className="w-3.5 h-3.5" />Fan Banner
+                  <ImageDown className="w-3.5 h-3.5" />Fun Banner
                 </Button>
                 <Button variant="outline" size="sm"
                   className="gap-1.5 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"

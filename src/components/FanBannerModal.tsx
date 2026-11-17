@@ -9,17 +9,20 @@ import { triggerBlobDownload } from '@/lib/imageDownload';
 import {
   FAN_BANNER_BRAND_NAMES, canonicalFanBannerBrandName, fanBannerFilename, getFanBannerBrand,
 } from '@/lib/fan-banner/brands';
-import { FAN_W, type FanBannerTexts, type FanSide } from '@/lib/fan-banner/layout';
+import { FAN_W, type FanBannerTexts, type FanSide, type LineSize, type LineSizes } from '@/lib/fan-banner/layout';
 import { CENTERED, MAX_ZOOM, minZoom, panAfterDrag, type PictureFraming } from '@/lib/fan-banner/picture';
 import { canvasToPngBlob, drawFanBanner, loadBrandFonts, loadLogo, loadPicture } from '@/lib/fan-banner/render';
 
 /**
- * Fan Banner (PNG) — turns a library image into a finished 1200×600 email
+ * Fun Banner (PNG) — turns a library image into a finished 1200×600 email
  * banner in the brand's look (logo, fonts, colours, button), saved as a PNG
  * with 40px see-through rounded corners.
  *
  * The preview IS the file: the same drawing code paints the on-screen canvas
  * and the downloaded PNG, so what you see is exactly what you get.
+ *
+ * (Users see it as "Fun Banner". The code still uses the older "fan" names —
+ * FanBannerModal, lib/fan-banner — so search for those.)
  */
 
 interface FanBannerModalProps {
@@ -41,6 +44,13 @@ function formatSize(bytes: number): string {
   return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(2)} MB` : `${Math.round(bytes / 1024)} KB`;
 }
 
+const START_LINE_SIZES: LineSizes = { line1: 'normal', line2: 'normal' };
+const LINE_SIZE_CHOICES: Array<{ value: LineSize; label: string }> = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'big', label: 'Big' },
+];
+const isColouredLine = (key: keyof FanBannerTexts): key is 'line1' | 'line2' => key === 'line1' || key === 'line2';
+
 const FIELDS: Array<{ key: keyof FanBannerTexts; label: string; placeholder: string; required?: boolean }> = [
   { key: 'headline', label: 'Big number', placeholder: '250%  ·  50  ·  $5', required: true },
   { key: 'offer', label: 'Offer word', placeholder: 'BONUS  ·  FREE SPINS' },
@@ -56,6 +66,8 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
   useEffect(() => { setBrandName(canonicalFanBannerBrandName(brand)); }, [brand]);
   const [texts, setTexts] = useState<FanBannerTexts>(START_TEXTS);
   const [side, setSide] = useState<FanSide>('right');
+  // Normal or Big (= as large as the offer word) for each coloured line.
+  const [lineSizes, setLineSizes] = useState<LineSizes>(START_LINE_SIZES);
   // Where the picture sits behind the text (drag to move, slider to zoom).
   const [framing, setFraming] = useState<PictureFraming>(CENTERED);
 
@@ -106,10 +118,10 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
     if (!isCurrent()) return null;
     setLogoMissing(!logo);
     lastLogoRef.current = logo;
-    drawFanBanner(canvas, { brand: style, texts, side, picture, logo, framing });
+    drawFanBanner(canvas, { brand: style, texts, side, picture, logo, framing, lineSizes });
     canvas.dataset.brand = brandName; // which brand is on screen (used by browser checks)
     return canvasToPngBlob(canvas);
-  }, [brandName, texts, side, picture, framing]);
+  }, [brandName, texts, side, picture, framing, lineSizes]);
 
   /**
    * Instant redraw while dragging or zooming (fonts and logo are already
@@ -120,7 +132,7 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
     const style = getFanBannerBrand(brandName);
     const canvas = canvasRef.current;
     if (!style || !canvas) return;
-    drawFanBanner(canvas, { brand: style, texts, side, picture, logo: lastLogoRef.current, framing: next });
+    drawFanBanner(canvas, { brand: style, texts, side, picture, logo: lastLogoRef.current, framing: next, lineSizes });
   };
 
   const changeFraming = (next: PictureFraming) => {
@@ -197,6 +209,7 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
   const handleClose = () => {
     setTexts(START_TEXTS);
     setSide('right');
+    setLineSizes(START_LINE_SIZES);
     setFraming(CENTERED);
     setFormError(null);
     setDrawError(null);
@@ -220,7 +233,7 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
         <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2.5 border-b border-border shrink-0">
           <ImageDown className="w-4 h-4 text-primary shrink-0" />
           <div className="min-w-0">
-            <DialogTitle className="text-sm font-semibold leading-tight">Fan Banner (PNG)</DialogTitle>
+            <DialogTitle className="text-sm font-semibold leading-tight">Fun Banner (PNG)</DialogTitle>
             <DialogDescription className="text-[11px] text-muted-foreground truncate">
               {brandName || 'Pick a brand'} · 1200 × 600 · 40 px rounded corners · for email
             </DialogDescription>
@@ -345,9 +358,29 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1.5">
                 {FIELDS.map(({ key, label, placeholder, required }) => (
                   <div key={key}>
-                    <Label htmlFor={`fan-${key}`} className="text-[11px] mb-0.5 block">
-                      {label} {required && <span className="text-destructive">*</span>}
-                    </Label>
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <Label htmlFor={`fan-${key}`} className="text-[11px]">
+                        {label} {required && <span className="text-destructive">*</span>}
+                      </Label>
+                      {/* Normal / Big: Big draws this line as large as the offer word */}
+                      {isColouredLine(key) && (
+                        <div role="group" aria-label={`${label} size`} className="flex rounded border border-border overflow-hidden"
+                          title="Big = as large as the offer word">
+                          {LINE_SIZE_CHOICES.map(({ value, label: choice }) => {
+                            const on = (lineSizes[key] ?? 'normal') === value;
+                            return (
+                              <button key={value} type="button" aria-pressed={on}
+                                onClick={() => setLineSizes((prev) => ({ ...prev, [key]: value }))}
+                                className={`px-1.5 py-px text-[10px] font-medium transition-colors ${
+                                  on ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                }`}>
+                                {choice}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                     <Input id={`fan-${key}`} value={texts[key]} placeholder={placeholder}
                       onChange={(e) => handleField(key, e.target.value)} className="h-8 text-sm" />
                   </div>

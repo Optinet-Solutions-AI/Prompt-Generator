@@ -845,7 +845,7 @@ export function ImageModal({
                 <Mail className="w-3.5 h-3.5" />Convert to Email
               </Button>
               <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => setShowFanModal(true)} disabled={isEditing}>
-                <ImageDown className="w-3.5 h-3.5" />Fan Banner
+                <ImageDown className="w-3.5 h-3.5" />Fun Banner
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

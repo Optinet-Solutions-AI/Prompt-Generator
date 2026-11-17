@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { FAN_BANNER_BRANDS } from './brands';
-import { layoutFanBanner, FAN_W, FAN_H, type Measure, type FanBannerTexts } from './layout';
+import { layoutFanBanner, FAN_W, FAN_H, type Measure, type FanBannerTexts, type LineSizes } from './layout';
 
 // Stand-in for the browser's text measuring: every character is 0.6× the font
 // size wide and capitals are 0.72× tall. Real fonts differ, but the layout
@@ -22,13 +22,17 @@ const FULL: FanBannerTexts = {
 
 const LOGO_ASPECT = 1011 / 240; // SpinsUp logo PNG
 
-function run(texts: Partial<FanBannerTexts> = {}, opts: { brand?: keyof typeof FAN_BANNER_BRANDS; side?: 'left' | 'right' } = {}) {
+function run(
+  texts: Partial<FanBannerTexts> = {},
+  opts: { brand?: keyof typeof FAN_BANNER_BRANDS; side?: 'left' | 'right'; lineSizes?: LineSizes } = {},
+) {
   return layoutFanBanner({
     brand: FAN_BANNER_BRANDS[opts.brand ?? 'SpinsUp'],
     texts: { ...FULL, ...texts },
     side: opts.side ?? 'right',
     logoAspect: LOGO_ASPECT,
     measure,
+    lineSizes: opts.lineSizes,
   });
 }
 
@@ -139,5 +143,43 @@ describe('layoutFanBanner', () => {
 
     const left = run({}, { brand: 'Lucky7even', side: 'left' });
     expect(left.code!.centerX - left.code!.width / 2).toBeGreaterThan(left.column.x + left.column.w);
+  });
+});
+
+describe('coloured line size (Normal / Big)', () => {
+  // The FortunePlay banner from the email team: NO DEPOSIT, then FREE SPINS in gold.
+  const texts = { headline: '30', offer: 'NO DEPOSIT', line1: '', line2: 'FREE SPINS', code: '' };
+  const sizeOf = (l: ReturnType<typeof run>, role: string) => l.texts.find((t) => t.role === role)!;
+
+  it('draws a coloured line smaller than the offer word by default', () => {
+    const l = run(texts, { brand: 'FortunePlay' });
+    expect(sizeOf(l, 'line2').size).toBeLessThan(sizeOf(l, 'offer').size * 0.8);
+  });
+
+  it('draws a Big coloured line as large and as wide as the offer word', () => {
+    const l = run(texts, { brand: 'FortunePlay', lineSizes: { line2: 'big' } });
+    expect(sizeOf(l, 'line2').size).toBeCloseTo(sizeOf(l, 'offer').size, 5);
+    expect(sizeOf(l, 'line2').width).toBeCloseTo(sizeOf(l, 'offer').width, 5);
+  });
+
+  it('sizes each coloured line on its own', () => {
+    const l = run({ ...texts, line1: '+100' }, { brand: 'FortunePlay', lineSizes: { line1: 'normal', line2: 'big' } });
+    expect(sizeOf(l, 'line1').size).toBeLessThan(sizeOf(l, 'line2').size * 0.8);
+  });
+
+  it('still shrinks a long Big line to fit the column, and keeps the stack inside the banner', () => {
+    const l = run({ line1: 'UP TO €5000 + 200 FREE SPINS', line2: 'GRATISSPINN UTEN INNSKUDD' }, { lineSizes: { line1: 'big', line2: 'big' } });
+    for (const b of boxes(l)) {
+      expect(b.left, b.name).toBeGreaterThanOrEqual(l.column.x - 0.5);
+      expect(b.right, b.name).toBeLessThanOrEqual(l.column.x + l.column.w + 0.5);
+      expect(b.top, b.name).toBeGreaterThanOrEqual(0);
+      expect(b.bottom, b.name).toBeLessThanOrEqual(FAN_H);
+    }
+    const list = boxes(l);
+    for (let i = 1; i < list.length; i++) expect(list[i].top, list[i].name).toBeGreaterThanOrEqual(list[i - 1].bottom);
+  });
+
+  it('leaves banners without a size choice exactly as before', () => {
+    expect(run()).toEqual(run({}, { lineSizes: { line1: 'normal', line2: 'normal' } }));
   });
 });

@@ -13,7 +13,9 @@
  *     button, bonus code;
  *   - everything is centred in the column and scaled together so the stack
  *     fills the banner's height — fewer lines means bigger text;
- *   - any line that is too wide shrinks on its own until it fits.
+ *   - any line that is too wide shrinks on its own until it fits;
+ *   - a coloured line set to "Big" is drawn at the offer word's size, so a
+ *     second phrase (NO DEPOSIT / FREE SPINS) can match the first.
  */
 import { fontCss, type FanBannerBrand, type FanFont, type Paint } from './brands';
 
@@ -33,6 +35,10 @@ export interface FanBannerTexts {
 }
 
 export type FanSide = 'left' | 'right';
+
+/** How big a coloured line is drawn: 'normal', or 'big' = the offer word's size. */
+export type LineSize = 'normal' | 'big';
+export type LineSizes = Partial<Record<'line1' | 'line2', LineSize>>;
 
 export interface TextMetrics { width: number; ascent: number; descent: number }
 /** Measures `text` drawn in `font` (CSS font shorthand). */
@@ -129,8 +135,10 @@ export function layoutFanBanner(input: {
   /** Logo width ÷ height (from the loaded logo image). */
   logoAspect: number | null;
   measure: Measure;
+  /** Size of each coloured line; 'normal' when left out. */
+  lineSizes?: LineSizes;
 }): FanBannerLayout {
-  const { brand, texts, side, logoAspect, measure } = input;
+  const { brand, texts, side, logoAspect, measure, lineSizes = {} } = input;
   const { fonts, colors } = brand;
 
   const column = side === 'right'
@@ -150,8 +158,11 @@ export function layoutFanBanner(input: {
   };
   addText('headline', texts.headline, fonts.headline, BASE.headline, colors.headline, GAP.afterLogo);
   addText('offer', texts.offer, fonts.offer, BASE.offer, colors.offer, GAP.text);
-  addText('line1', texts.line1, fonts.line, BASE.line, colors.line, GAP.text);
-  addText('line2', texts.line2, fonts.line, BASE.line, colors.line, GAP.line);
+  // A 'big' line uses the offer word's base size (the line font's own scale
+  // still applies, the same way it does for a normal line).
+  const lineBase = (size: LineSize | undefined) => (size === 'big' ? BASE.offer : BASE.line);
+  addText('line1', texts.line1, fonts.line, lineBase(lineSizes.line1), colors.line, GAP.text);
+  addText('line2', texts.line2, fonts.line, lineBase(lineSizes.line2), colors.line, GAP.line);
 
   const buttonText = transform(texts.button.trim(), fonts.button);
   const buttonTextBase = BASE.buttonText * (fonts.button.scale ?? 1);

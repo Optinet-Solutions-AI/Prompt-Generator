@@ -10,7 +10,7 @@ import { roundedRectPath } from '@/lib/imageDownload';
 import { fontCss, googleFontsHref, type FanBannerBrand, type Paint } from './brands';
 import {
   FAN_CORNER_RADIUS, FAN_H, FAN_W, layoutFanBanner,
-  type FanBannerLayout, type FanBannerTexts, type FanSide, type Measure,
+  type FanBannerLayout, type FanBannerTexts, type FanSide, type LineSizes, type Measure,
 } from './layout';
 import { CENTERED, placePicture, type PictureFraming } from './picture';
 
@@ -172,6 +172,8 @@ export interface DrawFanBannerOptions {
   logo: HTMLImageElement | null;
   /** Where the picture sits behind the text; centred if left out. */
   framing?: PictureFraming;
+  /** Normal or Big for each coloured line; normal if left out. */
+  lineSizes?: LineSizes;
 }
 
 /** Draws the full banner onto `canvas` (resized to 1200×600) and returns the layout used. */
@@ -183,7 +185,7 @@ export function drawFanBanner(canvas: HTMLCanvasElement, opts: DrawFanBannerOpti
   if (!ctx) throw new Error('This browser cannot draw images (no canvas support).');
 
   const layout = layoutFanBanner({
-    brand, texts, side,
+    brand, texts, side, lineSizes: opts.lineSizes,
     logoAspect: logo ? logo.naturalWidth / logo.naturalHeight : null,
     measure: canvasMeasure(ctx),
   });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import handler from './concepts.js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { makeSessionValue, SESSION_COOKIE } from '../_session.js';
 
 // Mocking `chat` (rather than `global.fetch`) is what lets these tests assert
@@ -213,9 +214,9 @@ describe('concepts for signed-in people (main tool)', () => {
   const APPROVED = '96bd042c-0000-4000-8000-0000000000a1';
   const signedIn = (body: unknown, cookie: string) => {
     const r = mockReqRes(body);
-    (r.req as any).headers = { host: 'localhost:5173', cookie };
-    return r;
+    return { req: { ...r.req, headers: { host: 'localhost:5173', cookie } }, res: r.res };
   };
+  const call = (req: unknown, res: unknown) => handler(req as VercelRequest, res as VercelResponse);
   beforeEach(() => {
     chatMock.mockReset(); logMock.mockReset(); capMock.mockClear();
     process.env.VITE_ASSISTANT_TOKENS = 'tester-her-x9k2';
@@ -234,7 +235,7 @@ describe('concepts for signed-in people (main tool)', () => {
       .mockResolvedValueOnce(conceptReply('Three'))
       .mockResolvedValueOnce({ text: 'Pick One.', usage: { input_tokens: 5, cached_input_tokens: 0, output_tokens: 5 } });
     const { req, res } = signedIn({ brand: 'SpinJo', task: 'weekend boost', model: 'gemini' }, `${SESSION_COOKIE}=${makeSessionValue(APPROVED)}`);
-    await handler(req as any, res as any);
+    await call(req, res);
     expect(res.statusCode).toBe(200);
     expect(capMock).toHaveBeenCalledWith(APPROVED);
     expect(logMock.mock.calls.length).toBe(4);
@@ -243,14 +244,14 @@ describe('concepts for signed-in people (main tool)', () => {
 
   it('refuses a signed-out request with no token (401)', async () => {
     const { req, res } = signedIn({ brand: 'SpinJo', task: 'weekend boost', model: 'gemini' }, '');
-    await handler(req as any, res as any);
+    await call(req, res);
     expect(res.statusCode).toBe(401);
     expect(chatMock).not.toHaveBeenCalled();
   });
 
   it('refuses a brand we do not have (400)', async () => {
     const { req, res } = mockReqRes({ ...validBody, brand: 'Unknown Casino' });
-    await handler(req as any, res as any);
+    await call(req, res);
     expect(res.statusCode).toBe(400);
     expect(res.body).toEqual({ error: 'Unknown brand' });
     expect(chatMock).not.toHaveBeenCalled();

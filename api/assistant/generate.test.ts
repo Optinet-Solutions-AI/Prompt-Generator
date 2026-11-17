@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import handler from './generate.js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { makeSessionValue, SESSION_COOKIE } from '../_session.js';
 
 function mockReqRes(body: unknown) {
@@ -79,6 +80,11 @@ describe('generate for signed-in people (main tool)', () => {
   const APPROVED = '96bd042c-0000-4000-8000-0000000000a1';
   const picked = { title: 'Sky Strike', description: 'Hero dives through gold coin storm.' };
   let logged: Array<Record<string, unknown>> = [];
+  const call = (req: unknown, res: unknown) => handler(req as VercelRequest, res as VercelResponse);
+  const withCookie = (body: unknown, cookie: string) => {
+    const r = mockReqRes(body);
+    return { req: { ...r.req, headers: { host: 'localhost:5173', cookie } }, res: r.res };
+  };
   beforeEach(() => {
     logged = [];
     process.env.VITE_ASSISTANT_TOKENS = 'tester-her-x9k2';
@@ -101,24 +107,22 @@ describe('generate for signed-in people (main tool)', () => {
   });
 
   it('answers a signed-in person with no token and logs the cost under their id', async () => {
-    const { req, res } = mockReqRes({ brand: 'SpinJo', task: 'weekend boost', pickedConcept: picked, model: 'gemini' });
-    (req as any).headers = { host: 'localhost:5173', cookie: `${SESSION_COOKIE}=${makeSessionValue(APPROVED)}` };
-    await handler(req as any, res as any);
+    const { req, res } = withCookie({ brand: 'SpinJo', task: 'weekend boost', pickedConcept: picked, model: 'gemini' }, `${SESSION_COOKIE}=${makeSessionValue(APPROVED)}`);
+    await call(req, res);
     expect(res.statusCode).toBe(200);
-    expect((res.body as any).metadata.subject).toBe(STRUCTURED.subject);
+    expect((res.body as { metadata: { subject: string } }).metadata.subject).toBe(STRUCTURED.subject);
     expect(logged.map((r) => r.test_user_id)).toEqual([APPROVED]);
   });
 
   it('refuses a signed-out request with no token (401)', async () => {
-    const { req, res } = mockReqRes({ brand: 'SpinJo', task: 'weekend boost', pickedConcept: picked, model: 'gemini' });
-    (req as any).headers = { host: 'localhost:5173', cookie: '' };
-    await handler(req as any, res as any);
+    const { req, res } = withCookie({ brand: 'SpinJo', task: 'weekend boost', pickedConcept: picked, model: 'gemini' }, '');
+    await call(req, res);
     expect(res.statusCode).toBe(401);
   });
 
   it('refuses a brand we do not have (400)', async () => {
     const { req, res } = mockReqRes({ token: 'tester-her-x9k2', brand: 'Unknown Casino', task: 't', pickedConcept: picked, model: 'gemini' });
-    await handler(req as any, res as any);
+    await call(req, res);
     expect(res.statusCode).toBe(400);
     expect(res.body).toEqual({ error: 'Unknown brand' });
   });

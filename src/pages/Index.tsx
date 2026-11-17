@@ -348,7 +348,7 @@ const Index = () => {
                           brand={formData.brand}
                           ideas={ideas}
                           onUseIdea={handleUseIdea}
-                          busy={appState === 'PROCESSING' || isRegeneratingPrompt}
+                          busy={isRegeneratingPrompt}
                         />
                       }
                     />

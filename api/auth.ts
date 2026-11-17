@@ -155,10 +155,27 @@ async function googleCallback(req: VercelRequest, res: VercelResponse) {
     const email = claims.email.toLowerCase();
     const driveGranted = (t.scope || '').includes(DRIVE_SCOPE);
 
-    const existing = (await sb(`profiles?google_sub=eq.${encodeURIComponent(claims.sub)}&select=*`) as Profile[])[0]
-      // An admin made a username + password account with this same (Google-verified)
-      // email → it's the same person: link Google to it, so both ways of signing in work.
-      ?? (await sb(`profiles?email=eq.${encodeURIComponent(email)}&google_sub=is.null&select=*`) as Profile[])[0];
+    const bySub = (await sb(`profiles?google_sub=eq.${encodeURIComponent(claims.sub)}&select=*`) as Profile[])[0];
+    // An admin made a username + password account with this same (Google-verified)
+    // email → it's the same person: link Google to it, so both ways of signing in work.
+    // That holds even when this Google account is still linked to an OLDER profile from
+    // before its email changed: the admin's account replaces that one.
+    const madeForEmail = bySub?.email === email ? undefined
+      : (await sb(`profiles?email=eq.${encodeURIComponent(email)}&google_sub=is.null&select=*`) as Profile[])[0];
+    if (bySub && madeForEmail) {
+      // Only one profile may hold a Google account. The old one keeps its data but
+      // can't be signed in to any more, which the database allows only when 'blocked'.
+      try {
+        await updateProfile(bySub.id, { google_sub: null, status: 'blocked' });
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('profiles_has_login')) {
+          throw new AuthError(503, 'Moving Google sign-in to the new account needs a database update — run supabase/migrations/2026-11-17-replace-old-google-profile.sql in Supabase.');
+        }
+        throw err;
+      }
+      console.warn(`[auth] Google sign-in moved from old profile ${bySub.id} to ${madeForEmail.id}; the old one is now blocked`);
+    }
+    const existing = madeForEmail ?? bySub;
     const driveFields = driveTokenFields(t);
 
     const { isAdmin, preApproved } = approvalFor(email);

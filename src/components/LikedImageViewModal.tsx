@@ -138,7 +138,7 @@ export function LikedImageViewModal({ isOpen, onClose, imgUrl, recordId, bannerD
             onClick={() => setShowFanModal(true)}
           >
             <ImageDown className="w-4 h-4" />
-            Fan Banner
+            Fun Banner
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

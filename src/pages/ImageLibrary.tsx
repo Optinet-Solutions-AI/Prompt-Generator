@@ -1133,7 +1133,7 @@ function Lightbox({
               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-medium transition-colors"
             >
               <ImageDown className="w-4 h-4" />
-              Fan Banner (PNG)
+              Fun Banner (PNG)
             </button>
 
             {/* Share just this one image with chosen colleagues */}
@@ -1322,7 +1322,7 @@ function Lightbox({
         brand={image.brand_name || activeBrand}
       />
 
-      {/* Fan Banner (PNG) Modal — Drive images carry their brand in `brand` */}
+      {/* Fun Banner (PNG) Modal — Drive images carry their brand in `brand` */}
       <FanBannerModal
         isOpen={showFanModal}
         onClose={() => setShowFanModal(false)}

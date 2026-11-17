@@ -14,12 +14,15 @@ import { CENTERED, MAX_ZOOM, minZoom, panAfterDrag, type PictureFraming } from '
 import { canvasToPngBlob, drawFanBanner, loadBrandFonts, loadLogo, loadPicture } from '@/lib/fan-banner/render';
 
 /**
- * Fan Banner (PNG) — turns a library image into a finished 1200×600 email
+ * Fun Banner (PNG) — turns a library image into a finished 1200×600 email
  * banner in the brand's look (logo, fonts, colours, button), saved as a PNG
  * with 40px see-through rounded corners.
  *
  * The preview IS the file: the same drawing code paints the on-screen canvas
  * and the downloaded PNG, so what you see is exactly what you get.
+ *
+ * (Users see it as "Fun Banner". The code still uses the older "fan" names —
+ * FanBannerModal, lib/fan-banner — so search for those.)
  */
 
 interface FanBannerModalProps {
@@ -230,7 +233,7 @@ export function FanBannerModal({ isOpen, onClose, imageUrl, brand }: FanBannerMo
         <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-2.5 border-b border-border shrink-0">
           <ImageDown className="w-4 h-4 text-primary shrink-0" />
           <div className="min-w-0">
-            <DialogTitle className="text-sm font-semibold leading-tight">Fan Banner (PNG)</DialogTitle>
+            <DialogTitle className="text-sm font-semibold leading-tight">Fun Banner (PNG)</DialogTitle>
             <DialogDescription className="text-[11px] text-muted-foreground truncate">
               {brandName || 'Pick a brand'} · 1200 × 600 · 40 px rounded corners · for email
             </DialogDescription>

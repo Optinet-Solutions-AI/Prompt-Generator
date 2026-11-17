@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import sharp from 'sharp';
-import { logAssistantImageGen, resizeToExact, pickOpenAiImageSize } from './generate-image.js';
+import handler, { logAssistantImageGen, resizeToExact, pickOpenAiImageSize, assistantTesterId } from './generate-image.js';
 import { resolveGeminiModel, DEFAULT_GEMINI_IMAGE_MODEL } from './_image-models.js';
 
 const insertMock = vi.fn();
+const spendCapMock = vi.fn(async (_who: string) => ({ allowed: true, spent_today_usd: 0, cap_usd: 10 }));
+vi.mock('./_spend-cap.js', () => ({ checkSpendCap: (who: string) => spendCapMock(who) }));
 
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
@@ -17,6 +19,7 @@ describe('logAssistantImageGen', () => {
     insertMock.mockResolvedValue({ data: null, error: null });
     process.env.SUPABASE_URL = 'https://test.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+    process.env.VITE_ASSISTANT_TOKENS = 'tester-her'; // the tester id below is a real tester token
   });
 
   it('no-ops when source is not "assistant"', async () => {
@@ -271,5 +274,40 @@ describe('resolveGeminiModel gate (drives the Gemini direct-generation branch)',
 
   it('an unknown id falls back safely to the default model by id', () => {
     expect(resolveGeminiModel('gemini-99-nonexistent').id).toBe(DEFAULT_GEMINI_IMAGE_MODEL);
+  });
+});
+
+// A request is only an "AI Assistant tester" request when it carries a REAL
+// tester token. Since the main tool's ideas are billed by profile id, a made-up
+// or someone else's id here must neither skip sign-in nor be billed.
+describe('assistant requests need a real tester token', () => {
+  const VICTIM = '96bd042c-0000-4000-8000-0000000000a1'; // a profile id, not a token
+  beforeEach(() => {
+    insertMock.mockReset();
+    insertMock.mockResolvedValue({ data: null, error: null });
+    process.env.SUPABASE_URL = 'https://test.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
+    process.env.VITE_ASSISTANT_TOKENS = 'tester-her';
+  });
+
+  it('assistantTesterId accepts only a configured tester token', () => {
+    expect(assistantTesterId({ source: 'assistant', test_user_id: 'tester-her' })).toBe('tester-her');
+    expect(assistantTesterId({ source: 'assistant', test_user_id: VICTIM })).toBeNull();
+    expect(assistantTesterId({ source: 'assistant' })).toBeNull();
+    expect(assistantTesterId({ test_user_id: 'tester-her' })).toBeNull();
+  });
+
+  it('does not log an image cost under an id that is not a tester token', async () => {
+    const req = { body: { source: 'assistant', test_user_id: VICTIM } } as any;
+    await logAssistantImageGen(req, 'file-id', 'openai', 'gpt-image-1', '1024x1024', 'standard');
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('makes a request with a made-up tester id sign in like everyone else (401), before any spend check', async () => {
+    const res = { statusCode: 200, body: null as unknown, setHeader() {}, status(c: number) { this.statusCode = c; return this; }, json(b: unknown) { this.body = b; return this; }, end() { return this; } };
+    const req = { method: 'POST', headers: { host: 'localhost:5173', cookie: '' }, body: { prompt: 'a hero', provider: 'chatgpt', source: 'assistant', test_user_id: VICTIM } };
+    await handler(req as any, res as any);
+    expect(res.statusCode).toBe(401);
+    expect(spendCapMock).not.toHaveBeenCalled();
   });
 });

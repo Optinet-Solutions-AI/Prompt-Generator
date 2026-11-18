@@ -37,3 +37,22 @@ describe('ideas client', () => {
     expect(err.message).toBe('/api/assistant/concepts (429): cap');
   });
 });
+
+describe('ideas client: on-brief flag', () => {
+  beforeEach(() => {
+    calls = [];
+    answer(200, JSON.stringify({ concepts: [], recommendation: '', usage: {} }));
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit) => {
+      calls.push({ url, body: String(init.body) });
+      return new Response(next.text, { status: next.status });
+    }));
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('passes onBrief through to both ideas calls', async () => {
+    await requestConcepts({ brand: 'PlayMojo', task: 'Black Friday', model: 'gemini', onBrief: true });
+    expect(JSON.parse(lastBody()).onBrief).toBe(true);
+    await requestGenerate({ brand: 'PlayMojo', task: 'Black Friday', model: 'gemini', pickedConcept: { title: 't', description: 'd' }, onBrief: true });
+    expect(JSON.parse(lastBody()).onBrief).toBe(true);
+  });
+});

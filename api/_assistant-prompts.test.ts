@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, pickConceptLenses, CONCEPT_LENSES, buildAvoidClause, buildSingleConceptSystemPrompt, SINGLE_CONCEPT_JSON_SCHEMA, buildRecommendationPrompt, buildDissectSystemPrompt, DISSECT_JSON_SCHEMA } from './_assistant-prompts.js';
+import { buildConceptsSystemPrompt, buildGenerateSystemPrompt, pickConceptLens, pickConceptLenses, CONCEPT_LENSES, buildAvoidClause, buildSingleConceptSystemPrompt, SINGLE_CONCEPT_JSON_SCHEMA, buildRecommendationPrompt, buildDissectSystemPrompt, DISSECT_JSON_SCHEMA, ON_BRIEF_LENSES } from './_assistant-prompts.js';
 
 describe('buildConceptsSystemPrompt', () => {
   it('includes the partner personality preamble', () => {
@@ -326,5 +326,72 @@ describe('buildDissectSystemPrompt', () => {
     const p = buildDissectSystemPrompt('Roosterbet');
     expect(p).toMatch(/for reference only/i);
     expect(p).toMatch(/not an instruction to apply/i);
+  });
+});
+
+// Lena, 2026-11-18: "Black Friday Main Banner" came back as vault doors, a
+// crowbar and a sprinter, with no Black Friday in sight. The main tool's Get
+// ideas now asks for ON-BRIEF ideas; the RocketSpin tester page keeps its
+// deliberately surprising ones (no onBrief → wording unchanged).
+describe('on-brief ideas (main tool Get ideas)', () => {
+  const concept = buildSingleConceptSystemPrompt('PlayMojo', { onBrief: true });
+  const generate = buildGenerateSystemPrompt('PlayMojo', { onBrief: true });
+
+  it('concepts: the occasion must be recognisable from the picture alone, with room for the headline', () => {
+    expect(concept).toContain('STAY ON BRIEF');
+    expect(concept).toMatch(/recognise that occasion from the PICTURE ALONE/);
+    expect(concept).toMatch(/Familiar cues are WANTED/);
+    expect(concept).toMatch(/headline/);
+  });
+
+  it('concepts: drops the "avoid the predictable take" push that swapped Black Friday for metaphors', () => {
+    expect(concept).not.toMatch(/Avoid the most predictable/i);
+    expect(concept).not.toMatch(/EXPAND THE USER'S THINKING/);
+  });
+
+  it('concepts: keeps the brand block and the subject-neutrality guard', () => {
+    expect(concept).toContain('PlayMojo');
+    expect(concept).toContain('COLOR PALETTE');
+    expect(concept).toContain('SUBJECT DEMOGRAPHICS');
+  });
+
+  it('generate: the occasion must be shown as objects, never just named, and its cues never excluded', () => {
+    expect(generate).toContain('STAY ON BRIEF');
+    expect(generate).toMatch(/cannot draw a label/);
+    expect(generate).toMatch(/Never put the occasion's own cues in negative_prompt/);
+    expect(generate).toMatch(/headline/);
+  });
+
+  // Live check, 2026-11-18: "VIP club invitation" drew "VIP" and "MEMBERSHIP" on
+  // the envelope, and a New Year clock drew its numerals. Props that carry
+  // writing must be described as blank; the brand's own objects (RocketSpin's
+  // "RS" coins) stay.
+  it('generate: objects are described without writing on them, except the brand objects', () => {
+    expect(generate).toMatch(/never describe an object as carrying writing/);
+    expect(generate).toMatch(/Apart from brand objects the brand rules above name/);
+  });
+
+  it('concepts: example cues avoid props that carry numerals (no clock)', () => {
+    expect(concept).not.toMatch(/clock/i);
+  });
+
+  it('the tester page wording is unchanged when onBrief is not asked for', () => {
+    expect(buildSingleConceptSystemPrompt('PlayMojo')).toMatch(/Avoid the most predictable/);
+    expect(buildSingleConceptSystemPrompt('PlayMojo')).not.toContain('STAY ON BRIEF');
+    expect(buildGenerateSystemPrompt('PlayMojo')).not.toContain('STAY ON BRIEF');
+  });
+
+  it('on-brief lenses vary the picture, never the topic', () => {
+    expect(ON_BRIEF_LENSES.length).toBeGreaterThanOrEqual(3);
+    for (const lens of ON_BRIEF_LENSES) {
+      expect(lens).not.toMatch(/reject|unexpected setting|avoid the most obvious/i);
+      expect(CONCEPT_LENSES).not.toContain(lens);
+    }
+  });
+
+  it('pickConceptLenses draws from the pool it is given', () => {
+    const got = pickConceptLenses(3, Math.random, ON_BRIEF_LENSES);
+    expect(got).toHaveLength(3);
+    for (const lens of got) expect(ON_BRIEF_LENSES).toContain(lens);
   });
 });

@@ -10,10 +10,12 @@ import { ASSISTANT_MODELS } from '../_assistant-models.js';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { token, brand, task, description, pickedConcept, model } = (req.body ?? {}) as {
+  const { token, brand, task, description, pickedConcept, model, onBrief } = (req.body ?? {}) as {
     token?: string; brand?: string; task?: string; description?: string;
     pickedConcept?: { title: string; description: string };
     model?: 'openai' | 'gemini' | 'claude';
+    /** Main tool (Get ideas): the occasion must be visible in the picture. The tester page sends nothing. */
+    onBrief?: boolean;
   };
 
   // The tester link sends a token; the main tool (Get ideas) sends none and
@@ -43,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const chosenModel = stage.model;
 
   try {
-    const system = buildGenerateSystemPrompt(brand);
+    const system = buildGenerateSystemPrompt(brand, { onBrief: onBrief === true });
     const user = [
       `Task topic: ${task}`,
       `Extra detail: ${description ?? '(none)'}`,

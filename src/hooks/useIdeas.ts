@@ -13,6 +13,9 @@ import { briefKey, canAskForIdeas, ideasErrorMessage, isStaleAnswer } from '@/li
  * after visiting other screens. A refresh or a brand change clears them.
  */
 const MODEL = 'gemini' as const; // the tester page's default; no model picker in the main tool
+// People here ask for a banner for a real occasion ("Black Friday Main Banner"),
+// so every idea must clearly show it. The tester page keeps its surprising ideas.
+const ON_BRIEF = true;
 
 export interface Ideas {
   open: boolean;
@@ -72,7 +75,7 @@ export function useIdeas(brand: string): Ideas {
     setError(null);
     try {
       const r = await requestConcepts({
-        brand, task: task.trim(), description: description.trim() || undefined, model: MODEL, avoid,
+        brand, task: task.trim(), description: description.trim() || undefined, model: MODEL, avoid, onBrief: ON_BRIEF,
       });
       if (id !== requestRef.current || isStaleAnswer(key, currentKeyRef.current)) return;
       setIdeas(r.concepts);
@@ -92,7 +95,7 @@ export function useIdeas(brand: string): Ideas {
     setError(null);
     try {
       const r = await requestGenerate({
-        brand, task: task.trim(), description: description.trim() || undefined, model: MODEL, pickedConcept: idea,
+        brand, task: task.trim(), description: description.trim() || undefined, model: MODEL, pickedConcept: idea, onBrief: ON_BRIEF,
       });
       return r.metadata;
     } catch (e) {

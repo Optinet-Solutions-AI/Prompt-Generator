@@ -47,6 +47,34 @@ const SUBJECT_NEUTRALITY = [
 ].join('\n');
 
 /**
+ * Set by the main tool's "Get ideas" (Custom prompt). The RocketSpin tester page
+ * leaves it off and keeps its deliberately surprising, "expand my thinking" ideas.
+ */
+export interface IdeasOptions { onBrief?: boolean }
+
+// Why this exists (Lena, 2026-11-18): "Black Friday Main Banner" came back as
+// vault doors, a crowbar and a sprinter. The concept rules said "avoid the most
+// predictable take", which for an occasion IS the thing the person asked for,
+// and the banner carries no text, so a Black Friday that is only NAMED in the
+// prompt never reaches the picture. Here the occasion must be visible.
+const ON_BRIEF_CONCEPT_RULES = [
+  'STAY ON BRIEF — THIS IS THE JOB:',
+  'The person needs a banner for exactly what the task names (an occasion, a promotion or an offer, e.g. Black Friday, Christmas, a weekend boost). A viewer must recognise that occasion from the PICTURE ALONE, at a glance, without reading a word.',
+  "- Build the concept around concrete visual cues people already link to that occasion (for example: blank price tags, shopping bags and gift-wrapped boxes for a sale; snow, gifts and ornaments for Christmas; fireworks and confetti for New Year), shown in the brand's own colours and style.",
+  '- Familiar cues are WANTED here. Do NOT avoid them as clichés, and do NOT swap the occasion for an abstract metaphor (a vault, a monolith, a race) that could belong to any campaign.',
+  '- Vary the composition, setting, moment and camera. Never the topic.',
+  '- The image carries NO words, letters, numbers or symbols (no % signs either), because the headline is added later. Say where a clean, uncluttered area for that headline sits.',
+].join('\n');
+
+const ON_BRIEF_GENERATE_RULES = [
+  'STAY ON BRIEF:',
+  "- The occasion in the task must be VISIBLE in the picture. Carry the picked concept's occasion cues (e.g. blank price tags, shopping bags, gifts, fireworks) into positive_prompt as concrete objects, and do not drop them. Only naming the occasion (\"a Black Friday banner\") is not enough: the image model cannot draw a label.",
+  "- Never put the occasion's own cues in negative_prompt. negative_prompt still excludes words, letters, logos and watermarks.",
+  '- The image model writes any word, initials or numerals the prompt puts on an object. Apart from brand objects the brand rules above name, never describe an object as carrying writing: no "VIP card", no "SALE tag", no clock face with numerals. Describe it as plain, blank or unmarked instead.',
+  '- Keep a clean, uncluttered area for the headline that is added later, and say where it is in format_layout and positive_prompt.',
+].join('\n');
+
+/**
  * RETAINED REVERT PATH — NOT CALLED IN PRODUCTION.
  *
  * `buildConceptsSystemPrompt`, `CONCEPTS_JSON_SCHEMA`, and `pickConceptLens`
@@ -86,7 +114,7 @@ export function buildConceptsSystemPrompt(brand: string): string {
   ].join('\n');
 }
 
-export function buildGenerateSystemPrompt(brand: string): string {
+export function buildGenerateSystemPrompt(brand: string, opts: IdeasOptions = {}): string {
   return [
     PERSONALITY,
     '',
@@ -94,6 +122,7 @@ export function buildGenerateSystemPrompt(brand: string): string {
     '',
     SUBJECT_NEUTRALITY,
     '',
+    ...(opts.onBrief ? [ON_BRIEF_GENERATE_RULES, ''] : []),
     'You will receive a picked concept (title + description) plus the original task and description.',
     'Produce the structured prompt fields for a downstream image generator.',
     '',
@@ -173,6 +202,16 @@ export const CONCEPT_LENSES: string[] = [
   'Explore a different TIME or ENERGY than the default — quiet aftermath, frantic peak-action, dawn, or deep night.',
 ];
 
+// The main tool's lenses: three ideas still differ in KIND, but only in how the
+// picture is made. The topic (the occasion in the brief) never changes.
+export const ON_BRIEF_LENSES: string[] = [
+  "WIDE SCENE: a whole environment dressed for the occasion, in the brand's world, so the occasion reads even as a small thumbnail.",
+  'HERO OBJECT: one big, striking object that instantly says the occasion (e.g. a giant blank price tag, a gift box, a shopping bag) fills the focal point, product-shot style.',
+  "PEOPLE IN THE MOMENT: a person from the brand's world in the middle of the occasion's key moment, mid-action, surrounded by its cues.",
+  "CAMERA ANGLE: an unusual viewpoint (top-down, low angle, or an extreme close detail) on the occasion's most recognisable cues.",
+  "TIME AND ENERGY: the countdown just before it starts, the peak rush, or the moment the deal lands, with the occasion's cues in view.",
+];
+
 /** A prompt block listing ideas the model must NOT repeat. Empty list → '' (no block). */
 export function buildAvoidClause(avoid: string[]): string {
   const items = (avoid || []).map(s => s.trim()).filter(Boolean);
@@ -197,9 +236,9 @@ export function pickConceptLens(rand: () => number = Math.random): string {
  * another an unusual camera angle. Picking the same lens twice would waste a
  * call, so selection is without replacement.
  */
-export function pickConceptLenses(n: number, rand: () => number = Math.random): string[] {
+export function pickConceptLenses(n: number, rand: () => number = Math.random, lenses: string[] = CONCEPT_LENSES): string[] {
   if (n <= 0) return [];
-  const pool = [...CONCEPT_LENSES];
+  const pool = [...lenses];
   const out: string[] = [];
   // Draw from a shrinking pool — guarantees distinctness without a retry loop.
   while (out.length < n && pool.length > 0) {
@@ -219,7 +258,7 @@ export function pickConceptLenses(n: number, rand: () => number = Math.random): 
  * confusing. Divergence is now guaranteed structurally by giving each call a
  * different lens, instead of asking one call to diverge from itself.
  */
-export function buildSingleConceptSystemPrompt(brand: string): string {
+export function buildSingleConceptSystemPrompt(brand: string, opts: IdeasOptions = {}): string {
   return [
     PERSONALITY,
     '',
@@ -227,7 +266,9 @@ export function buildSingleConceptSystemPrompt(brand: string): string {
     '',
     SUBJECT_NEUTRALITY,
     '',
-    "YOUR JOB IS TO EXPAND THE USER'S THINKING, NOT NARROW IT: propose a fresh, non-obvious direction they may not have considered. Avoid the most predictable or clichéd take on the brief.",
+    opts.onBrief
+      ? ON_BRIEF_CONCEPT_RULES
+      : "YOUR JOB IS TO EXPAND THE USER'S THINKING, NOT NARROW IT: propose a fresh, non-obvious direction they may not have considered. Avoid the most predictable or clichéd take on the brief.",
     '',
     'Return exactly ONE concept as strict JSON: {"concepts":[{"title":"...","description":"..."}]}.',
     'The CREATIVE LENS in the user message is the defining constraint for this concept — obey it, do not treat it as one option among many.',

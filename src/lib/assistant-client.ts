@@ -39,6 +39,8 @@ export function requestConcepts(args: {
   description?: string;
   model: AssistantProvider;
   avoid?: string[];
+  /** Main tool only: every idea must clearly show the occasion (the tester page leaves it off). */
+  onBrief?: boolean;
 }) {
   return postJson<ConceptsResponse>('/api/assistant/concepts', args);
 }
@@ -50,6 +52,7 @@ export function requestGenerate(args: {
   description?: string;
   pickedConcept: AssistantConcept;
   model: AssistantProvider;
+  onBrief?: boolean;
 }) {
   return postJson<GenerateResponse>('/api/assistant/generate', args);
 }

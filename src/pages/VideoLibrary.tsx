@@ -18,6 +18,8 @@ import { VIDEO_MODELS } from '@/lib/ugc-video';
 /** 'seedance_2_5' → 'Seedance 2.5'; '' → '' (older videos didn't record a model). */
 const modelLabel = (id: string) => VIDEO_MODELS.find(m => m.id === id)?.label || id;
 import { LibrarySourcePicker, ownerParam, sourceLabel } from '@/components/auth/LibrarySourcePicker';
+import { libraryHeading, withOwnerName } from '@/lib/nav/library-labels';
+import { useLibraryPeople } from '@/hooks/useLibraryPeople';
 import { sourceFromSearch, libraryPath } from '@/lib/nav/library-address';
 import { ItemShareDialog } from '@/components/auth/ItemShareDialog';
 
@@ -32,6 +34,9 @@ export default function VideoLibrary() {
   const location = useLocation();
   const navigate = useNavigate();
   const source = useMemo(() => sourceFromSearch(location.search), [location.search]);
+  // The same source with the colleague's name filled in, for the heading and messages.
+  const libraryPeople = useLibraryPeople();
+  const namedSource = withOwnerName(source, libraryPeople);
   // Changing the source starts fresh: clear the brand, model and favorites filters.
   useEffect(() => { setBrand('All'); setModel('All'); setFavoritesOnly(false); }, [source]);
   const isMine = source.kind === 'mine';
@@ -93,10 +98,10 @@ export default function VideoLibrary() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <Clapperboard className="w-5 h-5 text-primary" />
-          <h2 className="text-xl font-bold text-foreground">Video Library</h2>
+          <h2 className="text-xl font-bold text-foreground">{libraryHeading('videos', namedSource)}</h2>
           {!loading && <span className="text-sm text-muted-foreground">{videos.length} videos</span>}
         </div>
-        <LibrarySourcePicker value={source} onChange={next => navigate(libraryPath('videos', next))} />
+        <LibrarySourcePicker value={source} people={libraryPeople} onChange={next => navigate(libraryPath('videos', next))} />
         <div className="ml-auto flex gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading} aria-label="Refresh" title="Refresh">
             <RefreshCw className={`w-4 h-4 sm:mr-1 ${loading ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Refresh</span>
@@ -181,7 +186,7 @@ export default function VideoLibrary() {
           {videos.length === 0
             ? (isMine ? 'No videos yet — make one on the Video page.'
               : source.kind === 'items' ? 'Nothing shared with you one by one yet. When a colleague clicks Share on one of their videos, it shows up here.'
-              : `No videos in ${sourceLabel(source)} yet.`)
+              : `No videos in ${sourceLabel(namedSource)} yet.`)
             : 'No videos match these filters.'}
         </div>
       )}

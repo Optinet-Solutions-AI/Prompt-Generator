@@ -10,4 +10,7 @@ describe('sourceLabel', () => {
   it('uses the owner name when it is known', () => {
     expect(sourceLabel({ kind: 'shared', ownerId: U, name: 'Meny' })).toBe("Meny's library");
   });
+  it('calls single shared items "Individual items", the same words as the menu option', () => {
+    expect(sourceLabel({ kind: 'items' })).toBe('Individual items');
+  });
 });

@@ -6,12 +6,12 @@
  * (admins only) Everyone — any person's library · Team archive (everything
  * made before accounts existed).
  */
-import { useEffect, useState } from 'react';
 import { Archive, ChevronDown, Share2, User, Users } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { authApi, firstName, type Person } from '@/lib/auth-api';
+import { firstName, type Person } from '@/lib/auth-api';
+import { withOwnerName, type LibraryPeople } from '@/lib/nav/library-labels';
 
 export type LibrarySource =
   | { kind: 'mine' }
@@ -27,29 +27,23 @@ export function ownerParam(s: LibrarySource): string {
 export function sourceLabel(s: LibrarySource): string {
   return s.kind === 'mine' ? 'My library'
     : s.kind === 'archive' ? 'Team archive'
-    : s.kind === 'items' ? 'Shared items'
+    : s.kind === 'items' ? 'Individual items'
     : s.name ? `${s.name}'s library` : 'Shared library';
 }
 
-export function LibrarySourcePicker({ value, onChange }: { value: LibrarySource; onChange: (s: LibrarySource) => void }) {
-  const [sharedWithMe, setSharedWithMe] = useState<Person[]>([]);
-  const [everyone, setEveryone] = useState<Person[]>([]);   // admins only (the server sends it to admins alone)
-
-  useEffect(() => {
-    authApi.shares()
-      .then(r => { setSharedWithMe(r.shared_with_me); setEveryone(r.everyone || []); })
-      .catch(() => { setSharedWithMe([]); setEveryone([]); });
-  }, []);
+/** `people` comes from useLibraryPeople, shared with the page heading so both show the same name. */
+export function LibrarySourcePicker({ value, onChange, people }: {
+  value: LibrarySource;
+  onChange: (s: LibrarySource) => void;
+  people: LibraryPeople;
+}) {
+  const { sharedWithMe, everyone } = people;
   const pick = (p: Person) => onChange({ kind: 'shared', ownerId: p.id, name: firstName(p) });
   const avatar = (p: Person) => p.avatar_url
     ? <img src={p.avatar_url} alt="" referrerPolicy="no-referrer" className="w-5 h-5 rounded-full mr-2" />
     : <Users className="w-4 h-4 mr-2" />;
 
-  // The address only carries the person's id, so when there is no name yet, look it up in the loaded lists.
-  const found = value.kind === 'shared' && !value.name
-    ? [...sharedWithMe, ...everyone].find(p => p.id === value.ownerId)
-    : undefined;
-  const shownValue: LibrarySource = value.kind === 'shared' && found ? { ...value, name: firstName(found) } : value;
+  const shownValue = withOwnerName(value, people);
   const Icon = value.kind === 'mine' ? User : value.kind === 'archive' ? Archive : value.kind === 'items' ? Share2 : Users;
   return (
     <DropdownMenu>

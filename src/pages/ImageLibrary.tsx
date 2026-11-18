@@ -42,6 +42,8 @@ import { BRANDS } from '@/types/prompt';
 import { getImages, getAllStoredImages, batchStoreImages, deleteStoredImage, storeImage, setImageLibraryView, pruneStoredImages } from '@/lib/imageStore';
 import { ItemShareDialog } from '@/components/auth/ItemShareDialog';
 import { LibrarySourcePicker, ownerParam, sourceLabel, type LibrarySource } from '@/components/auth/LibrarySourcePicker';
+import { libraryHeading, withOwnerName } from '@/lib/nav/library-labels';
+import { useLibraryPeople } from '@/hooks/useLibraryPeople';
 import { sourceFromSearch, libraryPath } from '@/lib/nav/library-address';
 import { useAuth } from '@/hooks/useAuth';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
@@ -1722,6 +1724,9 @@ export default function ImageLibrary() {
   const sourceRef = useRef<LibrarySource>(source);
   const [syncing, setSyncing] = useState(false);
 
+  // The same source with the colleague's name filled in, for the heading and messages.
+  const libraryPeople = useLibraryPeople();
+  const namedSource = withOwnerName(source, libraryPeople);
   const load = useCallback(async (pageNum: number, activeFilter: string, activeBrand: string, reset = false) => {
     const isFavorites = activeFilter === 'favorites';
     // Only show loading spinner for async Supabase calls (favorites).
@@ -1821,14 +1826,14 @@ export default function ImageLibrary() {
                 <Images className="w-4 h-4 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-semibold text-foreground text-sm leading-tight">Image Library</h1>
+                <h1 className="font-semibold text-foreground text-sm leading-tight">{libraryHeading('images', namedSource)}</h1>
                 <p className="text-[11px] text-muted-foreground leading-tight">
                   {images.length}{hasMore ? '+' : ''} image{images.length !== 1 ? 's' : ''}
                   {syncing ? ' · syncing…' : ''}
                 </p>
               </div>
             </div>
-            <LibrarySourcePicker value={source} onChange={next => navigate(libraryPath('images', next))} />
+            <LibrarySourcePicker value={source} people={libraryPeople} onChange={next => navigate(libraryPath('images', next))} />
           </div>
 
           {/* Filter tabs */}
@@ -1932,7 +1937,7 @@ export default function ImageLibrary() {
                   ? "Nothing shared with you one by one yet. When a colleague opens one of their images and clicks \"Share this image\", it shows up here."
                 : source.kind === 'mine'
                   ? "Images you generate are saved to your own Google Drive and appear here. Looking for images made before accounts? They're in the Team archive."
-                  : `No images in ${sourceLabel(source)} yet.`}
+                  : `No images in ${sourceLabel(namedSource)} yet.`}
             </p>
             <div className="flex gap-3 justify-center">
               {filter !== 'all' && <Button variant="outline" onClick={() => handleFilter('all')}>Show all</Button>}

@@ -394,7 +394,7 @@ function SaveEditedModal({
 // ── Lightbox ───────────────────────────────────────────────────────────────────
 
 function Lightbox({
-  image, all, onClose, onPrev, onNext, onDeleted, onImageUpdated, onNewImageAdded, activeBrand, canShare = false,
+  image, all, onClose, onPrev, onNext, onDeleted, onImageUpdated, onNewImageAdded, activeBrand, canShare = false, everyoneCanSee = false,
 }: {
   image: GeneratedImage;
   all: GeneratedImage[];
@@ -408,6 +408,8 @@ function Lightbox({
   activeBrand?: string;
   /** True in "My library" — shows the "Share this image" button */
   canShare?: boolean;
+  /** True in the Team archive: everyone can already open it, so say that where Share would be */
+  everyoneCanSee?: boolean;
 }) {
   const idx     = all.findIndex(i => i.id === image.id);
   const hasPrev = idx > 0;
@@ -1161,6 +1163,9 @@ function Lightbox({
                 Share this image
               </button>
             )}
+            {everyoneCanSee && (
+              <p className="text-center text-xs text-white/60">Everyone on the team can already see this image.</p>
+            )}
             {image.shared_by && (
               <p className="text-center text-xs text-white/60">Shared with you by {image.shared_by}</p>
             )}
@@ -1719,14 +1724,14 @@ export default function ImageLibrary() {
   const location = useLocation();
   const navigate = useNavigate();
   const source = useMemo(() => sourceFromSearch(location.search), [location.search]);
+  // The same source with the colleague's name filled in, for the heading and messages.
+  const libraryPeople = useLibraryPeople();
+  const namedSource = withOwnerName(source, libraryPeople);
   // Set when the server refuses the library (not shared with me / no longer available).
   const [accessError, setAccessError] = useState<string | null>(null);
   const sourceRef = useRef<LibrarySource>(source);
   const [syncing, setSyncing] = useState(false);
 
-  // The same source with the colleague's name filled in, for the heading and messages.
-  const libraryPeople = useLibraryPeople();
-  const namedSource = withOwnerName(source, libraryPeople);
   const load = useCallback(async (pageNum: number, activeFilter: string, activeBrand: string, reset = false) => {
     const isFavorites = activeFilter === 'favorites';
     // Only show loading spinner for async Supabase calls (favorites).
@@ -2011,6 +2016,7 @@ export default function ImageLibrary() {
           onNewImageAdded={handleNewImageAdded}
           activeBrand={brandFilter !== 'all' ? brandFilter : undefined}
           canShare={source.kind === 'mine' && filter !== 'favorites'}
+          everyoneCanSee={source.kind === 'archive'}
         />
       )}
     </div>

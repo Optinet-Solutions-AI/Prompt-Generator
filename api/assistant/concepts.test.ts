@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import handler from './concepts.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { makeSessionValue, SESSION_COOKIE } from '../_session.js';
+import { CONCEPT_LENSES, ON_BRIEF_LENSES } from '../_assistant-prompts.js';
 
 // Mocking `chat` (rather than `global.fetch`) is what lets these tests assert
 // HOW MANY calls are made and WHAT lens each one carries — the whole point of
@@ -255,5 +256,49 @@ describe('concepts for signed-in people (main tool)', () => {
     expect(res.statusCode).toBe(400);
     expect(res.body).toEqual({ error: 'Unknown brand' });
     expect(chatMock).not.toHaveBeenCalled();
+  });
+});
+
+// The main tool asks for on-brief ideas (Lena's Black Friday report); the
+// tester page sends nothing and keeps its surprising lenses.
+describe('on-brief ideas (main tool)', () => {
+  const lensOf = (c: unknown[]) => {
+    const m = String((c[0] as { user: string }).user).match(/CREATIVE LENS[^:]*: ([^\n]*)/);
+    return m ? m[1] : '';
+  };
+  const run = async (body: Record<string, unknown>) => {
+    chatMock
+      .mockResolvedValueOnce(conceptReply('One'))
+      .mockResolvedValueOnce(conceptReply('Two'))
+      .mockResolvedValueOnce(conceptReply('Three'))
+      .mockResolvedValueOnce({ text: 'pick', usage: { input_tokens: 1, cached_input_tokens: 0, output_tokens: 1 } });
+    const { req, res } = mockReqRes(body);
+    await handler(req as unknown as VercelRequest, res as unknown as VercelResponse);
+    return res;
+  };
+  beforeEach(() => {
+    chatMock.mockReset();
+    logMock.mockReset();
+    process.env.VITE_ASSISTANT_TOKENS = 'tester-her-x9k2';
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+  });
+
+  it('onBrief: every concept call gets the stay-on-brief rules and an on-brief lens', async () => {
+    const res = await run({ ...validBody, task: 'Black Friday Main Banner', onBrief: true });
+    expect(res.statusCode).toBe(200);
+    for (const c of chatMock.mock.calls.slice(0, 3)) {
+      expect((c[0] as { system: string }).system).toContain('STAY ON BRIEF');
+      expect(ON_BRIEF_LENSES).toContain(lensOf(c));
+    }
+    expect(new Set(chatMock.mock.calls.slice(0, 3).map(lensOf)).size).toBe(3);
+  });
+
+  it('without onBrief (tester page): the original surprising lenses and wording', async () => {
+    const res = await run(validBody);
+    expect(res.statusCode).toBe(200);
+    for (const c of chatMock.mock.calls.slice(0, 3)) {
+      expect((c[0] as { system: string }).system).not.toContain('STAY ON BRIEF');
+      expect(CONCEPT_LENSES).toContain(lensOf(c));
+    }
   });
 });

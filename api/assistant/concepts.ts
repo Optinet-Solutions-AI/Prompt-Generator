@@ -7,6 +7,7 @@ import {
   SINGLE_CONCEPT_JSON_SCHEMA,
   buildRecommendationPrompt,
   pickConceptLenses,
+  ON_BRIEF_LENSES,
   buildAvoidClause,
 } from '../_assistant-prompts.js';
 import { logLlmCall } from '../_assistant-log.js';
@@ -30,9 +31,11 @@ export const config = { maxDuration: 60 };
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { token, brand, task, description, model, avoid } = (req.body ?? {}) as {
+  const { token, brand, task, description, model, avoid, onBrief } = (req.body ?? {}) as {
     token?: string; brand?: string; task?: string; description?: string;
     model?: 'openai' | 'gemini' | 'claude'; avoid?: string[];
+    /** Main tool (Get ideas): every idea must clearly show the occasion. The tester page sends nothing. */
+    onBrief?: boolean;
   };
 
   // The tester link sends a token; the main tool (Get ideas) sends none and
@@ -63,17 +66,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const CONCEPT_COUNT = 3;
 
   try {
-    const system = buildSingleConceptSystemPrompt(brand);
+    const system = buildSingleConceptSystemPrompt(brand, { onBrief: onBrief === true });
     const avoidClause = buildAvoidClause(avoid ?? []);
 
     // One call per concept, each under a DIFFERENT creative lens. Three
     // concepts from ONE call converge on a single strong direction and come
     // back as variations of each other; three independent calls under
     // different constraints diverge structurally instead of being asked to.
-    const lenses = pickConceptLenses(CONCEPT_COUNT);
+    // On-brief lenses vary only how the picture is made, never the topic.
+    const lenses = onBrief === true
+      ? pickConceptLenses(CONCEPT_COUNT, Math.random, ON_BRIEF_LENSES)
+      : pickConceptLenses(CONCEPT_COUNT);
+    const lensLabel = onBrief === true
+      ? 'CREATIVE LENS for this concept (it shapes the picture; the occasion must still be obvious)'
+      : 'CREATIVE LENS for this concept — obey it, it is the whole point of this concept';
 
     const settled = await Promise.allSettled(lenses.map(async (lens): Promise<ConceptResult> => {
-      let user = `Task topic: ${task}\nExtra detail: ${description ?? '(none)'}\n\nCREATIVE LENS for this concept — obey it, it is the whole point of this concept: ${lens}`;
+      let user = `Task topic: ${task}\nExtra detail: ${description ?? '(none)'}\n\n${lensLabel}: ${lens}`;
       if (avoidClause) user += `\n\n${avoidClause}`;
       const r = await chat({
         provider: model,

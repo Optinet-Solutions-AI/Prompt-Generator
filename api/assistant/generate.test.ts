@@ -127,3 +127,37 @@ describe('generate for signed-in people (main tool)', () => {
     expect(res.body).toEqual({ error: 'Unknown brand' });
   });
 });
+
+// The main tool asks for on-brief prompt parts (Lena's Black Friday report).
+describe('on-brief prompt parts (main tool)', () => {
+  let sent: string[] = [];
+  beforeEach(() => {
+    sent = [];
+    process.env.VITE_ASSISTANT_TOKENS = 'tester-her-x9k2';
+    process.env.GEMINI_API_KEY = 'test-gemini-key';
+    global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (!String(url).includes('generativelanguage')) return new Response('[]', { status: 200 }); // spend-cap / cost log
+      sent.push(String(init?.body ?? ''));
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: JSON.stringify(STRUCTURED) }] } }],
+        usageMetadata: { promptTokenCount: 800, candidatesTokenCount: 400 },
+      }), { status: 200 });
+    }) as unknown as typeof fetch;
+  });
+  afterEach(() => { global.fetch = originalFetch; });
+  const body = { token: 'tester-her-x9k2', brand: 'PlayMojo', task: 'Black Friday Main Banner', pickedConcept: { title: 'Sale Night', description: 'Price tags rain down.' }, model: 'gemini' };
+
+  it('onBrief: the model is told to show the occasion and not to exclude its cues', async () => {
+    const { req, res } = mockReqRes({ ...body, onBrief: true });
+    await handler(req as unknown as VercelRequest, res as unknown as VercelResponse);
+    expect(res.statusCode).toBe(200);
+    expect(sent.some((b) => b.includes('STAY ON BRIEF'))).toBe(true);
+  });
+
+  it('without onBrief (tester page): instructions unchanged', async () => {
+    const { req, res } = mockReqRes(body);
+    await handler(req as unknown as VercelRequest, res as unknown as VercelResponse);
+    expect(res.statusCode).toBe(200);
+    expect(sent.some((b) => b.includes('STAY ON BRIEF'))).toBe(false);
+  });
+});

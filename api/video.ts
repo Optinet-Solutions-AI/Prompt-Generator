@@ -45,7 +45,7 @@ import { writeScript, type ScriptRequest } from './_script-writer.js';
 import { brandVideoWithKit, brandKit, customKit, END_CARD_SECONDS, type CustomKitInput } from './_video-brand.js';
 import { AuthError, requireUser, libraryOwner, itemOwner, sb, type Profile } from './_session.js';
 import { itemsSharedWithMe } from './_item-shares.js';
-import { uploadToUserDrive, listUserFolder, userFileMeta, fetchUserFileRange, type UserDriveFile } from './_user-drive.js';
+import { uploadToUserDrive, listUserFolder, userFileMeta, fetchUserFileRange, driveNotConnectedMessage, type UserDriveFile } from './_user-drive.js';
 
 // Downloading, branding and re-uploading a video to Drive can take a while.
 export const config = { maxDuration: 300 };
@@ -635,8 +635,10 @@ async function oauthCallback(req: VercelRequest, res: VercelResponse) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = String(req.query.action || '');
   const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
+  let me: Profile | null = null;   // who is asking, for the Drive error below
   try {
     const p = await requireUser(req);
+    me = p;
     // Only admins may change the shared team connection.
     const adminOnly = () => { if (!p.is_admin) throw new HttpError(403, 'Only an admin can change the Higgsfield connection.'); };
     if (req.method === 'GET' && action === 'hf-status') return res.status(200).json({ ...(await connectionStatus(HF)), can_manage: p.is_admin });
@@ -666,9 +668,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET' && action === 'usage-team') return await usageTeam(req, res, p);
     return res.status(404).json({ error: `Unknown action "${action}" for ${req.method}` });
   } catch (err) {
-    // Drive disconnected → a code the page turns into a "Reconnect Google Drive" button.
+    // Drive disconnected → tell them which button to press ("Connect" or "Reconnect Google Drive").
     if (err instanceof AuthError && err.message === 'DRIVE_NOT_CONNECTED') {
-      return res.status(409).json({ error: 'Your Google Drive is not connected — click "Reconnect Google Drive".', code: 'DRIVE_NOT_CONNECTED' });
+      return res.status(409).json({ error: driveNotConnectedMessage(me), code: 'DRIVE_NOT_CONNECTED' });
     }
     const code = err instanceof HttpError || err instanceof AuthError ? err.status : 500;
     console.error(`[video:${action}]`, err);

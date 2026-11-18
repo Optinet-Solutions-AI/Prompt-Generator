@@ -4,7 +4,7 @@ import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 import { checkSpendCap } from './_spend-cap.js';
 import { validateToken } from './_assistant-token.js';
 import { requireUser, AuthError, type Profile } from './_session.js';
-import { uploadToUserDrive, makeUserFilePublic, ensureFolder } from './_user-drive.js';
+import { uploadToUserDrive, makeUserFilePublic, ensureFolder, driveNotConnectedMessage } from './_user-drive.js';
 import { recordImageUsage, openAiTokens, geminiTokens } from './_image-usage.js';
 
 // Image generation is the slowest operation in the app — gpt-image-2 measured
@@ -545,7 +545,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (authErr instanceof AuthError) {
           const driveMissing = authErr.message === 'DRIVE_NOT_CONNECTED';
           return res.status(authErr.status).json({
-            error: driveMissing ? 'Your Google Drive is not connected — click "Reconnect Google Drive".' : authErr.message,
+            error: driveMissing ? driveNotConnectedMessage(owner) : authErr.message,
             ...(driveMissing ? { code: 'DRIVE_NOT_CONNECTED' } : {}),
           });
         }

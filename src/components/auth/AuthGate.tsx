@@ -99,7 +99,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     const auth = new URLSearchParams(window.location.search).get('auth');
     if (!auth) return;
     if (auth === 'no-drive') {
-      toast.warning('Signed in — but Google Drive access was not allowed, so nothing can be saved. Use "Reconnect Google Drive" in your menu (top right) and tick the Drive box.');
+      // Not naming the button: username accounts see "Connect Google Drive", Google accounts "Reconnect Google Drive".
+      toast.warning('Google Drive access was not allowed, so nothing can be saved. Open your menu (top right), connect Google Drive again and tick the Drive box.');
     } else if (auth === 'drive-connected') {
       toast.success('Google Drive connected. Your images and videos will be saved there.');
     } else if (auth.startsWith('error:')) {

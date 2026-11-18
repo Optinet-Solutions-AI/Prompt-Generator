@@ -34,6 +34,16 @@ export function googleClient() {
   return { id, secret };
 }
 
+/**
+ * The error shown when someone's Drive isn't connected. It names the button
+ * they actually see in their menu (UserBar): username accounts have
+ * "Connect Google Drive", Google accounts have "Reconnect Google Drive".
+ */
+export function driveNotConnectedMessage(p: Pick<Profile, 'google_sub'> | null): string {
+  const button = p && !p.google_sub ? 'Connect Google Drive' : 'Reconnect Google Drive';
+  return `Your Google Drive is not connected — click "${button}".`;
+}
+
 /** A working Drive access token for this user (renewed when close to expiry). */
 export async function driveToken(p: Profile): Promise<string> {
   if (p.drive_access_token && p.drive_token_expires_at && Date.parse(p.drive_token_expires_at) - Date.now() > 5 * 60_000) {

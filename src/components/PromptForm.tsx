@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ import { SaveAsReferenceDialog } from "./SaveAsReferenceDialog";
 import { Archive, ClipboardPaste, Heart, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { FormData, BRANDS, ReferencePromptData } from "@/types/prompt";
 import { usePromptList } from "@/hooks/usePromptList";
+import { ideaTitleFromReference } from "@/lib/ideas";
 import { toast } from "sonner";
 
 interface PromptFormProps {
@@ -28,6 +29,8 @@ interface PromptFormProps {
   onOpenFavorites: () => void;
   /** False while another screen is showing (this one is only hidden). Its dialogs then close. */
   isVisible?: boolean;
+  /** The optional "Get ideas" card, shown under Brand and Reference. */
+  ideasPanel?: ReactNode;
 }
 
 export function PromptForm({
@@ -41,6 +44,7 @@ export function PromptForm({
   onClear,
   onOpenFavorites,
   isVisible = true,
+  ideasPanel,
 }: PromptFormProps) {
   // Load all prompts from Airtable via n8n
   const { getReferencesForBrand, getRecordId, refetch, isLoading: isLoadingList, error: listError } = usePromptList();
@@ -152,6 +156,9 @@ export function PromptForm({
     }
   };
 
+  // When the form's reference came from "Get ideas" ("idea:<title>").
+  const ideaTitle = ideaTitleFromReference(formData.reference);
+
   const handleReferenceChange = (selectedValue: string) => {
     // selectedValue is the prompt_name (we use prompt_name as the option id).
     // Store it in formData.reference — this is what gets sent to the generate-prompt n8n workflow.
@@ -183,7 +190,7 @@ export function PromptForm({
           <ReferenceSelect
             label="Reference"
             required
-            value={formData.reference}
+            value={ideaTitle ? "" : formData.reference}
             onChange={handleReferenceChange}
             placeholder={
               !formData.brand
@@ -198,6 +205,11 @@ export function PromptForm({
             disabled={!formData.brand || isLoadingList || availableReferences.length === 0}
             references={availableReferences}
           />
+          {ideaTitle && (
+            <p className="text-xs text-muted-foreground">
+              From idea: <span className="font-medium text-foreground">{ideaTitle}</span>
+            </p>
+          )}
           {/* Action buttons row — always rendered (not gated on formData.brand)
               so "Paste a finished prompt" has somewhere to live even on a
               fresh page load with nothing selected yet. Each button inside
@@ -220,8 +232,8 @@ export function PromptForm({
               </Button>
             )}
 
-            {/* Rename + Archive — only shown when a reference is selected */}
-            {formData.reference && (
+            {/* Rename + Archive — only for a saved reference (not an idea) */}
+            {formData.reference && !ideaTitle && (
               <>
                 <Button
                   type="button"
@@ -254,6 +266,8 @@ export function PromptForm({
           )}
         </div>
       </div>
+
+      {ideasPanel}
 
       {/* The paste entry point gets its own row below both columns, because it
           is a form-level action — "I already wrote a prompt elsewhere, save it"

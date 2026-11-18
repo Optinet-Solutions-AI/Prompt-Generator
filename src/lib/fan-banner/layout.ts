@@ -105,7 +105,6 @@ const MIN_SCALE = 0.3;
 const MAX_SCALE = 1.15; // how much a short banner may grow to fill the height
 const BASE = {
   logoH: 100,
-  logoMaxW: 400,
   headline: 170,
   offer: 72,
   line: 46,
@@ -141,9 +140,12 @@ export function layoutFanBanner(input: {
   const { brand, texts, side, logoAspect, measure, lineSizes = {} } = input;
   const { fonts, colors } = brand;
 
+  // The shared column, unless the brand's own banners place it differently.
+  const colW = brand.column?.width ?? COLUMN_W;
+  const edge = brand.column?.edge ?? EDGE;
   const column = side === 'right'
-    ? { x: FAN_W - EDGE - COLUMN_W, w: COLUMN_W }
-    : { x: EDGE, w: COLUMN_W };
+    ? { x: FAN_W - edge - colW, w: colW }
+    : { x: edge, w: colW };
   const centerX = column.x + column.w / 2;
 
   // Measure everything once at its base size; sizes scale linearly from there.
@@ -190,7 +192,8 @@ export function layoutFanBanner(input: {
   const sizeOf = (item: Item, s: number) => {
     switch (item.kind) {
       case 'logo': {
-        const h = Math.min(BASE.logoH * Math.max(s, LOGO_MIN_SCALE), BASE.logoMaxW / logoAspect!);
+        // Never wider than the text column (400px for most brands).
+        const h = Math.min(BASE.logoH * Math.max(s, LOGO_MIN_SCALE), column.w / logoAspect!);
         return { h, w: h * logoAspect!, size: 0 };
       }
       case 'text': {

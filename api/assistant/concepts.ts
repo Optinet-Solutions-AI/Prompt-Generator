@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { validateToken } from '../_assistant-token.js';
+import { resolveIdeasCaller, isKnownBrand, type IdeasCaller } from '../_ideas-caller.js';
+import { AuthError } from '../_session.js';
 import { chat } from '../_llm.js';
 import {
   buildSingleConceptSystemPrompt,
@@ -34,17 +35,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     model?: 'openai' | 'gemini' | 'claude'; avoid?: string[];
   };
 
-  const auth = validateToken(token);
-  if (!auth) return res.status(401).json({ error: 'Invalid token' });
+  // The tester link sends a token; the main tool (Get ideas) sends none and
+  // the signed-in person asks instead. Either way `caller.who` pays.
+  let caller: IdeasCaller;
+  try {
+    caller = await resolveIdeasCaller(req, token);
+  } catch (err) {
+    if (err instanceof AuthError) return res.status(err.status).json({ error: err.message });
+    throw err;
+  }
 
   if (!brand || !task || !model) {
     return res.status(400).json({ error: 'brand, task, and model are required' });
   }
+  if (!isKnownBrand(brand)) return res.status(400).json({ error: 'Unknown brand' });
   if (model === 'claude') {
     return res.status(400).json({ error: 'Claude provider is not yet available' });
   }
 
-  const cap = await checkSpendCap(auth.test_user_id);
+  const cap = await checkSpendCap(caller.who);
   if (!cap.allowed) {
     return res.status(429).json({ error: cap.reason, spent_today_usd: cap.spent_today_usd, cap_usd: cap.cap_usd });
   }
@@ -107,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // trips don't stack extra latency between the fan-out and the recommendation
     // call below. logLlmCall already swallows its own errors and never throws,
     // so Promise.all here can't turn a logging hiccup into a failed request.
-    await Promise.all(ok.map(s => logLlmCall(auth.test_user_id, 'concepts', {
+    await Promise.all(ok.map(s => logLlmCall(caller.who, 'concepts', {
       provider: model, model: stage.model, ...s.value.usage,
     })));
 
@@ -128,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       recommendation = r.text.trim();
       recUsage = r.usage;
-      await logLlmCall(auth.test_user_id, 'concepts-recommend', {
+      await logLlmCall(caller.who, 'concepts-recommend', {
         provider: model, model: recStage.model, ...r.usage,
       });
     } catch (recErr) {

@@ -183,3 +183,25 @@ describe('coloured line size (Normal / Big)', () => {
     expect(run()).toEqual(run({}, { lineSizes: { line1: 'normal', line2: 'normal' } }));
   });
 });
+
+describe('text column per brand', () => {
+  it("puts RocketSpin's text where its own banners have it: about 450px wide, centred near x=894", () => {
+    const right = run({}, { brand: 'RocketSpin' });
+    expect(right.column).toEqual({ x: 670, w: 450 });
+    const left = run({}, { brand: 'RocketSpin', side: 'left' });
+    expect(left.column).toEqual({ x: 80, w: 450 });
+  });
+
+  it("lets the logo use the brand's wider column (never wider than the column)", () => {
+    const few = { offer: '', line1: '', line2: '', button: '', code: '' };
+    const rs = run(few, { brand: 'RocketSpin' });
+    expect(rs.logo!.w).toBeGreaterThan(400);
+    expect(rs.logo!.w).toBeLessThanOrEqual(rs.column.w + 0.5);
+    expect(run(few, { brand: 'SpinsUp' }).logo!.w).toBeLessThanOrEqual(400.5);
+  });
+
+  it('keeps the shared column for brands without their own', () => {
+    expect(run({}, { brand: 'SpinsUp' }).column).toEqual({ x: 750, w: 400 });
+    expect(run({}, { brand: 'SpinsUp', side: 'left' }).column).toEqual({ x: 50, w: 400 });
+  });
+});

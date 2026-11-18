@@ -138,8 +138,9 @@ Stores images the user has hearted/liked. This table is separate from reference 
 
 ---
 
-## Brands in the System (9 total)
-Roosterbet, FortunePlay, SpinJo, LuckyVibe, SpinsUp, PlayMojo, Lucky7even, NovaDreams, Rollero
+## Brands in the System (10 total)
+Roosterbet, FortunePlay, SpinJo, LuckyVibe, SpinsUp, PlayMojo, Lucky7even, NovaDreams, Rollero, RocketSpin
+(`src/lib/brand-coverage.test.ts` checks every brand in `BRANDS` is set up on every screen — add a new brand there first.)
 
 ---
 

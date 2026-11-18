@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { FavoriteHeart } from "./FavoriteHeart";
 import type { AppState, PromptMetadata, ReferencePromptData } from "@/types/prompt";
 import { BRANDS } from "@/types/prompt";
+import { ideaTitleFromReference } from "@/lib/ideas";
 import { usePromptList } from "@/hooks/usePromptList";
 import { SaveAsReferenceDialog } from "./SaveAsReferenceDialog";
 import { ImageModal, type GalleryImage } from "./ImageModal";
@@ -356,9 +357,13 @@ export function ResultDisplay({
     onPromptChange?.(value);
   };
 
+  // When this prompt came from "Get ideas" (reference "idea:<title>").
+  const ideaTitle = ideaTitleFromReference(metadata?.reference);
+
   // Get reference label from metadata.
   // metadata.reference is now the prompt_name directly (e.g. "Stormcraft Arrival").
   const getReferenceLabel = (): string => {
+    if (ideaTitle) return `From idea: ${ideaTitle}`;
     return metadata?.reference || "Unknown";
   };
 
@@ -479,7 +484,7 @@ export function ResultDisplay({
               <ReferenceSelect
                 label="Reference"
                 required
-                value={metadata.reference || ""}
+                value={ideaTitle ? "" : metadata.reference || ""}
                 onChange={(selectedValue) => {
                   // selectedValue is the prompt_name (we use prompt_name as option id).
                   // Store prompt_name as the reference, then look up the Airtable record ID
@@ -492,6 +497,11 @@ export function ResultDisplay({
                 disabled={!metadata.brand || isRegeneratingPrompt}
                 references={getReferencesForBrand(metadata.brand)}
               />
+              {ideaTitle && (
+                <p className="text-xs text-muted-foreground">
+                  From idea: <span className="font-medium text-foreground">{ideaTitle}</span>
+                </p>
+              )}
               {/* Action buttons — shown when a brand is selected */}
               {metadata.brand && (
                 <div className="flex justify-end gap-1">
@@ -505,8 +515,8 @@ export function ResultDisplay({
                     <Sparkles className="h-3 w-3" />
                     Create New
                   </Button>
-                  {/* Rename + Archive — only shown when a reference is selected */}
-                  {metadata.reference && (
+                  {/* Rename + Archive — only for a saved reference (not an idea) */}
+                  {metadata.reference && !ideaTitle && (
                     <>
                       <Button
                         type="button"

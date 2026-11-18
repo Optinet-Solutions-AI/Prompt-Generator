@@ -56,3 +56,23 @@ describe('fanBannerFilename', () => {
     expect(fanBannerFilename('Rollero', '100', 'Giri gratuiti')).toBe('rollero-100-giri-gratuiti-1200x600.png');
   });
 });
+
+describe('RocketSpin matches its own email banners (RS_40FS / RS_250% / RS_50FS samples)', () => {
+  const rs = FAN_BANNER_BRANDS.RocketSpin;
+  it('uses a heavy squared face for the number and a wide tech face for the words', () => {
+    expect(rs.fonts.headline.family).toBe('Bungee');
+    for (const part of ['offer', 'line', 'button', 'code'] as const) expect(rs.fonts[part].family, part).toBe('Krona One');
+  });
+  it("has the samples' colours: royal-blue button, sky-blue lines and code, white words, dark teal-navy behind the text", () => {
+    expect(rs.colors).toMatchObject({
+      panel: '#0A2B3F', headline: '#FFFFFF', offer: '#FFFFFF', line: '#5FC3F0',
+      buttonFill: '#043EBA', buttonText: '#FFFFFF', codeLabel: '#FFFFFF', codeValue: '#5FC3F0',
+    });
+    expect(rs.codePlacement).toBe('under-button');
+  });
+  it('loads both fonts from Google Fonts', () => {
+    const href = googleFontsHref(rs);
+    expect(href).toContain('family=Bungee');
+    expect(href).toContain('family=Krona+One');
+  });
+});

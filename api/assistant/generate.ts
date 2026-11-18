@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { validateToken } from '../_assistant-token.js';
+import { resolveIdeasCaller, isKnownBrand, type IdeasCaller } from '../_ideas-caller.js';
+import { AuthError } from '../_session.js';
 import { chat } from '../_llm.js';
 import { buildGenerateSystemPrompt, GENERATE_JSON_SCHEMA } from '../_assistant-prompts.js';
 import { logLlmCall } from '../_assistant-log.js';
@@ -15,17 +16,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     model?: 'openai' | 'gemini' | 'claude';
   };
 
-  const auth = validateToken(token);
-  if (!auth) return res.status(401).json({ error: 'Invalid token' });
+  // The tester link sends a token; the main tool (Get ideas) sends none and
+  // the signed-in person asks instead. Either way `caller.who` pays.
+  let caller: IdeasCaller;
+  try {
+    caller = await resolveIdeasCaller(req, token);
+  } catch (err) {
+    if (err instanceof AuthError) return res.status(err.status).json({ error: err.message });
+    throw err;
+  }
 
   if (!brand || !task || !model || !pickedConcept) {
     return res.status(400).json({ error: 'brand, task, model, and pickedConcept are required' });
   }
+  if (!isKnownBrand(brand)) return res.status(400).json({ error: 'Unknown brand' });
   if (model === 'claude') {
     return res.status(400).json({ error: 'Claude provider is not yet available' });
   }
 
-  const cap = await checkSpendCap(auth.test_user_id);
+  const cap = await checkSpendCap(caller.who);
   if (!cap.allowed) {
     return res.status(429).json({ error: cap.reason, spent_today_usd: cap.spent_today_usd, cap_usd: cap.cap_usd });
   }
@@ -54,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const fields = JSON.parse(result.text);
-    await logLlmCall(auth.test_user_id, 'generate', {
+    await logLlmCall(caller.who, 'generate', {
       provider: model, model: chosenModel, ...result.usage,
     });
     return res.status(200).json({

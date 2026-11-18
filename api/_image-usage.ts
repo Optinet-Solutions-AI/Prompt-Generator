@@ -19,6 +19,7 @@
 import type { VercelRequest } from '@vercel/node';
 import { currentProfile, sb } from './_session.js';
 import { getImageModel } from './_image-models.js';
+import { validateToken } from './_assistant-token.js';
 
 export type ImageAction = 'generate' | 'edit' | 'variation';
 export type ImageProvider = 'chatgpt' | 'gemini';
@@ -68,7 +69,9 @@ export async function recordImageUsage(req: VercelRequest, e: {
 }): Promise<void> {
   try {
     const body = (req.body && typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
-    if (body.source === 'assistant') return; // logged separately
+    // A real AI Assistant tester (valid token) is logged separately. Anyone else
+    // marking a request "assistant" is still a signed-in person and is recorded.
+    if (body.source === 'assistant' && validateToken(typeof body.test_user_id === 'string' ? body.test_user_id : undefined)) return;
     const p = await currentProfile(req);
     if (!p || e.images <= 0) return;
     const { cost_usd, exact } = priceTokens(e.model, e.provider, e.tokens);

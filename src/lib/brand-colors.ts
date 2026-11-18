@@ -15,9 +15,9 @@
  * Just add a new key below with its approved colors and forbidden colors.
  * Both the API and frontend will pick it up automatically.
  *
- * BRANDS (9 total):
+ * BRANDS (10 total):
  *   Roosterbet, FortunePlay, SpinJo, LuckyVibe, SpinsUp,
- *   PlayMojo, Lucky7even, NovaDreams, Rollero
+ *   PlayMojo, Lucky7even, NovaDreams, Rollero, RocketSpin
  */
 export const BRAND_PALETTES: Record<string, string> = {
   // Red/dark aggressive — rooster mascot
@@ -55,6 +55,14 @@ export const BRAND_PALETTES: Record<string, string> = {
   // Dark charcoal/gold — Roman gladiator warrior
   Rollero:
     'Dark charcoal, aged gold, warm wheat, black, sharp white highlight. Warrior/ancient Rome palette. NEVER use pastel, neon, cold blue, or soft tones.',
+
+  // White/champagne gold in a sunlit sky — armoured hero (same words as api/_brand-rules.ts)
+  RocketSpin:
+    'Pristine white (#F5F5F0), champagne gold (#D4B26A), glowing cyan (#00BFFF), ' +
+    'sky blue. Setting almost always bright sky with massive sun-lit cumulus ' +
+    'clouds during golden hour, occasionally a premium futuristic interior. ' +
+    'NEVER use dark moody tones, pastel washes, muted greys, or anime/cartoon ' +
+    'colour styling.',
 };
 
 /**

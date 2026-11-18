@@ -16,6 +16,8 @@
  * RocketSpin's saved logo writes "ROCKET" in near-black (#2D2D2D), which would
  * vanish on a dark banner. Only the lettering is switched to white; the dark
  * details inside the face icon (left of x=24 in the SVG) are left alone.
+ * That white-lettering SVG is also saved next to the original as
+ * scraped/logo-long-white.svg, for the dark video end card (api/_video-brand.ts).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -56,7 +58,10 @@ fs.mkdirSync(OUT, { recursive: true });
 for (const { slug, file, whitenDarkLettering: whiten } of LOGOS) {
   const src = path.join(SRC, slug, file);
   let svg = fs.readFileSync(src, 'utf8');
-  if (whiten) svg = whitenDarkLettering(svg);
+  if (whiten) {
+    svg = whitenDarkLettering(svg);
+    fs.writeFileSync(path.join(SRC, slug, file.replace(/\.svg$/, '-white.svg')), svg);
+  }
 
   // Render large (high density), trim the transparent margin, then size down.
   const trimmed = await sharp(Buffer.from(svg), { density: 1200 })

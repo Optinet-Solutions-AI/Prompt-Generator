@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { brandSlug } from './_brand-slug.js';
 import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
 import { checkSpendCap } from './_spend-cap.js';
+import { validateToken } from './_assistant-token.js';
 import { requireUser, AuthError, type Profile } from './_session.js';
 import { uploadToUserDrive, makeUserFilePublic, ensureFolder } from './_user-drive.js';
 import { recordImageUsage, openAiTokens, geminiTokens } from './_image-usage.js';
@@ -181,6 +182,19 @@ export function pickOpenAiImageSize(requestedRatio: number, resolution: string):
 // This helper is a no-op for the main app — only fires when the new
 // AI Assistant page sends `source: 'assistant'` + `test_user_id`.
 // Failures here NEVER affect the user's response.
+/**
+ * The AI Assistant tester behind this request, or null.
+ *
+ * Only a REAL tester token counts. Ideas in the main tool are billed by
+ * profile id, so trusting any `test_user_id` here would let anyone skip
+ * sign-in for free images, or fill someone else's ideas budget by sending
+ * their profile id.
+ */
+export function assistantTesterId(body: Record<string, unknown>): string | null {
+  if (body.source !== 'assistant' || typeof body.test_user_id !== 'string') return null;
+  return validateToken(body.test_user_id)?.test_user_id ?? null;
+}
+
 export async function logAssistantImageGen(
   req: VercelRequest,
   fileId: string,
@@ -198,7 +212,7 @@ export async function logAssistantImageGen(
   usage?: { text_input_tokens: number; image_output_tokens: number },
 ): Promise<void> {
   const body = (req as { body?: Record<string, unknown> }).body ?? {};
-  if (body.source !== 'assistant' || !body.test_user_id) return;
+  if (!assistantTesterId(body)) return;
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const { computeImageCost, computeImageCostFromUsage } = await import('./_pricing.js');
@@ -369,6 +383,11 @@ const BRAND_STYLES: Record<string, string> = {
     'The scene MUST have a warrior combat aesthetic: deep crimson red and charcoal grey tones, ' +
     'dramatic high-contrast lighting, and a powerful intense atmosphere. ' +
     'The mood must feel fierce, bold, and battle-ready.',
+  rocketspin:
+    '[MANDATORY BRAND SIGNATURE — DO NOT OMIT] ' +
+    'The scene MUST feel bright, premium and sky-high: pristine white and champagne-gold tones with glowing cyan accents, ' +
+    'usually a sunlit sky with massive golden-hour cumulus clouds (occasionally a premium futuristic interior), ' +
+    'warm soft lighting with volumetric god rays. The mood must feel aspirational, optimistic and victorious — never dark or moody.',
 };
 
 /**
@@ -503,8 +522,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // tester token to key a cap on, so it is intentionally left untouched —
     // see the "Out of scope" note in the fix's task description.
     const body = (req as { body?: Record<string, unknown> }).body ?? {};
-    if (body.source === 'assistant' && body.test_user_id) {
-      const cap = await checkSpendCap(body.test_user_id as string);
+    const testerId = assistantTesterId(body);
+    if (testerId) {
+      const cap = await checkSpendCap(testerId);
       if (!cap.allowed) {
         return res.status(429).json({ error: cap.reason, spent_today_usd: cap.spent_today_usd, cap_usd: cap.cap_usd });
       }
@@ -515,7 +535,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // their own Drive. Checked (and their Images folder made ready) BEFORE the
     // paid OpenAI/Gemini calls below, so nobody is billed for an image that
     // then has nowhere to go. AI Assistant tester links keep the old behaviour.
-    const isAssistantRequest = body.source === 'assistant' && !!body.test_user_id;
+    const isAssistantRequest = !!testerId;
     let owner: Profile | null = null;
     if (!isAssistantRequest) {
       try {

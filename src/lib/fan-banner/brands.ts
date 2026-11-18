@@ -48,6 +48,12 @@ export interface FanBannerBrand {
     codeValue: string;
   };
   buttonRadius: number;
+  /**
+   * Where the text column sits, when a brand's own banners place it differently
+   * from the shared layout (400px wide, 50px from the edge). RocketSpin's is
+   * wider and further in.
+   */
+  column?: { width: number; edge: number };
   /** Under the button (most brands) or in the bottom corner over the picture (Lucky7even). */
   codePlacement: 'under-button' | 'corner';
 }
@@ -205,14 +211,25 @@ export const FAN_BANNER_BRANDS: Record<string, FanBannerBrand> = {
     codePlacement: 'under-button',
   },
 
+  // From RocketSpin's own email banners (RS_40FS / RS_250% / RS_50FS, sent 2026-11-17):
+  // heavy squared numbers (Bungee), wide "tech" words (Krona One), a solid
+  // royal-blue button, sky-blue coloured lines, dark teal-navy behind the text.
+  // Fonts are the closest free look-alikes by eye; colours were measured.
   RocketSpin: {
     logo: '/fan-banner/logos/rocketspin.png',
-    fonts: { headline: montserrat(800), offer: montserrat(800), line: montserrat(800), button: montserrat(700), code: { family: 'Montserrat', weight: 700 } },
-    colors: {
-      panel: '#08121C', headline: '#FFFFFF', offer: '#FFFFFF', line: '#45B9EA',
-      buttonFill: '#45B9EA', buttonText: '#FFFFFF', codeLabel: '#FFFFFF', codeValue: '#45B9EA',
+    fonts: {
+      headline: caps({ family: 'Bungee', weight: 400 }),
+      offer: caps({ family: 'Krona One', weight: 400 }),
+      line: caps({ family: 'Krona One', weight: 400 }),
+      button: caps({ family: 'Krona One', weight: 400, scale: 1.1 }),
+      code: { family: 'Krona One', weight: 400, scale: 1.35 },
     },
-    buttonRadius: 8,
+    colors: {
+      panel: '#0A2B3F', headline: '#FFFFFF', offer: '#FFFFFF', line: '#5FC3F0',
+      buttonFill: '#043EBA', buttonText: '#FFFFFF', codeLabel: '#FFFFFF', codeValue: '#5FC3F0',
+    },
+    buttonRadius: 12,
+    column: { width: 450, edge: 80 },
     codePlacement: 'under-button',
   },
 };

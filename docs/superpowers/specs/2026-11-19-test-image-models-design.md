@@ -60,14 +60,27 @@ compare them with the current models.
   - The ChatGPT choice is wired the same way: `generate-image`, `edit-image` and
     `generate-variations` accept an OpenAI model id and resolve it safely, in the same way as
     `resolveGeminiModel`.
-  - If a real call shows GPT Image 2.6 cannot edit images, edits and variations stay on
-    GPT Image 2 for this test and the dropdown says so.
-- **Where the dropdowns show:** next to the image buttons in the generated-prompt panel
-  (`ResultDisplay`) and in the Get ideas result panel (`GeneratedPromptPanel`).
-- **Prices shown:**
-  - GPT Image 2.6 at ~$0.042 per image (measured at 2K, high quality).
-  - Nano Banana 2.1 at $0.050 per image (2K).
-  - Both are confirmed against the official pricing pages before they ship.
+  - On 2026-11-19 a real `/v1/images/edits` call with `gpt-image-2.6-flare` worked: it took
+    9.8s, cost ~$0.046, and changed only what was asked. So edits and variations follow the
+    choice with no fallback.
+- **Where the dropdown shows:** next to the image buttons in the generated-prompt panel
+  (`ResultDisplay`).
+  - Images made from Get ideas go through this same panel, so they follow the choice too.
+  - The AI Assistant tester page (`/assistant/:token`, `GeneratedPromptPanel`) gets no ChatGPT
+    dropdown and sends no OpenAI model.
+  - The tester page's Gemini dropdown shares the one Gemini list, so Nano Banana 2.1 appears
+    there as well. Splitting the list per page would be extra code for no benefit.
+- **Prices shown** (both checked against the official pricing pages on 2026-11-19):
+  - **GPT Image 2.6 at $0.042 per image.**
+    - OpenAI rates: text input $5.00/M, image input $8.00/M, image output $30.00/M. These are the
+      same rates as `gpt-image-2`.
+    - OpenAI publishes no per-image price, so $0.042 is measured: 2K, high quality, 3 prompts.
+  - **Nano Banana 2.1 at $0.050 per image.**
+    - Google rates: input $1.50/M, image output $30.00/M, text and thinking output $7.50/M.
+    - Google's published per-image prices: $0.0336 at 1K, $0.0504 at 2K, $0.113 at 4K.
+  - **Known gap:** the cost code counts image output tokens only. Nano Banana 2.1's thinking
+    tokens (about 270 per image, roughly $0.002) are not counted. This follows the existing
+    formula and is not changed in this piece.
 - **Cost records** use the new entries' token rates through the existing `recordImageUsage`
   and pricing code.
 
@@ -86,7 +99,7 @@ compare them with the current models.
   - Nano Banana 2.1: generate and edit.
   - GPT Image 2.6: generate, edit and one variation.
 - Each image is looked at, and each cost record is checked against the published rates.
-- The UI is screenshotted before and after, on both panels.
+- The generated-prompt panel is screenshotted before and after the change.
 - After deploy, the live site shows both dropdowns, and one image from each test model shows
   up in the Library and on the team usage page.
 

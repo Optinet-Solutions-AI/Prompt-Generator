@@ -63,7 +63,7 @@ export function ImageModelSelect({ value, onChange, disabled, provider = 'gemini
   const models = provider === 'chatgpt' ? openaiDropdownModels() : geminiDropdownModels();
   const label = provider === 'chatgpt' ? 'ChatGPT model' : 'Gemini model';
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 max-w-full min-w-0">
       <label className="text-xs text-muted-foreground">{label}</label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         {/* The <label> above isn't programmatically linked to Radix's SelectTrigger
@@ -71,8 +71,9 @@ export function ImageModelSelect({ value, onChange, disabled, provider = 'gemini
             announce the current value, not the field name. aria-label fixes that. */}
         {/* Wide enough that the price stays visible after choosing a test model,
             while two dropdowns still fit side by side. text-left: the panels
-            around it centre their text, which pushed a long label off-centre. */}
-        <SelectTrigger className="w-[280px] sm:w-[300px] text-left" aria-label={label}><SelectValue /></SelectTrigger>
+            around it centre their text, which pushed a long label off-centre.
+            max-w-full: on narrow phones it shrinks to fit the panel. */}
+        <SelectTrigger className="w-[280px] sm:w-[300px] max-w-full text-left" aria-label={label}><SelectValue /></SelectTrigger>
         <SelectContent>
           {models.map(m => (
             <SelectItem key={m.id} value={m.id}>{optionLabelFor(m.id)}</SelectItem>

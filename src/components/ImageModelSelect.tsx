@@ -69,7 +69,10 @@ export function ImageModelSelect({ value, onChange, disabled, provider = 'gemini
         {/* The <label> above isn't programmatically linked to Radix's SelectTrigger
             (it's a button, not a native <select>), so a screen reader would only
             announce the current value, not the field name. aria-label fixes that. */}
-        <SelectTrigger className="w-[240px]" aria-label={label}><SelectValue /></SelectTrigger>
+        {/* Wide enough that the price stays visible after choosing a test model,
+            while two dropdowns still fit side by side. text-left: the panels
+            around it centre their text, which pushed a long label off-centre. */}
+        <SelectTrigger className="w-[280px] sm:w-[300px] text-left" aria-label={label}><SelectValue /></SelectTrigger>
         <SelectContent>
           {models.map(m => (
             <SelectItem key={m.id} value={m.id}>{optionLabelFor(m.id)}</SelectItem>

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { HtmlConversionModal } from '@/components/HtmlConversionModal';
 import { EmailHtmlConversionModal } from '@/components/EmailHtmlConversionModal';
 import { FanBannerModal } from '@/components/FanBannerModal';
-import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
+import { loadSavedGeminiModel, loadSavedOpenAiModel } from '@/components/ImageModelSelect';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -617,6 +617,7 @@ function Lightbox({
           resolution: '2K',
           provider: image.provider,
           geminiModel: loadSavedGeminiModel(),
+          openaiModel: loadSavedOpenAiModel(),
           brand: image.brand || image.brand_name || undefined, // for the usage/cost record
         }),
       });
@@ -664,9 +665,10 @@ function Lightbox({
       // to the variation prompts and change the results.
       usage_brand: image.brand || image.brand_name || undefined,
       resolution: '2K',
-      // Sent to both endpoints below; only /api/generate-variations-imagen
-      // (Gemini) reads it — harmless on the OpenAI call.
+      // Sent to both endpoints below; /api/generate-variations-imagen (Gemini)
+      // reads geminiModel and /api/generate-variations (OpenAI) reads openaiModel.
       geminiModel: loadSavedGeminiModel(),
+      openaiModel: loadSavedOpenAiModel(),
     });
 
     try {

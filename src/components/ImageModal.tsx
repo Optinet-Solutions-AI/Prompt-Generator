@@ -17,7 +17,7 @@ import { storeImage, deleteStoredImage } from '@/lib/imageStore';
 import { extractDominantColors } from '@/utils/extractColors';
 import { downloadImageRounded, ROUNDED_CORNER_RADIUS, BrandOverlayMissingError } from '@/lib/imageDownload';
 import { getBrandOverlayUrl } from '@/lib/brandOverlays';
-import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
+import { loadSavedGeminiModel, loadSavedOpenAiModel } from '@/components/ImageModelSelect';
 
 export interface GalleryImage {
   displayUrl: string;
@@ -320,6 +320,8 @@ export function ImageModal({
           // Generate, Edit, and Variations, so there's nothing to thread down
           // as a prop here; this always reflects the user's current selection.
           geminiModel: loadSavedGeminiModel(),
+          // Same rule for the ChatGPT dropdown: used when a ChatGPT image is edited.
+          openaiModel: loadSavedOpenAiModel(),
           brand: brand || undefined, // for the usage/cost record
         }),
       });
@@ -381,10 +383,12 @@ export function ImageModal({
       brand: brand || '',
       sourceColors,
       sourceRecipe: sourceRecipe ?? null,
-      // Sent to BOTH /api/generate-variations (OpenAI — ignores this field) and
-      // /api/generate-variations-imagen (Gemini — reads it). Harmless on the
-      // OpenAI call, and keeps both fetches below using the same body.
+      // Both model choices are sent to BOTH /api/generate-variations (OpenAI —
+      // reads openaiModel) and /api/generate-variations-imagen (Gemini — reads
+      // geminiModel). Each route ignores the other's field, so both fetches
+      // below can share one body.
       geminiModel: loadSavedGeminiModel(),
+      openaiModel: loadSavedOpenAiModel(),
     });
 
     try {

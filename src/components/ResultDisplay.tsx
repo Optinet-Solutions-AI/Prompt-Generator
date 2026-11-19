@@ -13,7 +13,13 @@ import { FormField } from "./FormField";
 import { ReferenceSelect } from "./ReferenceSelect";
 import { PositionAndRatioSelector } from "./PositionAndRatioSelector";
 import { SizePresetSelect } from "./SizePresetSelect";
-import { ImageModelSelect, loadSavedGeminiModel, GEMINI_MODEL_STORAGE_KEY } from "@/components/ImageModelSelect";
+import {
+  ImageModelSelect,
+  loadSavedGeminiModel,
+  loadSavedOpenAiModel,
+  GEMINI_MODEL_STORAGE_KEY,
+  OPENAI_MODEL_STORAGE_KEY,
+} from "@/components/ImageModelSelect";
 
 // Parse "16:9" / "2:1" into a CSS aspect-ratio string ("16 / 9") so image
 // previews show their true shape instead of a forced square. Defaults to square.
@@ -187,6 +193,17 @@ export function ResultDisplay({
     setGeminiModel(id);
     try {
       localStorage.setItem(GEMINI_MODEL_STORAGE_KEY, id);
+    } catch {
+      // Non-fatal — the choice just won't persist.
+    }
+  };
+  // Same idea for the ChatGPT button: which OpenAI image model to use.
+  const [openaiModel, setOpenaiModel] = useState<string>(loadSavedOpenAiModel);
+
+  const handleOpenaiModelChange = (id: string) => {
+    setOpenaiModel(id);
+    try {
+      localStorage.setItem(OPENAI_MODEL_STORAGE_KEY, id);
     } catch {
       // Non-fatal — the choice just won't persist.
     }
@@ -377,8 +394,10 @@ export function ResultDisplay({
           backend: "cloud-run",
           resolution,
           brand: metadata?.brand || "",
-          // Ignored by the OpenAI path; selects the model on the Gemini path.
+          // Each path reads only its own: geminiModel on the Gemini path,
+          // openaiModel on the ChatGPT path.
           geminiModel,
+          openaiModel,
         }),
         signal: controller.signal,
       });
@@ -837,7 +856,13 @@ export function ResultDisplay({
           </div>
         </div>
 
-        <div className="flex justify-center mb-3">
+        <div className="flex flex-wrap justify-center gap-3 mb-3">
+          <ImageModelSelect
+            provider="chatgpt"
+            value={openaiModel}
+            onChange={handleOpenaiModelChange}
+            disabled={generatingImage.chatgpt}
+          />
           <ImageModelSelect
             value={geminiModel}
             onChange={handleGeminiModelChange}

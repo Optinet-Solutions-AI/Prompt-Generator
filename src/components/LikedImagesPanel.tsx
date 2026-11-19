@@ -7,7 +7,7 @@ import { HtmlConversionModal } from './HtmlConversionModal';
 import { EmailHtmlConversionModal } from './EmailHtmlConversionModal';
 import { FanBannerModal } from './FanBannerModal';
 import { supabaseThumbnail } from '@/lib/imageUtils';
-import { loadSavedGeminiModel } from '@/components/ImageModelSelect';
+import { loadSavedGeminiModel, loadSavedOpenAiModel } from '@/components/ImageModelSelect';
 import { myFavoritesFilter } from '@/lib/current-user';
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL as string;
@@ -179,6 +179,7 @@ export function LikedImagesPanel({ isOpen, onClose, brand }: LikedImagesPanelPro
           editInstructions: editInstructions.trim(),
           resolution: '2K',
           geminiModel: loadSavedGeminiModel(),
+          openaiModel: loadSavedOpenAiModel(),
           brand: activeRecord?.brand_name || brand || undefined, // for the usage/cost record
         }),
       });

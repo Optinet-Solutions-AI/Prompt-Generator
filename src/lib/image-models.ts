@@ -100,21 +100,57 @@ export const IMAGE_MODELS: Record<string, ImageModelSpec> = {
     rateSource: 'ai.google.dev/gemini-api/docs/pricing',
     lastVerified: '2026-08-20',
   },
+  // Test option (Nov 2026): looked clearly better than 2.5 Flash in a
+  // side-by-side test. Thinking tokens (~270/image, ~$0.002) are billed at the
+  // text-output rate and are NOT counted by the cost code, which only prices
+  // image output tokens.
+  'gemini-nano-banana-2.1': {
+    id: 'gemini-nano-banana-2.1',
+    label: 'Nano Banana 2.1 (test)',
+    transport: 'gemini-api',
+    isCurrent: false,
+    inDropdown: true,
+    supportedAspectRatios: GEMINI_RATIOS,
+    outputMime: 'image/jpeg',     // verified live 2026-11-19: returns JPEG
+    textInputRatePerMillion: 1.50,
+    imageOutputRatePerMillion: 30.00,
+    displayPricePerImage: 0.050,  // official: $0.0336 @1K, $0.0504 @2K, $0.113 @4K
+    rateSource: 'aistudio.google.com/docs/pricing (input $1.50/M, image output $30/M, $0.0504 per 2K image)',
+    lastVerified: '2026-11-19',
+  },
 
   // ── OpenAI ────────────────────────────────────────────────────────────
+  // The "(current)" option of the ChatGPT model dropdown, and the default.
   'gpt-image-2': {
     id: 'gpt-image-2',
     label: 'GPT Image 2',
     transport: 'openai',
-    isCurrent: false,
-    inDropdown: false,            // OpenAI is pinned, not user-selectable
+    isCurrent: true,
+    inDropdown: true,
     supportedAspectRatios: [],    // uses explicit pixel sizes instead
     outputMime: 'image/png',
     textInputRatePerMillion: 5.00,
     imageOutputRatePerMillion: 30.00,
-    displayPricePerImage: null,
+    displayPricePerImage: null,   // "(current)" — no price shown
     rateSource: 'developers.openai.com/api/docs/pricing',
     lastVerified: '2026-08-20',
+  },
+  // Test option (Nov 2026): same token rates as gpt-image-2 but uses far fewer
+  // output tokens. OpenAI publishes no per-image price, so the shown price is
+  // measured (2K, high quality, 3 prompts).
+  'gpt-image-2.6-flare': {
+    id: 'gpt-image-2.6-flare',
+    label: 'GPT Image 2.6 (test)',
+    transport: 'openai',
+    isCurrent: false,
+    inDropdown: true,
+    supportedAspectRatios: [],    // uses explicit pixel sizes instead
+    outputMime: 'image/png',
+    textInputRatePerMillion: 5.00,
+    imageOutputRatePerMillion: 30.00,
+    displayPricePerImage: 0.042,  // measured, not published
+    rateSource: 'developers.openai.com/api/docs/pricing (text input $5/M, image output $30/M)',
+    lastVerified: '2026-11-19',
   },
   // Retained ONLY so historical assistant_image_gens rows still price correctly.
   // Not selectable and not used for new generations.
@@ -158,6 +194,24 @@ export function resolveGeminiModel(requested: string | undefined): ImageModelSpe
   const m = requested ? IMAGE_MODELS[requested] : undefined;
   if (m && m.transport !== 'openai') return m;
   return IMAGE_MODELS[DEFAULT_GEMINI_IMAGE_MODEL];
+}
+
+/** The ChatGPT (OpenAI) models offered in the UI, current model first. */
+export function openaiDropdownModels(): ImageModelSpec[] {
+  return Object.values(IMAGE_MODELS)
+    .filter(m => m.inDropdown && m.transport === 'openai')
+    .sort((a, b) => Number(b.isCurrent) - Number(a.isCurrent));
+}
+
+/**
+ * Same idea as resolveGeminiModel, for the ChatGPT path. Only a model offered
+ * in the ChatGPT dropdown is accepted; anything else (missing, unknown, a
+ * Gemini id, or the retired gpt-image-1) falls back to the current model.
+ */
+export function resolveOpenAiModel(requested: string | undefined): ImageModelSpec {
+  const m = requested ? IMAGE_MODELS[requested] : undefined;
+  if (m && m.transport === 'openai' && m.inDropdown) return m;
+  return IMAGE_MODELS[OPENAI_IMAGE_MODEL];
 }
 
 /** Parse "16:9" → 1.777… */

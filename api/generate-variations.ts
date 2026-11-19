@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { OPENAI_IMAGE_MODEL } from './_image-models.js';
+import { resolveOpenAiModel } from './_image-models.js';
 import { guard } from './_session.js';
 import { recordImageUsage, openAiTokens, sumTokens, type ImageTokens } from './_image-usage.js';
 
@@ -319,7 +319,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       resolution = '',
       sourceColors = [],
       sourceRecipe = null,
+      openaiModel,
     } = req.body;
+
+    // The model picked in the ChatGPT dropdown (gpt-image-2 unless a test model
+    // was chosen). Anything unknown falls back to gpt-image-2.
+    const openaiSpec = resolveOpenAiModel(openaiModel);
 
     if (!imageUrl) {
       return res.status(400).json({ error: 'imageUrl is required' });
@@ -393,7 +398,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ------------------------------------------------------------------
     const requests = activePrompts.map((prompt) => {
       const form = new FormData();
-      form.append('model', OPENAI_IMAGE_MODEL);
+      form.append('model', openaiSpec.id);
       form.append('image', new File([imgArrayBuffer], `source.${ext}`, { type: baseMime }));
       form.append('prompt', prompt);
       form.append('n', '1');
@@ -439,7 +444,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // One cost record for this click (all successful variations together).
     await recordImageUsage(req, {
-      action: 'variation', provider: 'chatgpt', model: OPENAI_IMAGE_MODEL, images: variations.length,
+      action: 'variation', provider: 'chatgpt', model: openaiSpec.id, images: variations.length,
       tokens: sumTokens(tokenList), brand: req.body?.brand || req.body?.usage_brand,
     });
 

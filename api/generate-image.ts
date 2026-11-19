@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { brandSlug } from './_brand-slug.js';
-import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
+import { resolveGeminiModel, resolveOpenAiModel } from './_image-models.js';
 import { checkSpendCap } from './_spend-cap.js';
 import { validateToken } from './_assistant-token.js';
 import { requireUser, AuthError, type Profile } from './_session.js';
@@ -487,7 +487,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions, geminiModel } = req.body;
+    const { prompt, provider, aspectRatio, imageSize, backend, resolution, brand, bannerDimensions, geminiModel, openaiModel } = req.body;
 
     // When an exact pixel size is requested (e.g. 1200×600) we crop+resize the
     // result to that size. To keep it SHARP we must DOWNSCALE a larger native
@@ -594,10 +594,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const geminiPrompt = GEMINI_PREFIX + brandSafePrompt + NO_WATERMARKS;
 
     // ── Primary: OpenAI direct generation (ChatGPT provider) ────────────────
-    // Uses gpt-image-2 via Vercel's OPENAI_API_KEY — no Cloud Run needed.
+    // Uses the ChatGPT model picked in the dropdown (gpt-image-2 unless the
+    // user chose a test model) via Vercel's OPENAI_API_KEY — no Cloud Run needed.
     const openaiKey = process.env.OPENAI_API_KEY;
     if (provider === 'chatgpt' && openaiKey) {
-      console.log('[generate-image] Using OpenAI direct generation');
+      const openaiSpec = resolveOpenAiModel(openaiModel);
+      console.log(`[generate-image] Using OpenAI direct generation (${openaiSpec.id})`);
 
       // Ask gpt-image-2 for the banner's real shape. Prefer the ratio from
       // explicit pixel dimensions ("1200 × 600") since preset aspectRatio
@@ -622,7 +624,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'Authorization': `Bearer ${openaiKey}`,
         },
         body: JSON.stringify({
-          model: OPENAI_IMAGE_MODEL,
+          model: openaiSpec.id,
           prompt: finalPrompt,
           n: 1,
           size: outputSize,
@@ -658,7 +660,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Cost record (who / ChatGPT / tokens) — recorded as soon as OpenAI has
       // billed us, whether or not the Drive save below succeeds.
-      await recordImageUsage(req, { action: 'generate', provider: 'chatgpt', model: OPENAI_IMAGE_MODEL, images: 1, tokens: openAiTokens(data.usage), brand });
+      await recordImageUsage(req, { action: 'generate', provider: 'chatgpt', model: openaiSpec.id, images: 1, tokens: openAiTokens(data.usage), brand });
 
       // ── Save ChatGPT image to Google Drive ─────────────────────────────
       // This makes it persistent and visible in the Image Library across
@@ -705,7 +707,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           // usage when OpenAI actually reported it — an absent usage object should
           // fall back to the legacy table, not log a bogus $0.
           await logAssistantImageGen(
-            req, fileId, 'openai', OPENAI_IMAGE_MODEL, outputSize, outputQuality,
+            req, fileId, 'openai', openaiSpec.id, outputSize, outputQuality,
             data.usage
               ? {
                   text_input_tokens: data.usage.input_tokens ?? 0,

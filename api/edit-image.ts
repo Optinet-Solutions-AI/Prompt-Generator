@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { OPENAI_IMAGE_MODEL, resolveGeminiModel } from './_image-models.js';
+import { resolveGeminiModel, resolveOpenAiModel } from './_image-models.js';
 import { guard } from './_session.js';
 import { recordImageUsage, openAiTokens, geminiTokens, type ImageTokens } from './_image-usage.js';
 
@@ -8,7 +8,8 @@ import { recordImageUsage, openAiTokens, geminiTokens, type ImageTokens } from '
 // Routes to the correct engine based on the `provider` field in the request body:
 //
 //   provider === 'gemini'  → Vertex AI gemini-2.5-flash-image (strict preservation)
-//   provider === 'chatgpt' → OpenAI gpt-image-2 (primary) or Cloud Run (fallback)
+//   provider === 'chatgpt' → OpenAI, the model picked in the ChatGPT dropdown
+//                            (gpt-image-2 by default), or Cloud Run (fallback)
 //
 // Gemini images MUST be edited by Gemini — sending them to OpenAI causes a
 // visual "downgrade" because the two models have different style signatures.
@@ -279,7 +280,8 @@ async function editViaOpenAI(
   imgArrayBuffer: ArrayBuffer,
   mimeType: string,
   editInstructions: string,
-  resolution: string = '',
+  resolution: string,
+  modelId: string,
 ): Promise<{ imageUrl: string; tokens: ImageTokens | null }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
@@ -298,7 +300,7 @@ async function editViaOpenAI(
   console.log(`[edit-image] source dims: ${JSON.stringify(dims)}, resolution=${resolution} → quality=${outputQuality}, size=${outputSize}`);
 
   const form = new FormData();
-  form.append('model', OPENAI_IMAGE_MODEL);
+  form.append('model', modelId);
   form.append('image', new File([imgArrayBuffer], `source.${ext}`, { type: baseMime }));
   form.append('prompt', editInstructions);
   form.append('n', '1');
@@ -392,7 +394,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { imageUrl, editInstructions, resolution = '1K', provider = 'chatgpt', geminiModel } = req.body;
+    const { imageUrl, editInstructions, resolution = '1K', provider = 'chatgpt', geminiModel, openaiModel } = req.body;
 
     if (!imageUrl || !editInstructions) {
       return res.status(400).json({ error: 'Image URL and edit instructions are required' });
@@ -456,9 +458,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Primary: OpenAI direct edit (ChatGPT images only) ─────────────
     if (process.env.OPENAI_API_KEY) {
-      console.log('[edit-image] Using OpenAI direct edit');
-      const result = await editViaOpenAI(imgArrayBuffer, mimeType, editInstructions, resolution);
-      await recordImageUsage(req, { action: 'edit', provider: 'chatgpt', model: OPENAI_IMAGE_MODEL, images: 1, tokens: result.tokens, brand: req.body?.brand });
+      const openaiSpec = resolveOpenAiModel(openaiModel);
+      console.log(`[edit-image] Using OpenAI direct edit (${openaiSpec.id})`);
+      const result = await editViaOpenAI(imgArrayBuffer, mimeType, editInstructions, resolution, openaiSpec.id);
+      await recordImageUsage(req, { action: 'edit', provider: 'chatgpt', model: openaiSpec.id, images: 1, tokens: result.tokens, brand: req.body?.brand });
       return res.status(200).json({
         success: true,
         imageUrl: result.imageUrl,

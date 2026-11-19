@@ -116,6 +116,30 @@ describe('generateGeminiImage', () => {
     expect(body.generationConfig.imageConfig.aspectRatio).toBe('9:16');
   });
 
+  // 1:4, 4:1, 1:8 and 8:1 are not accepted by every Gemini model, and an edit
+  // used to work (as a square) for these pictures — it must not start failing.
+  it('a very wide source picture is kept within the shapes every Gemini model accepts', async () => {
+    fetchMock.mockResolvedValue(okResponse());
+    const src = await sharp({ create: { width: 2000, height: 500, channels: 3, background: '#800' } }).png().toBuffer();
+    await generateGeminiImage({
+      modelId: 'gemini-2.5-flash-image', prompt: 'make it blue',
+      inlineImage: { mimeType: 'image/png', base64: src.toString('base64') },
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.generationConfig.imageConfig.aspectRatio).toBe('21:9');
+  });
+
+  it('a very tall source picture is kept within the shapes every Gemini model accepts', async () => {
+    fetchMock.mockResolvedValue(okResponse());
+    const src = await sharp({ create: { width: 500, height: 2000, channels: 3, background: '#080' } }).png().toBuffer();
+    await generateGeminiImage({
+      modelId: 'gemini-2.5-flash-image', prompt: 'make it blue',
+      inlineImage: { mimeType: 'image/png', base64: src.toString('base64') },
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.generationConfig.imageConfig.aspectRatio).toBe('9:16');
+  });
+
   it('an explicitly asked-for ratio still wins over the source picture\'s shape', async () => {
     fetchMock.mockResolvedValue(okResponse());
     const src = await sharp({ create: { width: 1536, height: 1024, channels: 3, background: '#008' } }).png().toBuffer();

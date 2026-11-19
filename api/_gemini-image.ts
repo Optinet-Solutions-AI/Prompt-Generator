@@ -39,6 +39,18 @@ function ratioFromString(s: string | undefined): number | null {
 }
 
 /**
+ * The shapes every Gemini image model accepts. The extremes in GEMINI_RATIOS
+ * (1:4, 4:1, 1:8, 8:1) are not offered by every model.
+ */
+const SHAPES_EVERY_MODEL_ACCEPTS = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
+
+/** The shape in `list` closest to `ratio` (width ÷ height). */
+function nearestOf(list: string[], ratio: number): string {
+  const dist = (s: string) => Math.abs((ratioFromString(s) ?? 1) - ratio);
+  return list.reduce((best, cur) => (dist(cur) < dist(best) ? cur : best));
+}
+
+/**
  * Width ÷ height of the source picture, read from its bytes, or null if it
  * can't be read. Used so an edit or variation keeps the source's shape.
  */
@@ -86,11 +98,17 @@ export async function generateGeminiImage(args: GeminiImageArgs): Promise<Gemini
   // The API rejects any ratio outside its supported list, so always snap.
   // Edits and variations don't ask for a shape: keep the source picture's,
   // otherwise the square fallback below crops a landscape banner to a square.
-  const requested = ratioFromString(args.aspectRatio)
-    ?? (args.inlineImage ? await sourceRatio(args.inlineImage.base64) : null);
+  // That shape is snapped to SHAPES_EVERY_MODEL_ACCEPTS only, so an edit that
+  // used to work (as a square) can't start failing on an extreme shape.
+  const requested = ratioFromString(args.aspectRatio);
+  const fromSource = requested === null && args.inlineImage
+    ? await sourceRatio(args.inlineImage.base64)
+    : null;
   const aspectRatio = requested !== null
     ? nearestSupportedRatio(spec.id, requested)
-    : '1:1';
+    : fromSource !== null
+      ? nearestOf(SHAPES_EVERY_MODEL_ACCEPTS, fromSource)
+      : '1:1';
 
   const parts: Array<Record<string, unknown>> = [];
   // Source image first when editing — the model treats earlier parts as the

@@ -38,6 +38,20 @@ function ratioFromString(s: string | undefined): number | null {
   return w / h;
 }
 
+/**
+ * Width ÷ height of the source picture, read from its bytes, or null if it
+ * can't be read. Used so an edit or variation keeps the source's shape.
+ */
+async function sourceRatio(base64: string): Promise<number | null> {
+  try {
+    const sharp = (await import('sharp')).default;
+    const { width, height } = await sharp(Buffer.from(base64, 'base64')).metadata();
+    return width && height ? width / height : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Pull the image token count out of Gemini's usageMetadata. */
 export function parseUsage(meta: Record<string, unknown> | undefined): ImageUsage {
   const details = (meta?.candidatesTokensDetails as Array<{ modality?: string; tokenCount?: number }>) ?? [];
@@ -70,7 +84,10 @@ export async function generateGeminiImage(args: GeminiImageArgs): Promise<Gemini
   if (!key) throw new Error('GEMINI_API_KEY is not configured');
 
   // The API rejects any ratio outside its supported list, so always snap.
-  const requested = ratioFromString(args.aspectRatio);
+  // Edits and variations don't ask for a shape: keep the source picture's,
+  // otherwise the square fallback below crops a landscape banner to a square.
+  const requested = ratioFromString(args.aspectRatio)
+    ?? (args.inlineImage ? await sourceRatio(args.inlineImage.base64) : null);
   const aspectRatio = requested !== null
     ? nearestSupportedRatio(spec.id, requested)
     : '1:1';

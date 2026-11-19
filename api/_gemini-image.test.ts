@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import sharp from 'sharp';
 import { generateGeminiImage } from './_gemini-image.js';
 
 const fetchMock = vi.fn();
@@ -87,6 +88,43 @@ describe('generateGeminiImage', () => {
       inlineData: { mimeType: 'image/png', data: 'QUJD' },
     });
     expect(body.contents[0].parts[1]).toEqual({ text: 'make it blue' });
+    // 'QUJD' is not a readable image, so the shape falls back to square.
+    expect(body.generationConfig.imageConfig.aspectRatio).toBe('1:1');
+  });
+
+  // Without this, every edit and variation was sent as 1:1 and a landscape
+  // banner came back as a square crop (seen live with Nano Banana 2.1, 2026-11-19).
+  it('an edit keeps a landscape source picture\'s shape when no ratio is asked for', async () => {
+    fetchMock.mockResolvedValue(okResponse());
+    const src = await sharp({ create: { width: 1536, height: 1024, channels: 3, background: '#800' } }).png().toBuffer();
+    await generateGeminiImage({
+      modelId: 'gemini-nano-banana-2.1', prompt: 'make it blue',
+      inlineImage: { mimeType: 'image/png', base64: src.toString('base64') },
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.generationConfig.imageConfig.aspectRatio).toBe('3:2');
+  });
+
+  it('an edit keeps a portrait source picture\'s shape', async () => {
+    fetchMock.mockResolvedValue(okResponse());
+    const src = await sharp({ create: { width: 1080, height: 1920, channels: 3, background: '#080' } }).jpeg().toBuffer();
+    await generateGeminiImage({
+      modelId: 'gemini-2.5-flash-image', prompt: 'make it blue',
+      inlineImage: { mimeType: 'image/jpeg', base64: src.toString('base64') },
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.generationConfig.imageConfig.aspectRatio).toBe('9:16');
+  });
+
+  it('an explicitly asked-for ratio still wins over the source picture\'s shape', async () => {
+    fetchMock.mockResolvedValue(okResponse());
+    const src = await sharp({ create: { width: 1536, height: 1024, channels: 3, background: '#008' } }).png().toBuffer();
+    await generateGeminiImage({
+      modelId: 'gemini-nano-banana-2.1', prompt: 'make it blue', aspectRatio: '1:1',
+      inlineImage: { mimeType: 'image/png', base64: src.toString('base64') },
+    });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.generationConfig.imageConfig.aspectRatio).toBe('1:1');
   });
 
   it('throws a readable error when the API returns a failure', async () => {
